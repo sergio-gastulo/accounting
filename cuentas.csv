@@ -1,0 +1,1007 @@
+Date,Amount,Description,Category
+27-08-2023,50.0,ingreso_tio,USD_INC
+27-08-2023,5.0,recarga,CELULAR
+28-08-2023,3.0,pasaje corefo,PASAJE
+31-08-2023,5.0,recarga,CELULAR
+31-08-2023,4.5,Sim pao barrio chino,COM_VAR
+31-08-2023,3.0,pasaje pnavu,PASAJE
+01-09-2023,7.2,pasta dental,VARIOS
+01-09-2023,5.0,pasaje uni,PASAJE
+01-09-2023,4.5,2 botellas de agua de 1L,COM_VAR
+03-09-2023,18.0,3 folderes,VARIOS
+03-09-2023,10.0,2 cuadernos CONTI,VARIOS
+03-09-2023,7.0,2 lapiceros stabilo,VARIOS
+03-09-2023,2.0,1 liquipaper,VARIOS
+04-09-2023,8.0,menú FC,MENU
+04-09-2023,4.0,pasajes,PASAJE
+05-09-2023,5.0,recarga por salir con silvana,CELULAR
+05-09-2023,2.0,pasaje corefo,PASAJE
+05-09-2023,1.5,jugo de naranja frugos,COM_VAR
+06-09-2023,11.9,spotify,RECIBO
+06-09-2023,10.0,pto lomo saltado FIEECS,MENU
+06-09-2023,4.0,pasajes,PASAJE
+07-09-2023,90.0,dominos + 30 para bella,CASA
+07-09-2023,3.0,pasaje corefo,PASAJE
+08-09-2023,16.5,menu abancay,MENU
+08-09-2023,2.0,pasaje pnavu,PASAJE
+11-09-2023,10.0,menu abancay,MENU
+11-09-2023,5.0,recarga,CELULAR
+11-09-2023,2.0,pasaje pnavu,PASAJE
+12-09-2023,3.0,pasaje corefo,PASAJE
+12-09-2023,3.0,pasaje corefo,PASAJE
+13-09-2023,3.0,pasaje pnavu,PASAJE
+16-09-2023,5.0,VERIFICAR,VARIOS
+17-09-2023,20.0,cabello,PERSONAL
+17-09-2023,5.0,almendras,COM_VAR
+17-09-2023,5.0,recarga,CELULAR
+18-09-2023,10.0,menu abancay,MENU
+20-09-2023,10.0,menu FIC,MENU
+20-09-2023,2.8,agua,COM_VAR
+20-09-2023,4000.0,sueldo corefo,INGRESO
+21-09-2023,5.0,desayuno primavera,COM_VAR
+22-09-2023,20.0,pasajes general,PASAJE
+25-09-2023,21.4,chifa con la g,MENU
+25-09-2023,5.0,recarga,CELULAR
+25-09-2023,5.0,pasaje abancay,PASAJE
+26-09-2023,3.0,primavera,PASAJE
+27-09-2023,11.0,menu fc,MENU
+27-09-2023,10.0,recarga metropolitano,PASAJE
+27-09-2023,4.2,pasaje uni,PASAJE
+27-09-2023,4.0,pastilla,VARIOS
+27-09-2023,0.4,copias carta,VARIOS
+28-09-2023,3.0,primavera,PASAJE
+29-09-2023,22.67,menu w tty+mig,MENU
+29-09-2023,7.5,mali w tty,VARIOS
+29-09-2023,3.0,abancay + chosicano,PASAJE
+30-09-2023,223.9,calidda + win,CASA
+01-10-2023,5.0,recarga,CELULAR
+02-10-2023,28.0,chifa con tty + mig,MENU
+02-10-2023,3.0,abancay,PASAJE
+02-10-2023,2.0,pasaje micha ,VARIOS
+03-10-2023,3.0,primavera,PASAJE
+05-10-2023,11.9,spotify,RECIBO
+06-10-2023,11.0,menu abancay,MENU
+06-10-2023,9.0,desayuno abancay,COM_VAR
+06-10-2023,3.0,pasaje,PASAJE
+06-10-2023,1.0,gerald,COM_VAR
+08-10-2023,8.0,taxi vuelta,PASAJE
+08-10-2023,6.7,taxi ida,PASAJE
+08-10-2023,5.0,propina,VARIOS
+09-10-2023,15.0,relojes,VARIOS
+09-10-2023,5.0,correa,VARIOS
+10-10-2023,3.0,pasaje corefo,PASAJE
+11-10-2023,11.0,menu fc,MENU
+11-10-2023,5.0,pasaje abancay + uni,PASAJE
+11-10-2023,1.0,choros de mierda,VARIOS
+12-10-2023,2.0,pasaje primavera,PASAJE
+13-10-2023,14.4,menu abancay,MENU
+13-10-2023,4.0,pasaje uni,PASAJE
+13-10-2023,1.0,botella de agua,VARIOS
+16-10-2023,3.0,pasaje,PASAJE
+17-10-2023,5.0,recarga,CELULAR
+17-10-2023,3.0,pasaje pnavu,PASAJE
+18-10-2023,11.0,menu katty,MENU
+18-10-2023,10.0,museo viernes tty,VARIOS
+18-10-2023,3.0,pasaje pnavu,PASAJE
+19-10-2023,3.0,pasaje,PASAJE
+20-10-2023,8.0,menu ciencias,MENU
+20-10-2023,5.0,pasaje uni,PASAJE
+20-10-2023,2.5,agua,VARIOS
+20-10-2023,2.5,helado w janice,VARIOS
+23-10-2023,5.0,recarga,CELULAR
+23-10-2023,3.0,pasaje,PASAJE
+24-10-2023,3.0,pasaje,PASAJE
+25-10-2023,3.0,pasaje,PASAJE
+26-10-2023,3.0,pasaje,PASAJE
+27-10-2023,3.0,pasaje,PASAJE
+28-10-2023,47.0,westin con ktty jajska,COM_VAR
+28-10-2023,19.75,cena repshop ttyy,COM_VAR
+28-10-2023,5.0,recarga,CELULAR
+28-10-2023,4.0,pasaje,PASAJE
+28-10-2023,1.5,botella de agua,COM_VAR
+30-10-2023,3.0,pasaje,PASAJE
+30-10-2023,1.5,cifrut,COM_VAR
+31-10-2023,188.6,calidda + win,CASA
+31-10-2023,5.0,recarga,CELULAR
+31-10-2023,3.0,pasje,PASAJE
+02-11-2023,3.0,pasaje,PASAJE
+03-11-2023,8.0,menu fc,MENU
+03-11-2023,5.0,recarga,CELULAR
+03-11-2023,3.0,pasaje,PASAJE
+05-11-2023,20.1,cafecito maria,VARIOS
+05-11-2023,19.9,mcdonald maria,VARIOS
+05-11-2023,15.0,w ttyyyyy,VARIOS
+05-11-2023,4.5,pasaje,PASAJE
+06-11-2023,11.9,spotify,RECIBO
+07-11-2023,3.0,pasaje,PASAJE
+08-11-2023,5.0,recarga,CELULAR
+08-11-2023,3.0,pasaje,PASAJE
+08-11-2023,1.0,chocoteja geral,COM_VAR
+09-11-2023,2.0,pasaje,PASAJE
+10-11-2023,12.95,hamburguesa,COM_VAR
+10-11-2023,3.0,agua cielo 1L wtty,COM_VAR
+10-11-2023,3.0,pasaje,PASAJE
+14-11-2023,2.0,pasaje,PASAJE
+15-11-2023,15.5,w ttyyyyy,COM_VAR
+15-11-2023,2.0,pasaje,PASAJE
+16-11-2023,15.0,cabello,PERSONAL
+16-11-2023,2.0,pasaje,PASAJE
+17-11-2023,32.85,w ttyyyyy,COM_VAR
+17-11-2023,4.5,agua + cifrut,COM_VAR
+18-11-2023,19.53,crunchy,RECIBO
+21-11-2023,5.0,recarga,CELULAR
+21-11-2023,2.0,pasaje corefo,PASAJE
+22-11-2023,9.0,menu sm,MENU
+22-11-2023,5.5,pasaje sm + abancay,PASAJE
+22-11-2023,2.0,agua de litro,COM_VAR
+23-11-2023,45.4,"desodorante, afeitadora",PERSONAL
+23-11-2023,7.5,ariana helado,COM_VAR
+23-11-2023,2.0,corefo,PASAJE
+24-11-2023,9.0,desayuno w tty,COM_VAR
+24-11-2023,3.0,pasaje,PASAJE
+25-11-2023,19.0,menu puka tty,MENU
+25-11-2023,5.5,pasaje,PASAJE
+25-11-2023,5.0,recarga cel,CELULAR
+25-11-2023,1.0,botella de agua,COM_VAR
+26-11-2023,14.85,fabi + tty,COM_VAR
+26-11-2023,5.0,metropolitano recarga,PASAJE
+26-11-2023,4.0,pasaje csmmm,PASAJE
+28-11-2023,2.0,pasaje,PASAJE
+29-11-2023,2.0,pasaje,PASAJE
+30-11-2023,223.0,calidda + win,CASA
+30-11-2023,5.0,recarga,CELULAR
+30-11-2023,2.0,pasaje,PASAJE
+01-12-2023,14.0,broaster mas agua,COM_VAR
+01-12-2023,12.5,taxi vuelta,PASAJE
+01-12-2023,4.0,pasaje uni primera ronda,PASAJE
+01-12-2023,2.0,pasaje uni 2da ronda,PASAJE
+03-12-2023,23.34,popeyes,COM_VAR
+03-12-2023,7.0,no entiendo una mierda,PASAJE
+03-12-2023,5.5,pasaje chino 1ra ronda,PASAJE
+05-12-2023,2.0,pasaje corezzzz,PASAJE
+06-12-2023,22.5,chifaaa wtty,MENU
+06-12-2023,11.9,spotify,RECIBO
+06-12-2023,6.5,el real pasaje (minjus-pacheco-r.palma-uni-casa),PASAJE
+06-12-2023,5.0,recargaaa,CELULAR
+06-12-2023,3.2,2 botellas de agua wtty,COM_VAR
+07-12-2023,8.95,pollogod,MENU
+07-12-2023,4.0,pasaje imca,PASAJE
+10-12-2023,120.0,odalis blind,INGRESO
+11-12-2023,3.8,????,VARIOS
+12-12-2023,5.0,recarga,CELULAR
+12-12-2023,2.0,pasaje corefo,PASAJE
+12-12-2023,160.0,odalis blind,INGRESO
+13-12-2023,12.0,menu abancay,MENU
+15-12-2023,36.9,ktty neceser ,VARIOS
+15-12-2023,30.0,buffet,COM_VAR
+15-12-2023,10.0,menu pta 5,MENU
+15-12-2023,2.5,agua,COM_VAR
+15-12-2023,4000.0,sueldo corefo,INGRESO
+16-12-2023,23.0,bocaditos rixi jause + kiki,COM_VAR
+16-12-2023,20.0,combustible tony,VARIOS
+16-12-2023,16.0,anvorgeusa + tony,COM_VAR
+16-12-2023,5.0,bolsa ariana,VARIOS
+16-12-2023,3.75,taxi brigitte,PASAJE
+18-12-2023,19.53,crunchy,RECIBO
+18-12-2023,12.0,menu abancay,MENU
+18-12-2023,5.0,recarga,CELULAR
+20-12-2023,2.5,agua fc,COM_VAR
+21-12-2023,12.0,menu thx ktty,MENU
+22-12-2023,3.0,pasaje,PASAJE
+23-12-2023,31.0,taxi w mariaa,PASAJE
+23-12-2023,22.0,trago,VARIOS
+23-12-2023,19.8,repshop lmao,COM_VAR
+23-12-2023,9.0,el real pasaje (moto+chosi+barranco+aux),PASAJE
+23-12-2023,5.0,recarga,CELULAR
+23-12-2023,25.0,maria blind,BLIND
+24-12-2023,15.0,limpiatodo,CASA
+24-12-2023,5.0,propina alison,VARIOS
+25-12-2023,200.0,propina alison,VARIOS
+26-12-2023,18.0,cabello,PERSONAL
+27-12-2023,10.0,metropolitano recarga,PASAJE
+27-12-2023,2.0,botella de agua,COM_VAR
+27-12-2023,2.0,pasaje,PASAJE
+28-12-2023,5.5,el real pasaje (uni + bolog+chosi+verde),PASAJE
+28-12-2023,4.0,pulserita,VARIOS
+28-12-2023,2.0,botella de agua,COM_VAR
+29-12-2023,50.0,consulta oftalmologo,PERSONAL
+29-12-2023,13.5,el real hamburgueson,COM_VAR
+29-12-2023,12.0,furloko,COM_VAR
+29-12-2023,5.0,recarga,CELULAR
+29-12-2023,4.34,real pasaje (mexico+penal+taxi playa+caqueta),PASAJE
+29-12-2023,4.0,pasaje manhana,PASAJE
+29-12-2023,3.5,desayuno,COM_VAR
+30-12-2023,127.0,regalitos arenales,VARIOS
+30-12-2023,43.5,sonsera coreana,COM_VAR
+30-12-2023,17.0,taxi,PASAJE
+30-12-2023,6.5,pasaje mexico,PASAJE
+30-12-2023,4.0,moto,PASAJE
+31-12-2023,216.66,calidda + win,CASA
+03-01-2024,12.0,menu abancay,MENU
+03-01-2024,8.0,REVISAR,VARIOS
+03-01-2024,5.0,recarga,CELULAR
+03-01-2024,3.0,pasaje,PASAJE
+03-01-2024,1.0,botella de agua,COM_VAR
+04-01-2024,2.0,pasaje,PASAJE
+05-01-2024,2.0,pasaje ,PASAJE
+06-01-2024,11.9,spotify,RECIBO
+08-01-2024,50.0,regalo abby,VARIOS
+08-01-2024,9.0,menu,MENU
+08-01-2024,5.0,recarga,CELULAR
+08-01-2024,2.0,pasaje,PASAJE
+08-01-2024,1.0,agua,COM_VAR
+09-01-2024,2.0,pasaje,PASAJE
+09-01-2024,1.0,agua,COM_VAR
+10-01-2024,2.0,pasaje,PASAJE
+11-01-2024,3.1,helado maria + bolsa,VARIOS
+11-01-2024,2.5,pasaje,PASAJE
+11-01-2024,1.2,agua san carlos,COM_VAR
+11-01-2024,39.5,pote de mrd,VARIOS
+12-01-2024,25.9,anvorguesa w jenifer,COM_VAR
+12-01-2024,2.0,pasaje,PASAJE
+15-01-2024,11.0,menu,MENU
+15-01-2024,5.0,recarga,CELULAR
+15-01-2024,2.0,pasaje,PASAJE
+15-01-2024,1.0,botella de agua,COM_VAR
+16-01-2024,2.0,pasaje,PASAJE
+16-01-2024,1.0,botella de agua,COM_VAR
+17-01-2024,25.5,chifa feat chicana,COM_VAR
+17-01-2024,7.9,piscano agg,COM_VAR
+17-01-2024,3.0,pasaje,PASAJE
+17-01-2024,2.0,metropolitano recarga,PASAJE
+18-01-2024,39.8,tambito,COM_VAR
+18-01-2024,20.0,taxi de mrddd,PASAJE
+18-01-2024,19.61,crunchy,RECIBO
+18-01-2024,3.0,pasaje a mexico wey ,PASAJE
+18-01-2024,1.0,metropolitano recarga,PASAJE
+19-01-2024,48.0,chillis de mrdd,COM_VAR
+19-01-2024,28.0,valetodo de mrddd,VARIOS
+19-01-2024,21.5,taxi de mrddd,PASAJE
+19-01-2024,13.0,trago en chillis de mrddd,COM_VAR
+19-01-2024,2.5,mexico wei,PASAJE
+19-01-2024,1.0,metropolitano recarga,PASAJE
+19-01-2024,1.5,chilis propina wey AAAA,VARIOS
+24-01-2024,35.0,mariazzzz,VARIOS
+25-01-2024,410.0,blinds,INGRESO
+25-01-2024,212.8,arena garrix,VARIOS
+26-01-2024,3.0,churros,VARIOS
+26-01-2024,2.0,pasaje,PASAJE
+26-01-2024,1.0,agua,COM_VAR
+26-01-2024,5.0,recarga,CELULAR
+27-01-2024,7.5,pasaje rixi jaus,PASAJE
+27-01-2024,14.95,rixi jaus,VARIOS
+29-01-2024,5.0,pasaje marriot,PASAJE
+29-01-2024,21.6,la lucha,COM_VAR
+31-01-2024,3.0,pasaje,PASAJE
+31-01-2024,1.0,agua san carlos,COM_VAR
+31-01-2024,2000.0,sueldo corefo,INGRESO
+02-02-2024,5.0,pasaje uni,PASAJE
+02-02-2024,3.0,3 soles de agua q asco,COM_VAR
+02-02-2024,8.0,menu fc,MENU
+02-02-2024,5.0,recarga de celular,CELULAR
+03-02-2024,5.0,bicicleta arreglada,VARIOS
+04-02-2024,50.0,blind papa,BLIND
+05-02-2024,2.5,arianita gelatina,COM_VAR
+05-02-2024,60.0,blind odalis,INGRESO
+06-02-2024,12.5,engrampadora de mrd ,CASA
+08-02-2024,130.0,blind odalis,INGRESO
+09-02-2024,70.0,blind odalis,INGRESO
+09-02-2024,20.0,corte cabello,PERSONAL
+10-02-2024,1.5,pasaje rapido wtty,PASAJE
+10-02-2024,25.0,shawarma wttyyyyyy,COM_VAR
+10-02-2024,11.7,pshyscos de mrd wtty,COM_VAR
+10-02-2024,33.1,taxi de mrddd,PASAJE
+10-02-2024,5.0,recarga cel,CELULAR
+11-02-2024,4.0,taxi w mom,PASAJE
+13-02-2024,70.0,blind odalis,INGRESO
+14-02-2024,8.8,blind maria,BLIND
+14-02-2024,21.0,chifa of shit,COM_VAR
+14-02-2024,130.0,blind odalis,INGRESO
+15-02-2024,35.8,chicharrones de mrdd,COM_VAR
+15-02-2024,5.0,recarga,CELULAR
+15-02-2024,2.4,agua de mrd,COM_VAR
+15-02-2024,5.0,metropolitano recarga,PASAJE
+15-02-2024,4.0,pasaje normal,PASAJE
+19-02-2024,4.0,pasaje uni,PASAJE
+19-02-2024,8.0,menu,MENU
+20-02-2024,60.0,blind odalis,INGRESO
+22-02-2024,11.0,blind restante papa pipipi,BLIND
+22-02-2024,72.5,entradas cine de mrd,VARIOS
+22-02-2024,71.5,canchita mrd,COM_VAR
+23-02-2024,6.0,pasaje casa wtty,PASAJE
+23-02-2024,32.34,makis wtty,COM_VAR
+24-02-2024,10.0,parche de mrd bicicleta,VARIOS
+25-02-2024,90.0,odalis blind,INGRESO
+26-02-2024,82.5,odalis blind,INGRESO
+27-02-2024,67.5,clases a vivi,INGRESO
+23-02-2024,4.0,jijija,PERSONAL
+28-02-2024,28.8,la lucha wtty,COM_VAR
+28-02-2024,5.0,pasajeeee,PASAJE
+28-02-2024,40.0,odalis semi blind,INGRESO
+29-02-2024,45.0,clases vivi,INGRESO
+1-03-2024,5.0,AGUA DE MRDDDD,COM_VAR
+1-03-2024,2.5,pasajeeeeee mg uu,PASAJE
+2-03-2024,60.0,taxi de mrdddddd,PASAJE
+4-03-2024,12.0,HELADO DE MIERDAAAAA wtty tqqmmmm aaa,COM_VAR
+4-03-2024,3.5,agua de mrd ,COM_VAR
+4-03-2024,10.0,menu mercado central wtty y la g ,MENU
+4-03-2024,4.0,pasjeee wasaaaa,PASAJE
+4-03-2024,5.0,recarga pes hijito ,CELULAR
+6-03-2024,11.9,spotify,RECIBO
+7-03-2024,24.2,plaza wttyyyyy,COM_VAR
+7-03-2024,2.5,agua de mrd uni,COM_VAR
+7-03-2024,6.0,casa-uni-pn-tvalle-pn-casa,PASAJE
+8-03-2024,30.0,flores tottyyyy jajajasjkj,VARIOS
+8-03-2024,5.5,papitas wtty,COM_VAR
+8-03-2024,7.0,realpasajecaonsa,PASAJE
+11-03-2024,120.0,vivi oda,INGRESO
+11-03-2024,5.0,recarga os ,CELULAR
+12-03-2024,63.0,uniiiiii egresado finally,PERSONAL
+12-03-2024,4.0,zzz,PASAJE
+12-03-2024,9.0,foto de mierdaaa,PERSONAL
+12-03-2024,2.0,agua de meirdddd tambo cpp,COM_VAR
+13-03-2024,60.0,vivi oda clases lesgoooo,INGRESO
+13-03-2024,109.97,concierto alison tag: cuota 0,VARIOS
+13-04-2024,109.66,concierto alison tag: cuota 1,VARIOS
+13-05-2024,109.66,concierto alison tag: cuota 2,VARIOS
+14-03-2024,1.0,cole ariana to bn,PASAJE
+11-03-2024,5.0,bicileta ,VARIOS
+16-03-2024,10.0,mami propina inlove,BLIND
+18-03-2024,19.0,crunchy of shit,RECIBO
+17-03-2024,80.0,blind papa cine lesgouuu,BLIND
+19-03-2024,37.2,tottus de mierdaaaaa,PERSONAL
+19-03-2024,16.5,to kttyyyyy de mi cora,VARIOS
+19-03-2024,59.8,cagada de casa e ideas ptm,PERSONAL
+21-03-2024,4.0,pasaje uni-home,PASAJE
+20-03-2024,4.0,pasaje uni-home,PASAJE
+21-03-2024,1.2,agua literlamente agua de mrd ,COM_VAR
+23-03-2024,2.5,regresar solito a casa sin ktty uu,PASAJE
+22-03-2024,8.0,metropo de mierda,PASAJE
+22-03-2024,4.0,casa - uni / angamos - casa ,PASAJE
+25-03-2024,13.0,last time wtty uu como duele ,PASAJE
+25-03-2024,4.0,casa plaza / casa ktty - casa sergio uu,PASAJE
+25-03-2024,4.0,jijija,PERSONAL
+25-03-2024,1.0,ph,PERSONAL
+25-03-2024,60.0,salud mental uu,PERSONAL
+25-03-2024,5.0,recarga para verme con ktty uu,CELULAR
+19-03-2024,5.0,recarga uu,CELULAR
+26-03-2024,28.5,mita mita regalo janice w micha,VARIOS
+26-03-2024,24.0,fourlokos brigitte,VARIOS
+24-03-2024,10.0,taxi de regreso del mall,PASAJE
+26-03-2024,100.0,momi blind concierto alison,BLIND
+12-03-2024,15.0,corte de cabello,PERSONAL
+27-03-2024,60.0,salud mental uu,PERSONAL
+27-03-2024,4.0,uni zz,PASAJE
+27-03-2024,24.0,ppiiipi con dayana,COM_VAR
+26-03-2024,4.0,uni mrd zzzz,PASAJE
+27-03-2024,12.0,taxi micha csmr pipip,PASAJE
+25-03-2024,1.0,banho de mrd,VARIOS
+28-03-2024,6.0,pastillas de mierda,PERSONAL
+28-03-2024,2.5,cuaderno of shit for anxiety ,VARIOS
+29-03-2024,34.86,chela mas labial de mierdaaaa dios nunca mas vuelvo a salir,VARIOS
+28-03-2024,3.5,zzzz con chicana zzz ,PASAJE
+30-03-2024,26.9,club sandwich de mierda dios ,COM_VAR
+1-04-2024,60.0,psico,PERSONAL
+1-04-2024,4.0,taxi casa,PASAJE
+2-04-2024,4.0,pasaje uni,PASAJE
+2-04-2024,60.0,oda vivi,INGRESO
+3-04-2024,5.0,recarga mierda,CELULAR
+3-04-2024,4.0,uni de mrd,PASAJE
+3-04-2024,60.0,psico uu,PERSONAL
+4-04-2024,4.0,pasaje uni of shit ,PASAJE
+5-04-2024,60.0,vivi oda,INGRESO
+7-04-2024,60.0,oda viv lesgoooouuu ,INGRESO
+8-04-2024,97.5,oda vivi lesgooo,INGRESO
+9-04-2024,45.0,odavivi,INGRESO
+8-04-2024,60.0,psico uu,PERSONAL
+9-04-2024,4.0,uni de mierda,PASAJE
+9-04-2024,1.2,agua demierda dios,COM_VAR
+9-04-2024,20.0,mommy blind aaahhh thx ,BLIND
+10-04-2024,60.0,psico sesion,PERSONAL
+10-04-2024,148.0,visa de mierda auUUU conchasumare tag: cuota 0,VARIOS
+10-05-2024,148.0,visa de mierda auUUU conchasumare tag: cuota 1,VARIOS
+10-06-2024,148.0,visa de mierda auUUU conchasumare tag: cuota 2,VARIOS
+10-07-2024,148.0,visa de mierda auUUU conchasumare tag: cuota 3,VARIOS
+10-08-2024,148.0,visa de mierda auUUU conchasumare tag: cuota 4,VARIOS
+10-04-2024,5.0,casa uni metro caqueta casa,PASAJE
+10-04-2024,1.5,asgua de mierda,COM_VAR
+10-04-2024,30.0,vivi oda,INGRESO
+11-04-2024,7.0,moto ariana - caqueta uni caqueta casa,PASAJE
+11-04-2024,1.5,agua de mrd,COM_VAR
+11-04-2024,6.0,me lo merezco-jarritas,COM_VAR
+12-04-2024,8.0,casa tio rambla tio casa,PASAJE
+12-04-2024,3.0,AGUA Q RICA PROMO MIERDA,COM_VAR
+12-04-2024,2.7,mami invtacion cancha chifle,COM_VAR
+6-04-2024,11.9,spotify,RECIBO
+12-04-2024,0.3,impuestos de mierda bajense el estado,VARIOS
+12-04-2024,0.1,otros impuestos de mierda la putamare maten al estado por lo que mas quieran gracias me cago en todo lo cagable la conchasumareeeeeeeeeeeeeeeeeeee,VARIOS
+15-04-2024,60.0,psico,PERSONAL
+15-04-2024,35.0,oda viv,INGRESO
+17-04-2024,4.0,uni zzz,PASAJE
+17-04-2024,1.0,churros de mierdaaaa,COM_VAR
+18-04-2024,12.0,celebracion con el yoni bachillerato aaaaa,COM_VAR
+18-04-2024,4.0,casa uni of shit,PASAJE
+18-04-2024,5.0,recarga de mierdaaa,CELULAR
+17-04-2024,60.0,psico uu,PERSONAL
+18-04-2024,19.0,crunchy,RECIBO
+19-04-2024,2.0,perdido ptmr,VARIOS
+19-04-2024,37.0,salida con anahit,COM_VAR
+19-04-2024,1.5,agua de mierd,COM_VAR
+19-04-2024,4.0,casa uni,PASAJE
+19-04-2024,1.5,chicle de mierda,COM_VAR
+19-04-2024,15.0,corte de cabello,PERSONAL
+20-04-2024,4.0,casa 28 angamos primavera pino,PASAJE
+20-04-2024,16.0,mostro de mierda,COM_VAR
+20-04-2024,1.0,aguaaaaa,COM_VAR
+21-04-2024,60.0,vivi odaa wasaaa,INGRESO
+20-04-2024,15.0,picarones dem ierdaaaa,COM_VAR
+21-04-2024,2.0,agua de meirdaaaaaaa te odio,COM_VAR
+20-04-2024,14.0,mami blind recoger alison,BLIND
+22-04-2024,60.0,psico uu,PERSONAL
+24-04-2024,60.0,psico uu,PERSONAL
+26-04-2024,5.0,recargaaaa,CELULAR
+26-04-2024,1.5,agua demierda,COM_VAR
+27-04-2024,150.0,ticla tunning csmre,VARIOS
+27-04-2024,2.5,casa emanciapacion bolog casa,PASAJE
+27-04-2024,7.0,chihca demierda,COM_VAR
+28-04-2024,1.5,agua demierda,COM_VAR
+29-04-2024,60.0,psico uu,PERSONAL
+1-05-2024,5.0,recaraga de mierdaaaaaaaaaaaa,CELULAR
+2-05-2024,60.0,psico uu,PERSONAL
+4-05-2024,26.0,conchasumare taba rico pero caro el chancho ese pipipi,COM_VAR
+4-05-2024,20.6,taxi,PASAJE
+4-05-2024,1.5,trujillo,PASAJE
+4-05-2024,2.0,banho de mierda,VARIOS
+4-05-2024,1.9,un asalto - agua asquerosa,VARIOS
+6-05-2024,60.0,vivi oda,INGRESO
+6-05-2024,60.0,psico ,PERSONAL
+5-05-2024,3.0,taxi w sisters,PASAJE
+7-05-2024,40.0,oda vivi,INGRESO
+7-05-2024,150.0,taller de clown,VARIOS
+8-05-2024,60.0,psico,PERSONAL
+8-05-2024,55.0,regalo torta dia de las madres,VARIOS
+9-05-2024,2.5,casa - grau / acho - casa,PASAJE
+9-05-2024,71.0,licrados de compresion para mi ticla bonita,VARIOS
+9-05-2024,17.0,mostro de mierda,COM_VAR
+9-05-2024,3.5,gaseosa - un choreo de mierda,COM_VAR
+6-05-2024,1.0,pin arianita,VARIOS
+9-05-2024,15.0,pulseritas match,VARIOS
+10-05-2024,2.0,agua de mierdaaa,COM_VAR
+6-05-2024,11.9,spot,RECIBO
+11-05-2024,126.3,regalito momi ,VARIOS
+11-05-2024,10.7,huevos,VARIOS
+11-05-2024,20.0,croissant de mierdaaaa,COM_VAR
+13-05-2024,55.0,regalito momi,COM_VAR
+13-05-2024,7.0,decoracion momi regalo torata,COM_VAR
+13-05-2024,38.8,bistec momi,VARIOS
+13-05-2024,60.0,psico uu,VARIOS
+14-05-2024,928.51,pippi viejo,INGRESO
+14-05-2024,99.0,clases arianita,VARIOS
+20-05-2024,60.0,psicologia,PERSONAL
+15-05-2024,1.5,casa 28 de julio,PASAJE
+15-05-2024,0.5,nhoba de mierda,VARIOS
+15-05-2024,5.0,recarga,CELULAR
+15-05-2024,41.0,comida con anahit,COM_VAR
+15-05-2024,1.5,centro - casa,PASAJE
+16-05-2024,60.0,psicologa,PERSONAL
+18-05-2024,1.0,tania jajakdjksjfdsafsd,PASAJE
+19-05-2024,2.5,casa - benavides - larco,PASAJE
+19-05-2024,6.0,conchasumare un asalto -- larco - benavides - chino a villa - moto 2.5 csmr,PASAJE
+19-05-2024,40.0,profilaxis con dayana,PERSONAL
+19-05-2024,15.5,querrico csmre lo unico bueno - pollichaufa,COM_VAR
+19-05-2024,6.5,dayana - hospital - sta anita -- chino demierda la puta q te pario hombre,PASAJE
+19-05-2024,19.0,crunchy de mierdaaa,RECIBO
+30-8-2023,920.0,bn,INGRESO
+30-9-2023,920.0,bn,INGRESO
+30-10-2023,920.0,bn,INGRESO
+30-11-2023,920.0,bn,INGRESO
+30-12-2023,420.0,bn,INGRESO
+22-05-2024,15.0,taxi de mierdaaa ,PASAJE
+22-05-2024,1.0,etulsa mi amor,PASAJE
+22-05-2024,600.0,chamba tania VAMOS MIERDAAAAAAAAAAAAAAAA,INGRESO
+23-05-2024,30.7,te amo bembos csmre,COM_VAR
+23-05-2024,3.0,moto - chino trujillo - benavides casa,PASAJE
+25-05-2024,1.0,casa - ovalo,PASAJE
+24-05-2024,19.0,starbucks de mierdaaa,COM_VAR
+24-05-2024,16.4,repsol salchicha + burrito,COM_VAR
+24-05-2024,2.0,agua de mierda,COM_VAR
+22-05-2024,60.0,psico,PERSONAL
+27-05-2024,60.0,psico,PERSONAL
+24-05-2024,4.0,sergio+ariana - casa jp y vice,PASAJE
+24-05-2024,5.0,recarga tarjeta metropo,PASAJE
+24-05-2024,1.0,telescopio,VARIOS
+24-05-2024,18.0,blind ariana propina,BLIND
+26-05-2024,6.5,dios q mierdaaaaa casa benavides larco y vice,PASAJE
+26-05-2024,4.0,llantita rota piipipipipipi,VARIOS
+26-05-2024,6.0,recaraga,CELULAR
+2-06-2024,9.5,casa - larco - villa - casa,PASAJE
+2-06-2024,1.0,agua en larco jijiji viejo ermoso gracias por vendemre a luca el agua csm,COM_VAR
+2-06-2024,1.0,banho de mierda,VARIOS
+2-06-2024,47.0,silvaanaaaaaa,COM_VAR
+2-06-2024,29.7,bembos de mi vida,COM_VAR
+1-06-2024,52.0,bicicleta de mi vida,VARIOS
+1-06-2024,5.0,recaraga,CELULAR
+30-05-2024,2.0,casa - aviacion -- san borja - casa,PASAJE
+30-05-2024,15.26,pizza w renzo,COM_VAR
+30-05-2024,1.7,agua,COM_VAR
+30-05-2024,1.71,francisco,BLIND
+30-05-2024,117.0,utec,PERSONAL
+31-05-2024,41.0,starbucks,COM_VAR
+31-05-2024,4.0,casa - javierprado,PASAJE
+31-05-2024,2.0,recarga metro mama,PASAJE
+31-05-2024,2.0,recarga metro mama,PASAJE
+31-05-2024,198.16,pago del mantenimiento,CASA
+31-05-2024,76.0,pago del interneet,CASA
+08-05-2024,6.0,recaraga,CELULAR
+21-05-2024,6.0,recaraga,CELULAR
+31-05-2024,18.0,mom recargas,BLIND
+29-05-2024,20.0,cabello,PERSONAL
+29-05-2024,1100.0,wolfram income,USD_INC
+12-04-2024,800.0,tio regalo,USD_INC
+12-04-2024,3000.0,tio desregalo,VARIOS
+3-06-2024,60.0,psicologia,PERSONAL
+3-06-2024,0.2,interes por pagar,VARIOS
+4-06-2024,1.5,pasaje a ariana,PASAJE
+5-06-2024,60.0,psico,PERSONAL
+6-06-2024,7.0,recarga pa ticla,CELULAR
+7-06-2024,16.0,starbucks for leetcode,COM_VAR
+7-06-2024,11.0,pasaje al jockey mas recargas metropolitano,PASAJE
+7-06-2024,29.7,bembos con arianita jiji,COM_VAR
+7-06-2024,2.7,aguas en wong con arianita pupipippipi,COM_VAR
+6-06-2024,11.9,spotify of shit,RECIBO
+9-06-2024,6.0,pasaje duh domingo sin medio piippiip,PASAJE
+9-06-2024,1.5,agua,COM_VAR
+9-06-2024,2.0,chifle querrriiiiii,COM_VAR
+11-06-2024,190.0,clown jiji tag: cuota 0,PERSONAL
+11-07-2024,190.0,clown jiji tag: cuota 1,PERSONAL
+11-06-2024,1.5,para mi arinita,PASAJE
+10-06-2024,60.0,pisco logia,PERSONAL
+12-06-2024,60.0,psico,PERSONAL
+14-06-2024,7.0,recarga ps ,CELULAR
+14-06-2024,10.0,blind madre pasajes,BLIND
+14-06-2024,10.0,recarga metropolitani,PASAJE
+14-06-2024,4.0,pasaje jp - casa x2,BLIND
+14-06-2024,14.5,starbucks de ariaana cochian,COM_VAR
+14-06-2024,1.5,galletas integrakers de mierda,COM_VAR
+15-06-2024,1.0,pasaje casa desde el ovalo csm,PASAJE
+15-06-2024,19.5,buen desayuno carajo,COM_VAR
+14-06-2024,6.1,pan pa la casa,CASA
+17-06-2024,60.0,psico,PERSONAL
+19-06-2024,60.0,psicologa,PERSONAL
+18-06-2024,5.0,moma blind for moto,BLIND
+18-06-2024,6.0,casa juzgado juzgado casa,PASAJE
+18-06-2024,1.0,reblind mom,VARIOS
+18-06-2024,19.0,crunchy,RECIBO
+17-06-2024,1.0,juzgado sin firma ptm,PASAJE
+19-06-2024,320.0,aleman dos meses csmre tag: cuota 0,PERSONAL
+19-07-2024,320.0,aleman dos meses csmre tag: cuota 1,PERSONAL
+19-06-2024,56.67,aleman dos meses csmre tag: cuota 0,PERSONAL
+19-07-2024,56.666,aleman dos meses csmre tag: cuota 1,PERSONAL
+19-08-2024,56.666,aleman dos meses csmre tag: cuota 2,PERSONAL
+19-09-2024,56.666,aleman dos meses csmre tag: cuota 3,PERSONAL
+19-10-2024,56.666,aleman dos meses csmre tag: cuota 4,PERSONAL
+19-11-2024,56.666,aleman dos meses csmre tag: cuota 5,PERSONAL
+5-06-2024,1.52,mantenimiento banco de la caca,VARIOS
+21-06-2024,6.0,recarga ps mami le dije 5 pero me dio 6 ptmre ,CELULAR
+21-06-2024,4.0,pasaje para llevar a ariana los viernes,PASAJE
+21-06-2024,34.5,ptmre ariana q cara me sales los viernes,COM_VAR
+21-06-2024,1.5,agua para ariana (ni pa mi ons),COM_VAR
+22-06-2024,80.0,mantenimiento pcsita ,VARIOS
+22-06-2024,20.0,recargas ambas tarjetas metropolitnao,PASAJE
+22-06-2024,2.0,pasaje of shit,PASAJE
+20-06-2024,200.0,visa de mierdaaaaaaaaaaaaa,PERSONAL
+25-06-2024,4.0,casa la fontana y reversa,PASAJE
+25-06-2024,140.0,ptmre nuevo cooler chato,VARIOS
+24-06-2024,4.0,pasaje pa la fontanaaaa aaaaa csmr,PASAJE
+26-06-2024,60.0,psico pipi,PERSONAL
+28-06-2024,5.0,recarga ps,CELULAR
+28-06-2024,3.0,casa yoqei ,PASAJE
+28-06-2024,6.0,recarga metroppooooo,PASAJE
+28-06-2024,30.0,startbucks para mami,COM_VAR
+28-06-2024,112.7,invitacion a mi mamita,COM_VAR
+28-06-2024,1100.0,wolframcito ingresito,USD_INC
+10-06-2024,10019.93,ingreso papa,INGRESO
+30-06-2024,200.68,mantenimiento,CASA
+30-06-2024,76.0,win internet casa,CASA
+1-07-2024,25.0,taxi de mrd,PASAJE
+1-07-2024,20.8,me cago en la puta nunca mas salgo con esos cojud0s,COM_VAR
+1-07-2024,3.0,pasaje de mierdaaaaa,PASAJE
+1-07-2024,23.0,desayuno con mami y abuelo jajaja,COM_VAR
+2-07-2024,18.8,comida tambo para sobrevivir,COM_VAR
+2-07-2024,7.0,recarga cellphone,CELULAR
+7-07-2024,2.0,pasaje casa euro,PASAJE
+3-07-2024,60.0,psico,PERSONAL
+5-07-2024,4.0,casa piano ariana,PASAJE
+5-07-2024,10.0,starbucks of shit solo para poder codificar en paz,COM_VAR
+6-07-2024,11.9,spotify,RECIBO
+9-07-2024,2.1,agua tambo silvana,COM_VAR
+6-07-2024,29.7,bembos con silvana uu,COM_VAR
+7-07-2024,33.8,casa enchilada,COM_VAR
+7-07-2024,8.0,pasaje clown ,PASAJE
+7-07-2024,10.0,blind el jaimito del taxi,BLIND
+6-07-2024,2.0,pasaje benavides uu,COM_VAR
+8-07-2024,60.0,psico ,PERSONAL
+9-07-2024,2.0,pasaje aleman,PASAJE
+8-07-2024,60.0,psico ,PERSONAL
+10-07-2024,60.0,psico,PERSONAL
+12-07-2024,45.0,laser hermoso precioso bello,VARIOS
+15-07-2024,26.0,chifa de mierdaaaa,COM_VAR
+12-07-2024,24.8,comida con arianita,COM_VAR
+11-07-2024,2.0,aleman,PASAJE
+11-07-2024,8.0,q rico cafecito con pan con pollo jiji,COM_VAR
+12-07-2024,4.0,pasaje con ariana,PASAJE
+12-07-2024,3.5,awita tambo x2,COM_VAR
+12-07-2024,5.0,recarga momi de mi vida,CELULAR
+14-07-2024,100.0,TANIA LESGOOOOO,INGRESO
+15-07-2024,300.0,graduacion pes HIJODEPERRA tag: cuota 0,PERSONAL
+16-07-2024,2.0,pasaje ,PASAJE
+16-07-2024,8.0,xd otra vez cafecito,COM_VAR
+17-07-2024,70.0,primera matricula constancia,PERSONAL
+18-07-2024,2.0,euroidionmas pasaje,PASAJE
+18-07-2024,8.0,euroidiomas anvorguesa,COM_VAR
+18-07-2024,19.0,crunchy,RECIBO
+19-07-2024,25.0,bici de mi vida cadenita,VARIOS
+18-07-2024,5.0,recarga,CELULAR
+20-07-2024,15.0,cabesho,PERSONAL
+21-07-2024,3.5,pasaje para larco,PASAJE
+21-07-2024,14.0,anvorguesa con el team,COM_VAR
+21-07-2024,1.5,chifle de mierda k ricoooo,COM_VAR
+21-07-2024,25.0,taxi dem ierdaaaaa,PASAJE
+21-07-2024,1.0,banho publico xd,VARIOS
+22-07-2024,60.0,psico,PERSONAL
+23-07-2024,7.0,recarga cel,CELULAR
+23-07-2024,40.0,babarian demierda q rica sachipapa,COM_VAR
+23-07-2024,2.0,rico al yokei,PASAJE
+24-07-2024,60.0,psico ,PERSONAL
+25-07-2024,2.0,euroidiomasgoc,PASAJE
+26-07-2024,25.5,comidita con la yel,COM_VAR
+31-07-2024,60.0,psico ,PERSONAL
+31-07-2024,600.0,viejo,INGRESO
+31-07-2024,76.0,win,CASA
+31-07-2024,191.57,manteminiento,CASA
+02-08-2024,1100.0,wolfram ingreso,USD_INC
+2-08-2024,7.0,recarga de mi cel,CELULAR
+3-08-2024,53.0,salida de la cibercaca,VARIOS
+4-08-2024,7.2,comida wachana goc,COM_VAR
+4-08-2024,6.0,tortita para mi mami,COM_VAR
+4-08-2024,13.5,desayuno ptmr,COM_VAR
+3-08-2024,12.5,gaseosagoc,COM_VAR
+4-08-2024,6.5,para larco al taller de clown jiji,PASAJE
+2-08-2024,4.0,ptmre para ir a lo de ariana jajajaja,PASAJE
+2-08-2024,20.0,recarga de metropolitano,PASAJE
+6-08-2024,60.0,psico,PERSONAL
+6-08-2024,1.0,pasaje a Gia,PASAJE
+6-08-2024,11.9,spotify,RECIBO
+7-08-2024,60.0,psico,PERSONAL
+8-08-2024,74.0,CLOWN DE MIERDA LA PUTAMAREEEEEEEEEEE,VARIOS
+8-08-2024,2.5,pasaje a acho feo,PASAJE
+5-08-2024,14.4,wachana carajo,COM_VAR
+12-08-2024,60.0,psico,PERSONAL
+13-08-2024,60.0,psico,PERSONAL
+16-08-2024,5.0,recargas pes hijito,CELULAR
+16-08-2024,65.0,tantaGOOOOD,COM_VAR
+16-08-2024,4.0,casa - basa - canada - vuelta corredor y chino,PASAJE
+16-08-2024,18.0,regalitos pa la casita mas agua,COM_VAR
+18-08-2024,4.0,DESAYUNO DE MIERDA K ASKO PUTAMARE,COM_VAR
+18-08-2024,6.0,casa larco casa,PASAJE
+19-08-2024,19.0,crunchy de mierda,RECIBO
+20-08-2024,60.0,psico,PERSONAL
+22-08-2024,60.0,psico,PERSONAL
+24-08-2024,28.8,bembos de mierdaaa,COM_VAR
+24-08-2024,7.5,casa primavera arequipa aviacion primavera casa,PASAJE
+25-08-2024,6.5,casa larco casa,PASAJE
+25-08-2024,1.0,awaGOD,COM_VAR
+26-08-2024,60.0,psico,PERSONAL
+27-08-2024,17.0,gatos de mierda,CASA
+28-08-2024,60.0,psico,PERSONAL
+23-08-2024,1100.0,ingreso mierdaaaa,USD_INC
+25-08-2024,500.0,papa blind,INGRESO
+30-08-2024,300.0,jasmine de mierdaaaa,VARIOS
+31-08-2024,10.0,recarga de metropolitano de mierdaaaaa,PASAJE
+31-08-2024,5.0,recarga celular,CELULAR
+31-08-2024,2.0,joqei pasaje,PASAJE
+31-08-2024,192.49,mantenimiento,CASA
+31-08-2024,76.0,win internet,CASA
+31-08-2024,15.7125,toalla de mierda tag: cuota 0,PERSONAL
+30-09-2024,15.7125,toalla de mierda tag: cuota 1,PERSONAL
+31-10-2024,15.7125,toalla de mierda tag: cuota 2,PERSONAL
+30-11-2024,15.7125,toalla de mierda tag: cuota 3,PERSONAL
+31-12-2024,15.7125,toalla de mierda tag: cuota 4,PERSONAL
+31-01-2025,15.7125,toalla de mierda tag: cuota 5,PERSONAL
+28-02-2025,15.7125,toalla de mierda tag: cuota 6,PERSONAL
+31-03-2025,15.7125,toalla de mierda tag: cuota 7,PERSONAL
+31-08-2024,41.0,pichara de mierdaa,PERSONAL
+31-08-2024,100.0,papi blind,INGRESO
+01-09-2024,3.0,casa trujillo casa,PASAJE
+01-09-2024,56.0,ASCO LA QUINUA DE MIERDA,COM_VAR
+02-09-2024,60.0,valeriaGOD,INGRESO
+4-09-2024,60.0,psico,PERSONAL
+4-09-2024,30.0,JORGEGOD,INGRESO
+4-09-2024,30.0,CHINOGOD,INGRESO
+3-09-2024,30.0,vikitkm,INGRESO
+9-09-2024,146.666666666667,TE QUIERO MUCHO ULTRA tag: cuota 0,VARIOS
+9-10-2024,146.666666666667,TE QUIERO MUCHO ULTRA tag: cuota 1,VARIOS
+9-11-2024,146.666666666667,TE QUIERO MUCHO ULTRA tag: cuota 2,VARIOS
+8-09-2024,1.5,pasaje para ir a barrancogod,PASAJE
+8-09-2024,18.0,chifita,COM_VAR
+8-09-2024,22.0,taxi de eme erre de,PASAJE
+7-09-2024,6.5,pasaje a pc,PASAJE
+7-09-2024,10.9,cagada de frutos secos,COM_VAR
+11-09-2024,60.0,psico,PERSONAL
+13-09-2024,83.3333333333333,graduacion de mierdaaaa tag: cuota 0,VARIOS
+13-10-2024,83.3333333333333,graduacion de mierdaaaa tag: cuota 1,VARIOS
+13-11-2024,83.3333333333333,graduacion de mierdaaaa tag: cuota 2,VARIOS
+13-09-2024,60.0,psicologod,PERSONAL
+12-09-2024,1.0,anconerogoc,PASAJE
+13-09-2024,2.0,aleman ps webonaso,PASAJE
+7-09-2024,5.0,recargactm,CELULAR
+6-09-2024,11.9,spotify de mierda,RECIBO
+6-10-2024,11.9,spotify de mierda,RECIBO
+6-11-2024,11.9,spotify de mierda,RECIBO
+6-12-2024,11.9,spotify de mierda,RECIBO
+18-09-2024,19.53,crunchy,RECIBO
+18-10-2024,19.53,crunchy,RECIBO
+18-11-2024,19.53,crunchy,RECIBO
+18-12-2024,19.53,crunchy,RECIBO
+18-01-2025,19.53,crunchy,RECIBO
+18-02-2025,19.53,crunchy,RECIBO
+6-09-2024,60.0,susanaGOOOD ingeso,INGRESO
+15-09-2024,1.5,xd grande camargo,PASAJE
+15-09-2024,5.0,recarga of shit,CELULAR
+20-09-2024,15.0,pelito,PERSONAL
+19-09-2024,2.0,pasaje ps,PASAJE
+18-09-2024,60.0,psico,PERSONAL
+17-09-2024,2.0,pasaje euroidiomas,PASAJE
+16-09-2024,160.0,CLOWN INGRESOOOOOO,INGRESO
+21-09-2024,48.0,bicigod tenia q arreglarla uu,VARIOS
+21-09-2024,3.0,gaytorade pq me moria de sed,COM_VAR
+21-09-2024,5.0,recarga,CELULAR
+24-09-2024,2.0,passajeee,PASAJE
+19-09-2024,1.0,chifle of shit,COM_VAR
+25-09-2024,320.0,aleman csmr tag: cuota 0,PERSONAL
+25-10-2024,320.0,aleman csmr tag: cuota 1,PERSONAL
+25-11-2024,320.0,aleman csmr tag: cuota 2,PERSONAL
+27-09-2024,5.0,recarga de eme erre de,CELULAR
+27-09-2024,4.0,pasaje para ir a la sonsera de ariana,PASAJE
+30-09-2024,76.0,internet win,CASA
+30-09-2024,192.0,mantenimiento,CASA
+29-09-2024,5.5,uni de eme erre de,PASAJE
+30-09-2024,1100.0,lesgooo,USD_INC
+5-10-2024,20.0,pollito a la brasaGOC,COM_VAR
+5-10-2024,5.0,pasaje pa la one,PASAJE
+5-10-2024,3.0,kekito desayono,COM_VAR
+5-10-2024,5.0,recarga,CELULAR
+2-10-2024,6.0,biciGOC,VARIOS
+4-10-2024,40.3,tabasGOOD,VARIOS
+3-10-2024,1.0,viejo gracias por llevarme,PASAJE
+1-10-2024,2.0,pasaje para ir a eurozz,PASAJE
+4-10-2024,100.0,blind abi,BLIND
+4-10-2024,20.0,abue blind regalo,BLIND
+4-10-2024,600.0,papi ingresoxddd,INGRESO
+11-10-2024,43.5,salida con Mayra,COM_VAR
+11-10-2024,5.0,recarga ps,CELULAR
+14-10-2024,3.5,al concierto,PASAJE
+14-10-2024,23.8,bembos of shit,COM_VAR
+14-10-2024,20.0,taxi para regersar,PASAJE
+15-10-2024,2.0,euroidiomas,PASAJE
+16-10-2024,15.0,pelo,PERSONAL
+17-10-2024,16.5,starbucks DE MIERDA,COM_VAR
+17-10-2024,1.0,pasaje euroidiomas,PASAJE
+18-10-2024,3.0,a la uni,PASAJE
+18-10-2024,3.0,agua,COM_VAR
+17-10-2024,5.0,recarga cel,CELULAR
+14-10-2024,150.0,graduacion of shit,VARIOS
+16-10-2024,107.166666666667,regalito a mi mommy tag: cuota 0,VARIOS
+16-11-2024,107.166666666667,regalito a mi mommy tag: cuota 1,VARIOS
+16-12-2024,107.166666666667,regalito a mi mommy tag: cuota 2,VARIOS
+16-01-2025,107.166666666667,regalito a mi mommy tag: cuota 3,VARIOS
+16-02-2025,107.166666666667,regalito a mi mommy tag: cuota 4,VARIOS
+16-03-2025,107.166666666667,regalito a mi mommy tag: cuota 5,VARIOS
+16-04-2025,107.166666666667,regalito a mi mommy tag: cuota 6,VARIOS
+16-05-2025,107.166666666667,regalito a mi mommy tag: cuota 7,VARIOS
+16-06-2025,107.166666666667,regalito a mi mommy tag: cuota 8,VARIOS
+16-07-2025,107.166666666667,regalito a mi mommy tag: cuota 9,VARIOS
+16-08-2025,107.166666666667,regalito a mi mommy tag: cuota 10,VARIOS
+16-09-2025,107.166666666667,regalito a mi mommy tag: cuota 11,VARIOS
+31-10-2024,5.0,recarga,CELULAR
+27-10-2024,7.0,recarga a janice,VARIOS
+26-10-2024,9.7,aseo plaza vea pasta de dientes y agua,PERSONAL
+24-10-2024,5.0,recarga celular,CELULAR
+22-10-2024,2.0,pasaje euroidiomas,PASAJE
+24-10-2024,2.0,pasaje euroidiomas,PASAJE
+29-10-2024,2.0,pasaje euroidiomas,PASAJE
+31-10-2024,2.0,pasaje euroidiomas,PASAJE
+26-10-2024,10.0,recarga metropo barra corredor,PASAJE
+27-10-2024,30.0,taxi of shit en efectivo,PASAJE
+25-10-2024,1100.0,ingreso Wolfram,USD_INC
+26-10-2024,25.0,anvorguesa con la g,COM_VAR
+10-11-2024,16.5,pasadores blancos + nueva sandalia,PERSONAL
+5-11-2024,2.0,pasaje euroidiomas,PASAJE
+7-11-2024,1.0,yendo de casa a eurodiomas,PASAJE
+7-11-2024,9.0,taxi con ariana,PASAJE
+7-11-2024,15.35,after c/ selva ,COM_VAR
+7-11-2024,5.0,recargaaaa ,CELULAR
+2-11-2024,600.0,papa pension,INGRESO
+31-10-2024,190.94,pago del mantenimiento,CASA
+31-10-2024,76.0,pago del interneet,CASA
+16-11-2024,3.0,larquitogoc,PASAJE
+16-11-2024,21.3,tambo con mi real Karen,COM_VAR
+16-11-2024,22.0,mas trago cuba no se q wea,COM_VAR
+16-11-2024,35.0,valetodo con la pipol,VARIOS
+17-11-2024,32.0,taxi de mierda,PASAJE
+21-11-2024,5.0,recarga ,CELULAR
+21-11-2024,2.0,pasaje of shit a euroidiomas,PASAJE
+19-11-2024,2.0,pasaje euroidiomas,PASAJE
+19-11-2024,2.3,agua gracias anahis xiomi,COM_VAR
+26-11-2024,5.0,recarga cel ps,CELULAR
+26-11-2024,2.0,pasaje ps,PASAJE
+27-11-2024,18.0,corte de cabello,PERSONAL
+28-11-2024,2.0,pasaje ps,PASAJE
+1-12-2024,65.0,biciGOOOOOD cambio de llanta,VARIOS
+1-12-2024,1.0,banho ,VARIOS
+1-12-2024,2.0,bebida,COM_VAR
+1-12-2024,20.0,me lo encontre en el ascensor,BLIND
+1-12-2024,5.0,recarga cel para la bici barra no morir,CELULAR
+30-11-2024,76.0,win internet,CASA
+30-11-2024,211.16,mantenimiento de mrd,CASA
+10-12-2024,5.0,recarga,CELULAR
+11-12-2024,15.0,bici,VARIOS
+3-12-2024,2.0,pasjae euroidiomas,PASAJE
+5-12-2024,2.0,pasjae euroidiomas,PASAJE
+10-12-2024,2.0,pasjae euroidiomas,PASAJE
+12-12-2024,2.0,pasjae euroidiomas,PASAJE
+11-12-2024,2.0,tomar agua con la biciGOD,PASAJE
+16-12-2024,11.0,pasaje a villa,PASAJE
+16-12-2024,5.0,recarga,CELULAR
+16-12-2024,21.0,w viki wasaaa,COM_VAR
+17-12-2024,2.0,euroidiomas,PASAJE
+19-12-2024,19.3,w anais and giselle,COM_VAR
+19-12-2024,7.5,euroidiomas: pan con pollo y cirfut,COM_VAR
+19-12-2024,2.0,euroidiomas,PASAJE
+20-12-2024,5.0,recarga,CELULAR
+21-11-2024,1100.0,ingreso wolframGOD,USD_INC
+27-12-2024,1100.0,ingreso wolframGOD,USD_INC
+28-12-2024,1.5,moto para recoger del mall a silvana,PASAJE
+28-12-2024,5.0,recarga -- silv,CELULAR
+24-12-2024,20.0,blind grandma (xmas),BLIND
+25-12-2024,100.0,blind dad (xmas),BLIND
+31-12-2024,60.0,vino para mi mama,COM_VAR
+3-01-2025,6.0,recarga cel,CELULAR
+5-01-2025,32.9,spotify familiar,RECIBO
+7-01-2025,177.5,euroidiomas de la santa mierda tag: cuota 0,PERSONAL
+7-02-2025,177.5,euroidiomas de la santa mierda tag: cuota 1,PERSONAL
+5-01-2025,15.0,menu con los pibes en el parque huascar,COM_VAR
+5-01-2025,4.0,hiraya transfer parque zonal entrada,VARIOS
+5-01-2025,15.0,pelo corte,PERSONAL
+5-02-2025,32.9,spotify familiar,RECIBO
+5-03-2025,32.9,spotify familiar,RECIBO
+5-04-2025,32.9,spotify familiar,RECIBO
+5-05-2025,32.9,spotify familiar,RECIBO
+5-06-2025,32.9,spotify familiar,RECIBO
+5-07-2025,32.9,spotify familiar,RECIBO
+5-08-2025,32.9,spotify familiar,RECIBO
+5-09-2025,32.9,spotify familiar,RECIBO
+5-10-2025,32.9,spotify familiar,RECIBO
+5-11-2025,32.9,spotify familiar,RECIBO
+5-12-2025,32.9,spotify familiar,RECIBO
+5-01-2025,6.0,pasaje para visha salvaje,PASAJE
+5-01-2025,20.0,caridad hiraya hospitalidad + desayuno,VARIOS
+3-01-2025,600.0,dads,INGRESO
+10-01-2025,5,recarga w daniel,CELULAR
+10-01-2025,25,callejera w daniel + propina,COM_VAR
+10-01-2025,1.5,agua cielo @ tottus,COM_VAR
+11-01-2025,13,paseo x lima w ariana,PASAJE
+11-01-2025,3,agua para ambos,COM_VAR
+11-01-2025,45.9,q asco montao de mierda,COM_VAR
+11-01-2025,26.8,bembos god,COM_VAR
+11-01-2025,2.6,agua w ariana @ plazavea,COM_VAR
+11-01-2025,32.4,dehodorant + casa,VARIOS
+12-01-2025,16.5,taxi of shit,PASAJE
+29-12-2024,191.55,mantenimiento of shit w no multa,CASA
+13-01-2025,188.51,mantenimiento casa,CASA
+17-01-2025,119,let's start the gym let's fucking go,PERSONAL
+17-01-2025,5,recarga,CELULAR
+20-01-2025,2,gym,PASAJE
+17-01-2025,20,supercuota a daniel,PERSONAL
+18-01-2025,4.5,jabon de mrd,PERSONAL
+24-01-2025,1.75,agua para el gym of shit,COM_VAR
+28-01-2025,15,corte de cabesho,PERSONAL
+27-01-2025,2,gym de eme erre de,PASAJE
+1-02-2025,3,a larco,PASAJE
+1-02-2025,25.9,mojito en rustica,COM_VAR
+1-02-2025,20,alita de mierdaaaaaaaa,COM_VAR
+1-02-2025,35,taxi de regreso (ni mas),PASAJE
+1-02-2025,5,recarga of shit,CELULAR
+3-02-2025,12,blind dad i belive,INGRESO
+04-02-2025,2,pasaje a eurodiomas,PASAJE
+06-02-2025,2,pasaje euroidiomas,PASAJE
+06-02-2025,5,recarga celular,CELULAR
+06-02-2025,5,hamburguesa en eurioidiomas,COM_VAR
+08-02-2025,2,agua para el gimansio,COM_VAR
+01-02-2025,4.9,taxi valeria,VARIOS
+05-02-2025,600,papa blind,INGRESO
+27-01-2025,1100,wolfram,USD_INC
+25-12-2024,76,internet casa,CASA
+27-01-2025,76,internet casa,CASA
+11-02-2025,2,pasaje euroidiomas,PASAJE
+11-02-2025,8.9,springles de tambio,COM_VAR
+13-02-2025,2,pasaje euroidiomas,PASAJE
+13-02-2025,10,doble pan -- no habia almorzado,COM_VAR
+13-02-2025,5,recarga cel porque no tenia dato,CELULAR
+14-02-2025,30,jairo uu,VARIOS
+14-02-2025,95,gym,PERSONAL
+14-02-2025,46,gatos de eme erre de,CASA
+15-02-2025,20,blind de parte de mi papa,BLIND
+16-02-2025,9.5,sporade,VARIOS
+16-02-2025,25.5,desodorante,PERSONAL
+16-02-2025,0.3,bolsa de eme erre de,VARIOS
+18-02-2025,2,pasaje euroidiomas,PASAJE
+18-02-2025,5,recarga,CELULAR
+18-02-2025,5,comida sandwich,COM_VAR
+19-02-2025,2,pasaje euoridiomas,PASAJE
+20-02-2025,5,sandwich euroidiomas ptmre,COM_VAR
+22-02-2025,50,taxi w jeniffer -- embarque,PASAJE
+22-02-2025,5,recarga en barranco pedido a mom,CELULAR
+22-02-2025,18.9,fourloko w jeniffer,COM_VAR
+22-02-2025,57.9,rustica w jeniffer,COM_VAR
+22-02-2025,2,pasaje de san miguel al centro de lema,PASAJE
+24-02-2025,26,mantenimiento bici,PERSONAL
+27-02-2025,5,hamburguesa eurodiomas,COM_VAR
+27-02-2025,2,pasaje euroidiomas,PASAJE
+25-02-2025,2,pasaje euroidiomas,PASAJE
+28-02-2025,1100, ingreso wolframGOD,USD_INC
+01-03-2025,5,recarga,CELULAR
+28-02-2025,212.90,manteminiento casa,CASA
+28-02-2025,76,win internet,CASA
+03-03-2025,6,pasaje a la puta universidad de eme errede ,PASAJE
+03-03-2025,2.7,copias de mierda para el bachiller,VARIOS
+03-03-2025,22,desayuno todo GOD,COM_VAR
+03-03-2025,10,fotografia toda horrorosa,PERSONAL
+08-03-2025,5,simple recarga,CELULAR
+09-03-2025,15,taxi para ir al mall,PASAJE
+08-03-2025,12.9,frutos secos de cena,COM_VAR
+06-03-2025,15,corte de cabello pelo etc,PERSONAL
+08-03-2025,9.7,alison ariana mani y papas fritas ptmr,COM_VAR
+08-03-2025,28.5,entradas al cine snk,VARIOS
+08-03-2025,78.5,cancha y gaseosa para el cine de eme erre de,COM_VAR
+09-03-2025,75,blind de papa para el cine (al menos las entradas),BLIND
+03-03-2025,55.7125,maldito carton de bachiller tag: cuota 0,PERSONAL
+03-04-2025,55.7125,maldito carton de bachiller tag: cuota 1,PERSONAL
+03-05-2025,55.7125,maldito carton de bachiller tag: cuota 2,PERSONAL
+03-06-2025,55.7125,maldito carton de bachiller tag: cuota 3,PERSONAL
+03-07-2025,55.7125,maldito carton de bachiller tag: cuota 4,PERSONAL
+03-08-2025,55.7125,maldito carton de bachiller tag: cuota 5,PERSONAL
+03-09-2025,55.7125,maldito carton de bachiller tag: cuota 6,PERSONAL
+03-10-2025,55.7125,maldito carton de bachiller tag: cuota 7,PERSONAL
+15-03-2025,5,recarga en el mercado para pagar wantan ig,CELULAR
+15-03-2025,1.5,moto a basa,PASAJE
+15-03-2025,1.5,chosicano a polvos,PASAJE
+15-03-2025,70,arreglo de mandos,VARIOS
+15-03-2025,72,arreglo de PSP -- gratos recuerdos de mi bb tag: cuota 0,PERSONAL
+15-04-2025,72,arreglo de PSP -- gratos recuerdos de mi bb tag: cuota 1,PERSONAL
+15-05-2025,72,arreglo de PSP -- gratos recuerdos de mi bb tag: cuota 2,PERSONAL
+15-06-2025,72,arreglo de PSP -- gratos recuerdos de mi bb tag: cuota 3,PERSONAL
+15-07-2025,72,arreglo de PSP -- gratos recuerdos de mi bb tag: cuota 4,PERSONAL
+15-03-2025,2,agua cielo,COM_VAR
+15-03-2025,13,taxi,PASAJE
+15-03-2025,27,taco hells para comer -- invite un poco a madre,COM_VAR
+16-03-2025,25,arreglo lentes,PERSONAL
+18-03-2025,445.7,blind madre para el bachiller,BLIND
+22-03-2025,5,recarga,CELULAR
+22-03-2025,6,chosicano todos,PASAJE
+22-03-2025,12.1,taxi de polvos a la rambla,PASAJE
+22-03-2025,8,agua para todos,COM_VAR
+22-03-2025,27,comidagod,COM_VAR
+22-03-2025,10,taxi de alis a mi casa,PASAJE
+15-03-2025,57.8,casa -- cambio de las cintas de video a DVDs tag: cuota 0,CASA
+15-04-2025,57.8,casa -- cambio de las cintas de video a DVDs tag: cuota 1,CASA
+15-05-2025,57.8,casa -- cambio de las cintas de video a DVDs tag: cuota 2,CASA
+15-06-2025,57.8,casa -- cambio de las cintas de video a DVDs tag: cuota 3,CASA
+15-07-2025,57.8,casa -- cambio de las cintas de video a DVDs tag: cuota 4,CASA
+19-03-2025,19,crunchy,RECIBO
+15-03-2025,95,gym,PERSONAL
+30-03-2025,100,test tag: cuota 0,PERSONAL
+30-04-2025,100,test tag: cuota 1,PERSONAL
+30-05-2025,100,test tag: cuota 2,PERSONAL
+30-06-2025,100,test tag: cuota 3,PERSONAL
+30-07-2025,100,test tag: cuota 4,PERSONAL

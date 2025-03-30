@@ -1,19 +1,21 @@
-function ValidateAmount {
+function ValidateAmount() {
+    $namount = 0.0
     do {
-        $amount = Read-Host "`nInsert expense"
-        $parsedAmount = 0.0
-        if ([double]::TryParse($amount, [ref]$parsedAmount)) {
-            if($parsedAmount -lt 0){
-                Write-Host "`nValue must be positive."
-            } else {
+        $tempAmount = (Read-Host "`nInsert expense")
+        try {
+            $namount = [double]$tempAmount
+            if ($namount -gt 0.0) {
                 break
+            } else {
+                Write-Host "`n$tempAmount must be a positive integer."
             }
-        } else {
-            Write-Host "`nCould not parse '$amount' to double."
+        }
+        catch {
+            Write-Host "`nRunning this again, $tempAmount could not be parsed to Double"
         }
     } while ($true)
-    
-    return $parsedAmount
+
+    return $namount
 }
 
 ValidateAmount

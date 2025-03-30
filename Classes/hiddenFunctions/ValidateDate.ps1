@@ -1,15 +1,20 @@
 function ValidateDate() {
     $tempDate = (Get-Date)
+    
     while($true){
-        $day = Read-Host "`nInsert a day"
-        $month = Read-Host "`nInsert a month"
+        $period = Read-Host "`nInsert a (day month).`nIf month is not specified, it will be assumend to be this month"
+        
         try {
-            $tempDate = Get-Date -Day $day -Month $month
+            $day, $month = $period.Split(" ")
+            if($month){
+                $tempDate = Get-Date -day $day -month $month
+            } else {
+                $tempDate = Get-Date -day $day
+            }
             break
-        }
-        catch {
-            $flag = Read-Host "Running this again, could not parse $day and $month.`nIf you wish to leave and choose today as date, press 'x'. Otherwise, press any button"
-            if($flag -eq 'x'){
+        } catch {
+            $flag = Read-Host "Running this again, could not parse '$period'. Use Date=Today? (y/press anything)"
+            if ($flag -eq 'y') {
                 break
             }
         }

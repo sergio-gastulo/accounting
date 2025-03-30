@@ -1,4 +1,4 @@
-function ValidateCategory{
+function ValidateCategory() {
 
     $categoryDict = [ordered]@{
         bl      =   'BLIND'
@@ -14,20 +14,22 @@ function ValidateCategory{
         var     =   'VARIOS'
     }
 
-    $category = ""
+    $tempCategory= ""
     
     do {
-        $categoryDict | ConvertTo-Json
+        $categoryDict | ConvertTo-Json | Write-Host
         $key = Read-Host "`nSelect a key from the dictionary above"
-        if ($categoryDict.ContainsKey($key)) {
-            $category = $categoryDict[$key]
+        $tempCategory = $categoryDict[$key]
+
+        if($tempCategory){
             break
         } else {
-            Write-Host "`nInvalid key, please try again."
+            Write-Host "`nCould not parse '$key' as a valid key. Running this again."
         }
+
     } while ($true)
 
-    return $category
+    return $tempCategory
 }
 
 

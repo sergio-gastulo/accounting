@@ -11,6 +11,12 @@ class CSVRow {
         $this.Category = $this.ValidateCategory()
     }
 
+    CSVRow([datetime]$Date, [double]$Amount, [string]$Category, [string]$Description) {
+        $this.Date = $Date
+        $this.Amount = $Amount
+        $this.Category = $Category
+        $this.Description = $Description
+    }
     
     hidden [datetime] ValidateDate() {
         $tempDate = (Get-Date)
@@ -125,12 +131,15 @@ Category:    $($this.Category)
 "@
     }
 
+    [CSVRow] Copy(){
+        return [CSVRow]::new($this.Date, $this.Amount, $this.Category, $this.Description)
+    }
+
 }
 
 $data = [CSVRow]::new()
 
 $data.Print()
-
 
 
 

@@ -5,28 +5,35 @@ class CSVRow {
     [String]    $Description 
     
     CSVRow () {
-        $this.Date = (Get-Date)
-        $this.Amount = 0
-        $this.Category = "BLIND"
-        $this.Description = "test"
+        $this.Date = $this.ValidateDate() 
+        $this.Amount = $this.ValidateAmount() 
+        $this.Description = $this.ValidateDescription()
+        $this.Category = $this.ValidateCategory()
     }
 
+    
     hidden [datetime] ValidateDate() {
         $tempDate = (Get-Date)
+        
         while($true){
-            $day = Read-Host "`nInsert a day"
-            $month = Read-Host "`nInsert a month"
+            $period = Read-Host "`nInsert (day) or (day month)"
+            
             try {
-                $tempDate = Get-Date -Day $day -Month $month
+                $day, $month = $period.Split(" ")
+                if($month){
+                    $tempDate = Get-Date -day $day -month $month
+                } else {
+                    $tempDate = Get-Date -day $day
+                }
                 break
-            }
-            catch {
-                $flag = Read-Host "Running this again, could not parse $day and $month.`nIf you wish to leave and choose today as date, press 'x'. Otherwise, press any button"
-                if($flag -eq 'x'){
+            } catch {
+                $flag = Read-Host "Running this again, could not parse '$period'. Use Date=Today? (y/press anything)" -ForegroundColor Red
+                if ($flag -eq 'y') {
                     break
                 }
             }
         }
+        Write-Host "`nParse successfull: '$($tempDate.ToString("dddd, MMMM d, yyyy"))'" -ForegroundColor Blue
         return $tempDate
     }
 
@@ -39,23 +46,63 @@ class CSVRow {
                 if ($namount -gt 0.0) {
                     break
                 } else {
-                    Write-Host "`n$tempAmount must be a positive integer."
+                    Write-Host "`n$tempAmount must be a positive integer." -ForegroundColor Red
                 }
             }
             catch {
-                Write-Host "`nRunning this again, $tempAmount could not be parsed to Double"
+                Write-Host "`nRunning this again, $tempAmount could not be parsed to Double" -ForegroundColor Red
             }
         } while ($true)
-    
+        Write-Host "`nParse successfull: '$namount'" -ForegroundColor Blue
         return $namount
     }
 
     hidden [String] ValidateDescription() {
-        return "test"
+        $tempDescription = ''
+        
+        do {
+            $tempDescription = Read-Host "`nType description. No commas."
+            if ($tempDescription -notmatch ',') {
+                break
+            }
+            Write-Host "`nDescription cannot include comma (,)." -ForegroundColor Red
+        } while ($true)
+        Write-Host "`n Succcessfull parse: '$tempDescription'" -ForegroundColor Blue
+        return $tempDescription
     }
 
     hidden [String] ValidateCategory() {
-        return "JSON"
+
+        $categoryDict = [ordered]@{
+            bl      =   'BLIND'
+            cas     =   'CASA'
+            cel     =   'CELULAR'
+            cvar    =   'COM_VAR'
+            ing     =   'INGRESO'
+            men     =   'MENU'
+            pas     =   'PASAJE'
+            per     =   'PERSONAL'
+            rec     =   'RECIBO'
+            usd     =   'USD_INC'
+            var     =   'VARIOS'
+        }
+    
+        $tempCategory= ""
+        
+        do {
+            $categoryDict | ConvertTo-Json | Write-Host
+            $key = Read-Host "`nSelect a key from the dictionary above"
+            $tempCategory = $categoryDict[$key]
+    
+            if($tempCategory){
+                break
+            } else {
+                Write-Host "`nCould not parse '$key' as a valid key. Running this again." -ForegroundColor Red
+            }
+    
+        } while ($true)
+        Write-Host "`nKey found successfully: '$tempCategory'" -ForegroundColor Blue
+        return $tempCategory
     }
 
     [String]Parse(){
@@ -73,8 +120,8 @@ class CSVRow {
         Write-Host @"
 Date:        $($this.Date.ToString("dd-MM-yyyy"))
 Amount:      $($this.Amount)
-Category:    $($this.Category)
 Description: $($this.Description)
+Category:    $($this.Category)
 "@
     }
 
@@ -82,7 +129,7 @@ Description: $($this.Description)
 
 $data = [CSVRow]::new()
 
-Write-Host $data
+$data.Print()
 
 
 

@@ -233,5 +233,3 @@ function AccountingCLI {
 
     }
 }
-
-AccountingCLI

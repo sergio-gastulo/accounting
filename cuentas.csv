@@ -1,9 +1,9 @@
 Date,Amount,Description,Category
-22-03-2025,6,chosicano todos,PASAJE
+22-03-2025,6,chosicano,PASAJE
 22-03-2025,12.1,taxi de polvos a la rambla,PASAJE
 22-03-2025,8,agua para todos,COM_VAR
-22-03-2025,27,comidagod,COM_VAR
-22-03-2025,10,taxi de alis a mi casa,PASAJE
+22-03-2025,27,comida salida,COM_VAR
+22-03-2025,10,,PASAJE
 15-03-2025,57.8,casa -- cambio de las cintas de video a DVDs tag: cuota 0,CASA
 15-04-2025,57.8,casa -- cambio de las cintas de video a DVDs tag: cuota 1,CASA
 15-05-2025,57.8,casa -- cambio de las cintas de video a DVDs tag: cuota 2,CASA
@@ -28,3 +28,13 @@ Date,Amount,Description,Category
 01-10-2025,100,testingggggg tag: cuota 7,VARIOS
 01-11-2025,100,testingggggg tag: cuota 8,VARIOS
 01-12-2025,100,testingggggg tag: cuota 9,VARIOS
+10-03-2025,50,working tag: cuota 0,COM_VAR
+10-04-2025,50,working tag: cuota 1,COM_VAR
+10-05-2025,50,working tag: cuota 2,COM_VAR
+10-06-2025,50,working tag: cuota 3,COM_VAR
+10-07-2025,50,working tag: cuota 4,COM_VAR
+10-08-2025,50,working tag: cuota 5,COM_VAR
+10-09-2025,50,working tag: cuota 6,COM_VAR
+10-10-2025,50,working tag: cuota 7,COM_VAR
+10-11-2025,50,working tag: cuota 8,COM_VAR
+10-12-2025,50,working tag: cuota 9,COM_VAR

@@ -67,7 +67,13 @@ class CSVRow {
         $tempDescription = ''
         
         do {
-            $tempDescription = Read-Host "`nType description -- no commas"
+            $tempDescription = Read-Host "`nType description, no commas. Type -h for documentation."
+            if( $tempDescription -eq '-h') {
+                # Typing suggestions
+                Write-Host "`nPrinting Content.`n" -ForegroundColor Blue
+                Get-Content .\documentation.txt | Write-Host 
+                Write-Host "`nPrinted.`n" -ForegroundColor Blue
+            }
             if ($tempDescription -notmatch ',') {
                 break
             }
@@ -138,7 +144,7 @@ Category:    $($this.Category)
 }
 
 class CSV {
-    static [String]$CSVPATH = "C:\Users\sgast\PROJECTS\Modules\accounting\cuentas.csv"
+    static [String]$CSVPATH = 'C:\Users\sgast\documents_personal\excel\cuentas.csv'
 
     static [int] ValidateInstallments() {
         $tempInt = 0
@@ -192,7 +198,10 @@ class CSV {
     }
 }
 
-function AccountingCLI {
+function AccountingCommandLineInterface {
+    [alias("acccli")]
+    param()
+
     :mainLoop while ($true) {
 
         @{

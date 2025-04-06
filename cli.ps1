@@ -1,3 +1,0 @@
-Import-Module accounting
-
-AccountingCLI

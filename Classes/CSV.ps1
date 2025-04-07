@@ -1,5 +1,5 @@
 class CSV {
-    static [String]$CSVPATH = 'C:\Users\sgast\PROJECTS\Modules\accounting\cuentas.csv'
+    static [String]$CSVPATH = '.\cuentas.csv'
 
     static [int] ValidateInstallments() {
         $tempInt = 0

@@ -49,7 +49,7 @@ class CSV {
                 Add-Content -Path ($this.CSVPATH) -Value ($tempData.Parse())
             }
         } else {
-            Add-Content -Path ([CSV]::CSVPATH) -Value ($data.Parse())
+            Add-Content -Path ($this.CSVPATH) -Value ($data.Parse())
         }
         Write-Host "`nData added." -ForegroundColor Blue
     }

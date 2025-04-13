@@ -33,7 +33,8 @@ class CSVRow {
                 }
                 break
             } catch {
-                $flag = Read-Host "Running this again, could not parse '$period'. Use Date=Today? (y/press anything)" -ForegroundColor Red
+                Write-Host "`nRunning this again, could not parse '$period'." -ForegroundColor Red
+                $flag = Read-Host "`nUse Date=Today? (y/anything to go back)" 
                 if ($flag -eq 'y') {
                     break
                 }
@@ -110,9 +111,9 @@ class CSVRow {
     
             pas = 'PASAJE'
     
-            per = 'PERDIDO'
+            perdido = 'PERDIDO'
     
-            perso = [ordered]@{
+            personal = [ordered]@{
                 f = 'PERSONAL-FIX'
                 g = 'PERSONAL-GYM'
                 h = 'PERSONAL-HEALTH'

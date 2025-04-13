@@ -1,7 +1,13 @@
-class CSV {
-    static [String]$CSVPATH = '.\cuentas.csv'
+using module .\CSVRow.psm1
 
-    static [int] ValidateInstallments() {
+class CSV {
+    [string]$CSVPATH
+
+    CSV([string] $path) {
+        $this.CSVPATH = $path
+    }
+
+    [int] ValidateInstallments() {
         $tempInt = 0
         do {
             $temp = Read-Host "`nSelect number of installments"
@@ -21,18 +27,18 @@ class CSV {
         return $tempInt
     }
     
-    static [Void] Read(){
+    [Void] Read(){
         
         $numberOfLines = Read-Host "`nInsert number of lines to be read"
-        Get-Content -Path ([CSV]::CSVPATH) -Tail $numberOfLines | Write-Host
+        Get-Content -Path ($this.CSVPATH) -Tail $numberOfLines | Write-Host
 
     }
 
-    static [Void] Write([CSVRow]$data){
+    [Void] Write([CSVRow]$data){
 
         if (($data.Amount -gt 200) -and -not ($data.Category -in @("BLIND","INGRESO-SOLES","INGRESO-USD"))) {
 
-            $installments = [CSV]::ValidateInstallments()
+            $installments = $this.ValidateInstallments()
             $data.Amount = $data.Amount / $installments
 
             for ($i = 0; $i -lt $installments; $i++) {
@@ -40,7 +46,7 @@ class CSV {
 
                 $tempdata.Date = $data.Date.AddMonths($i)                
                 $tempData.Description = "$($data.Description) tag: cuota $i"
-                Add-Content -Path ([CSV]::CSVPATH) -Value ($tempData.Parse())
+                Add-Content -Path ($this.CSVPATH) -Value ($tempData.Parse())
             }
         } else {
             Add-Content -Path ([CSV]::CSVPATH) -Value ($data.Parse())
@@ -48,7 +54,7 @@ class CSV {
         Write-Host "`nData added." -ForegroundColor Blue
     }
 
-    static [void] Plot(){
+    [void] Plot(){
         Write-Host "Plotting data."
     }
 }

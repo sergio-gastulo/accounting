@@ -97,37 +97,42 @@ class CSVRow {
                 sn = 'COMIDA-SNACK'
                 tr = 'COMIDA-TRAGO'
             }
-                
+            
             ed = 'EDUCATION'
-    
+
+            f = 'FIX' # fix, mantenimiento
+            
+            h = 'HEALTH-CARE'
+            
             gi = 'GIFTS'
-    
+            
+            gym = 'GYM'
+            
             ing = [ordered]@{
                 s = 'INGRESO-SOLES'
                 u = 'INGRESO-USD'
             }
-    
+            
             im = 'IMPUESTOS'
-    
+            
+            lo = 'PERDIDO'
+            
             pas = 'PASAJE'
     
-            perdido = 'PERDIDO'
-    
-            personal = [ordered]@{
-                f = 'PERSONAL-FIX'
-                g = 'PERSONAL-GYM'
-                h = 'PERSONAL-HEALTH'
-                r = 'PERSONAL-REGALO'
-                tall = 'PERSONAL-TALLER'
-                tram = 'PERSONAL-TRAM' #TRAMITE
-            }
+            pers = 'PERSONAL' #regalos a mi mismo
             
             pet = 'PETS'
-    
+            
+            rop = 'ROPA'
+
             sal = 'SALIDA'
-    
+
             sub = 'SUBSCRIPTIONS'
-    
+            
+            tram = 'TRAMITES'
+            
+            tall = 'TALLERES'
+            
             var = 'VARIOS'
     
             xch = [ordered]@{

@@ -7,7 +7,7 @@ class CSV {
 
     CSV([string] $csvpath, [string] $jsonpath) {
         $this.CSVPATH = $csvpath
-        $this.JSONDICT = GetJSON($jsonpath)
+        $this.JSONDICT = $this.GetJSON($jsonpath)
     }
 
     [int] ValidateInstallments() {

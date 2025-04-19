@@ -3,11 +3,12 @@ class CSVRow {
     [Double]    $Amount
     [String]    $Category
     [String]    $Description 
-    [ordered]   $categoryDict
+    [System.Collections.Specialized.OrderedDictionary]   $categoryDict
     
     CSVRow (
         [System.Collections.Specialized.OrderedDictionary]$categoryDict
     ) {
+        $this.categoryDict      =     $categoryDict
         $this.Date              =     $this.ValidateDate() 
         $this.Amount            =     $this.ValidateAmount() 
         $this.Description       =     $this.ValidateDescription()
@@ -21,11 +22,11 @@ class CSVRow {
         [string]$Description, 
         [System.Collections.Specialized.OrderedDictionary]$categoryDict
         ) {
-        $this.Date = $Date
-        $this.Amount = $Amount
-        $this.Category = $Category
-        $this.Description = $Description
-        $this.categoryDict = $categoryDict
+            $this.categoryDict = $categoryDict
+            $this.Date = $Date
+            $this.Amount = $Amount
+            $this.Category = $Category
+            $this.Description = $Description
     }
     
     hidden [datetime] ValidateDate() {

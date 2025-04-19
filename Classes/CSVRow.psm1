@@ -3,19 +3,29 @@ class CSVRow {
     [Double]    $Amount
     [String]    $Category
     [String]    $Description 
+    [ordered]   $categoryDict
     
-    CSVRow () {
-        $this.Date = $this.ValidateDate() 
-        $this.Amount = $this.ValidateAmount() 
-        $this.Description = $this.ValidateDescription()
-        $this.Category = $this.ValidateCategory()
+    CSVRow (
+        [System.Collections.Specialized.OrderedDictionary]$categoryDict
+    ) {
+        $this.Date              =     $this.ValidateDate() 
+        $this.Amount            =     $this.ValidateAmount() 
+        $this.Description       =     $this.ValidateDescription()
+        $this.Category          =     $this.ValidateCategory()
     }
 
-    CSVRow([datetime]$Date, [double]$Amount, [string]$Category, [string]$Description) {
+    CSVRow(
+        [datetime]$Date, 
+        [double]$Amount, 
+        [string]$Category, 
+        [string]$Description, 
+        [System.Collections.Specialized.OrderedDictionary]$categoryDict
+        ) {
         $this.Date = $Date
         $this.Amount = $Amount
         $this.Category = $Category
         $this.Description = $Description
+        $this.categoryDict = $categoryDict
     }
     
     hidden [datetime] ValidateDate() {
@@ -79,76 +89,15 @@ class CSVRow {
     }
 
     hidden [String] ValidateCategory() {
-
-        $categoryDict = [ordered]@{
-    
-            bl = 'BLIND'
-            
-            cas = [ordered]@{
-                ga = 'CASA-GASTO'
-                gi = 'CASA-GIFT'
-            }
-    
-            cel = 'CELULAR'
-    
-            com = [ordered]@{    
-                ag = 'COMIDA-AGUA'
-                sa = 'COMIDA-SALIR'
-                sn = 'COMIDA-SNACK'
-                tr = 'COMIDA-TRAGO'
-            }
-            
-            ed = 'EDUCATION'
-
-            f = 'FIX' # fix, mantenimiento
-            
-            h = 'HEALTH-CARE'
-            
-            gi = 'GIFTS'
-            
-            gym = 'GYM'
-            
-            ing = [ordered]@{
-                s = 'INGRESO-SOLES'
-                u = 'INGRESO-USD'
-            }
-            
-            im = 'IMPUESTOS'
-            
-            lo = 'PERDIDO'
-            
-            pas = 'PASAJE'
-    
-            pers = 'PERSONAL' #regalos a mi mismo
-            
-            pet = 'PETS'
-            
-            rop = 'ROPA'
-
-            sal = 'SALIDA'
-
-            sub = 'SUBSCRIPTIONS'
-            
-            tram = 'TRAMITES'
-            
-            tall = 'TALLERES'
-            
-            var = 'VARIOS'
-    
-            xch = [ordered]@{
-                su = 'SOLES-USD'
-                us = 'USD-SOLES'
-            }
-        }
     
         $tempCategory= ""
     
         :CategoryLoop do {
             Write-Host "["
-            $categoryDict.Keys | ForEach-Object { "`t$_" } | Write-Host -Separator ",`n"
+            $this.categoryDict.Keys | ForEach-Object { "`t$_" } | Write-Host -Separator ",`n"
             Write-Host "]"
             $key = Read-Host "`nSelect a key from the dictionary above"
-            $temp = $categoryDict[$key]        
+            $temp = $this.categoryDict[$key]        
     
             if ($temp -is [System.Collections.Specialized.OrderedDictionary]) {            
                 $temp | ConvertTo-Json | Write-Host
@@ -198,7 +147,7 @@ Category:    $($this.Category)
     }
 
     [CSVRow] Copy(){
-        return [CSVRow]::new($this.Date, $this.Amount, $this.Category, $this.Description)
+        return [CSVRow]::new($this.Date, $this.Amount, $this.Category, $this.Description, $this.categoryDict)
     }
 
 }

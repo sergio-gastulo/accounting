@@ -1,8 +1,7 @@
 using module .\Classes\CSVRow.psm1
 using module .\Classes\CSV.psm1
 
-# You can change this path to any other file!
-$CSV = [CSV]::new("$PSScriptRoot\cuentas.csv")
+$CSV = [CSV]::new("$PSScriptRoot\files\cuentas.csv","$PSScriptRoot\files\fields.json")
 
 function AccountingCommandLineInterface {
     [alias("acccli")]
@@ -27,7 +26,7 @@ function AccountingCommandLineInterface {
 
             'w' { 
                 Write-Host "`nWrite Data selected."
-                $data = [CSVRow]::new()
+                $data = [CSVRow]::new($CSV.JSONDICT)
                 $CSV.Write($data)
             }
 

@@ -1,10 +1,13 @@
 using module .\CSVRow.psm1
 
 class CSV {
-    [string]$CSVPATH
+    [string]    $CSVPATH
+    [System.Collections.Specialized.OrderedDictionary]    $JSONDICT
 
-    CSV([string] $path) {
-        $this.CSVPATH = $path
+
+    CSV([string] $csvpath, [string] $jsonpath) {
+        $this.CSVPATH = $csvpath
+        $this.JSONDICT = GetJSON($jsonpath)
     }
 
     [int] ValidateInstallments() {
@@ -57,4 +60,37 @@ class CSV {
     [void] Plot(){
         Write-Host "Plotting data."
     }
+
+    [System.Collections.Specialized.OrderedDictionary] GetJSON([string] $path) {
+            
+        $psobject = Get-Content ($path) -Raw | ConvertFrom-Json
+        
+        $dictionary = [ordered]@{}
+        
+        $keys = $psobject.psobject.properties.Name
+    
+        function Get-Hashtable {
+            [OutputType([System.Collections.Specialized.OrderedDictionary])]
+            param(
+                [psobject] $psobj
+                )
+                
+                $hashtable = [ordered]@{}
+                $psobj.psobject.properties | ForEach-Object {$hashtable[$_.Name] = $_.Value.shortname} 
+                return $hashtable
+                
+            }
+        
+        $keys | ForEach-Object {
+            if ($psobject.$_.shortname) {
+                $dictionary[$_] = $psobject.$_.shortname
+            } else {
+                $dictionary[$_] = Get-Hashtable ($psobject.$_)
+            }
+        }
+        
+        return $dictionary
+            
+    }
+
 }

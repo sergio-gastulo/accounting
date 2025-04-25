@@ -8,8 +8,8 @@ class CSV {
 
     CSV([string] $csvpath, [string] $jsonpath, [string] $pythonpath) {
         $this.CSVPATH = $csvpath
-        $this.JSONPATH = $this.jsonpath
-        $this.PYTHONSCRIPTPATH = $this.pythonpath
+        $this.JSONPATH = $jsonpath
+        $this.PYTHONSCRIPTPATH = $pythonpath
     }
 
     [int] ValidateInstallments() {
@@ -60,8 +60,7 @@ class CSV {
     }
 
     [void] Plot(){
-        Write-Host "`nhello world`n" -ForegroundColor Red
-        Write-Host "$($this.PYTHONSCRIPTPATH)"
+        python $this.PYTHONSCRIPTPATH $this.CSVPATH $this.JSONPATH
     }
 
     [System.Collections.Specialized.OrderedDictionary] GetJSON() {

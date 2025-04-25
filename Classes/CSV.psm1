@@ -2,12 +2,14 @@ using module .\CSVRow.psm1
 
 class CSV {
     [string]    $CSVPATH
-    [System.Collections.Specialized.OrderedDictionary]    $JSONDICT
+    [string]    $JSONPATH
+    [string]    $PYTHONSCRIPTPATH
 
 
-    CSV([string] $csvpath, [string] $jsonpath) {
+    CSV([string] $csvpath, [string] $jsonpath, [string] $pythonpath) {
         $this.CSVPATH = $csvpath
-        $this.JSONDICT = $this.GetJSON($jsonpath)
+        $this.JSONPATH = $this.jsonpath
+        $this.PYTHONSCRIPTPATH = $this.pythonpath
     }
 
     [int] ValidateInstallments() {
@@ -58,12 +60,13 @@ class CSV {
     }
 
     [void] Plot(){
-        Write-Host "Plotting data."
+        Write-Host "`nhello world`n" -ForegroundColor Red
+        Write-Host "$($this.PYTHONSCRIPTPATH)"
     }
 
-    [System.Collections.Specialized.OrderedDictionary] GetJSON([string] $path) {
+    [System.Collections.Specialized.OrderedDictionary] GetJSON() {
             
-        $psobject = Get-Content ($path) -Raw | ConvertFrom-Json
+        $psobject = Get-Content ($this.JSONPATH) -Raw | ConvertFrom-Json
         
         $dictionary = [ordered]@{}
         

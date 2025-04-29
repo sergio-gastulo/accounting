@@ -1,7 +1,11 @@
 using module .\Classes\CSVRow.psm1
 using module .\Classes\CSV.psm1
 
-$CSV = [CSV]::new(".\files\cuentas.csv",".\files\fields.json",".\plot.py")
+$CSV = [CSV]::new(
+    "$PSScriptRoot\files\cuentas.csv",
+    "$PSScriptRoot\files\fields.json",
+    "$PSScriptRoot\plot.py"
+    )
 
 function AccountingCommandLineInterface {
     [alias("acccli")]

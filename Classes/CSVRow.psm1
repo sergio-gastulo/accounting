@@ -95,7 +95,17 @@ class CSVRow {
     
         :CategoryLoop do {
             Write-Host "["
-            $this.categoryDict.Keys | ForEach-Object { "`t$_" } | Write-Host -Separator ",`n"
+            
+            $this.categoryDict.Keys | ForEach-Object { 
+                $temporaryValueOfCategoryDict = $this.categoryDict[$_]
+                if ($temporaryValueOfCategoryDict -is [string]) {
+                    $valueStringToPrint = ": `t$temporaryValueOfCategoryDict,"
+                } else {
+                    $valueStringToPrint = ","
+                }
+                Write-Host "`t$_$valueStringToPrint" 
+            }
+            
             Write-Host "]"
             $key = Read-Host "`nSelect a key from the dictionary above"
             $temp = $this.categoryDict[$key]        

@@ -1,11 +1,10 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-import json
-import matplotlib.dates as mdates
 import sys
+import json
 from random import choices
 from typing import Optional
-
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 class CustomDictionaries:
     def __init__(self, path: str):
@@ -59,7 +58,7 @@ class DataPlotter:
         plt.rcParams['font.family'] = 'monospace'
         plt.rcParams['font.size'] = 12
     
-    
+
     def load_csv(self, path: str) -> pd.DataFrame:
         """
         Loads a dataframe from `path`. 
@@ -143,7 +142,7 @@ class DataPlotter:
         fig.subplots_adjust(left=0.2, right=0.9)
         plt.show()
 
-    
+
     def expenses_time_series(self, period: Optional[pd.Period] = None) -> None:
         """
         Plots a time series formed by expenses per month. It scatters the given `period` in red.
@@ -266,6 +265,7 @@ class MainInterface:
     def __init__(self, csv_plot: DataPlotter):
         self.csv = csv_plot
 
+
     def _get_category(self) -> str:
         """
         Returns a `category` from user input. 
@@ -276,24 +276,22 @@ class MainInterface:
         while True:
             try:
                 print(json.dumps(dict_cat, indent=4))
-                category = str(input("Type the category you would like to plot ('x' to leave and select a random category.): "))
+                print("Type the category you would like to plot ('x' to leave and select a random category.): ")
+                category = str(input()).upper()
 
-                if category.lower() == 'x':
+                if category == 'X':
                     raise EOFError
-                if category not in dict_cat:
-                    raise KeyError
-                
-                return category
-
-            except (KeyError, EOFError, Exception) as e:
-                if isinstance(e, KeyError):
+                if category in dict_cat:
+                    return category
+                else: 
                     print("The category written is not valid. Please try again.")
-                else:
-                    print("Random category chosen.")
-                    category = choices(list(dict_cat.keys()))
-            
-            return category
+
+            except EOFError:
+                print("Random category chosen.")
+                category = choices(list(dict_cat.keys()))[0]                
+                return category
     
+
     def _get_period(self) -> pd.Period | None: 
         """
         Returns a `period` from user input. 
@@ -303,10 +301,13 @@ class MainInterface:
 
         while True:
             try:
-                validation = input("Type 'x' to enter a given period. Press any other key to scape the loop: ")
+                print(f"Type 'x' to enter a given period. Press any other key to select today's period: {self.csv.period.__str__()}")
+                validation = input()
                 if validation.lower() == 'x':
-                    year = int(input("Type the year of the period: "))
-                    month = int(input("Type the month of the period: "))
+                    print("Type the year of the period: ")
+                    year = int(input())
+                    print("Type the month of the period: ")
+                    month = int(input())
                     period = pd.Period(year=year,month=month, freq='M')
                 else: 
                     period = None
@@ -323,10 +324,23 @@ class MainInterface:
 
 
     def main_interface(self):
-        
+        """
+        Calls the main functions and prints its corresponding documentation.
+        """
+        print(self.csv.categories_per_month.__name__)
+        print(self.csv.categories_per_month.__doc__)
         self.csv.categories_per_month(self._get_period())
+
+        print(self.csv.expenses_time_series.__name__)
+        print(self.csv.expenses_time_series.__doc__)
         self.csv.expenses_time_series(self._get_period())
+        
+        print(self.csv.monthly_time_series.__name__)
+        print(self.csv.monthly_time_series.__doc__)
         self.csv.monthly_time_series(self._get_period())
+        
+        print(self.csv.category_time_series.__name__)
+        print(self.csv.category_time_series.__doc__)
         self.csv.category_time_series(self._get_category(), self._get_period())
 
 
@@ -336,12 +350,14 @@ if __name__ == '__main__':
         json_path = sys.argv[2]
     except IndexError:
         print("Something went wrong during the json_path call.")
-        json_path = input("Enter the path (if possible, non relative) of the JSON")
+        print("Enter the path (if possible, non relative) of the JSON")
+        json_path = input()
 
     try:
         csv_path = sys.argv[1]
     except IndexError:
         print("Something went wrong during the csv_path call.")
-        csv_path = input("Enter the path (if possible, non-relative) of the CSV: ")
+        print("Enter the path (if possible, non-relative) of the CSV: ")
+        csv_path = input()
 
-    MainInterface(DataPlotter(csv_path, CustomDictionaries(json_path))).main_interface()    
+    MainInterface(DataPlotter(csv_path, CustomDictionaries(json_path))).main_interface()

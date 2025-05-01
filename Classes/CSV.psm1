@@ -60,8 +60,9 @@ class CSV {
     }
 
     [void] Plot(){
-        Write-Host "Running Python." -ForegroundColor Blue
-        python -v $this.PYTHONSCRIPTPATH $this.CSVPATH $this.JSONPATH | Write-Host
+        python $this.PYTHONSCRIPTPATH $this.CSVPATH $this.JSONPATH | ForEach-Object {
+            Write-Host $_
+        }
     }
 
     [System.Collections.Specialized.OrderedDictionary] GetJSON() {

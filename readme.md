@@ -11,12 +11,31 @@ A *really simple* CLI tool to help you track accounting information from the ter
 2. Run the following commands in PowerShell:  
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
+   vim accounting.psm1 # edit [CSV]::new()
    Import-Module accounting
-   AccountingCommandLineInterface
+   AccountingCommandLineInterface # acccli
    ```
 
-3. Don't forget to add a custom `.csv` where records will be written.
-
 ## TODO:
-    - Update $categoryDict to load from a JSON stored in some sort of .env directory. 
-    - Implement a standalone plotting function that doesn’t require opening an external application (less overhead).
+- Update `$categoryDict` to load from a JSON stored in some sort of .env directory. 
+
+## Requirements:
+This project was build with `powershell` and `python`.
+1. `powershell` dependencies
+```
+PS C:\> $PSVersionTable.PSVersion
+
+Major  Minor  Build  Revision
+-----  -----  -----  --------
+5      1      26100  3624
+```
+2. `python` dependencies
+```
+PS C:\> python --version
+Python 3.12.3
+PS C:\> $libraries = "json", "pandas", "matplotlib"
+PS C:\> $libraries | % {python -c "import $_; print(f'$_ : {$_.__version__}')"}
+json : 2.0.9
+pandas : 2.2.2
+matplotlib : 3.8.4
+```

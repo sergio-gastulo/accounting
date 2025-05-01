@@ -2,8 +2,11 @@ using module .\Classes\CSVRow.psm1
 using module .\Classes\CSV.psm1
 
 $CSV = [CSV]::new(
+    # csv file
     "$PSScriptRoot\files\cuentas.csv",
+    # json file
     "$PSScriptRoot\files\fields.json",
+    # python script file
     "$PSScriptRoot\plot.py"
     )
 

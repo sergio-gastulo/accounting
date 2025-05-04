@@ -309,7 +309,7 @@ class MainInterface:
                     print("Type the month of the period: ")
                     month = int(input())
                     period = pd.Period(year=year,month=month, freq='M')
-                else: 
+                else:
                     period = None
                 break
             except ValueError:
@@ -322,25 +322,27 @@ class MainInterface:
 
         return period
 
+    def _doc_printer(self, func: callable) -> None:
+        cyan_str = '\033[96m'
+        end_str = '\033[0m'
+        print(f'{cyan_str}Function name: \n{func.__name__}{end_str}\n')
+        print(f'{cyan_str}Documentation{end_str}: {func.__doc__}')
+
 
     def main_interface(self):
         """
-        Calls the main functions and prints its corresponding documentation.
+        Plots and prints function definitions while taking user input.
         """
-        print(self.csv.categories_per_month.__name__)
-        print(self.csv.categories_per_month.__doc__)
+        self._doc_printer(self.csv.categories_per_month)
         self.csv.categories_per_month(self._get_period())
 
-        print(self.csv.expenses_time_series.__name__)
-        print(self.csv.expenses_time_series.__doc__)
+        self._doc_printer(self.csv.expenses_time_series)
         self.csv.expenses_time_series(self._get_period())
         
-        print(self.csv.monthly_time_series.__name__)
-        print(self.csv.monthly_time_series.__doc__)
+        self._doc_printer(self.csv.monthly_time_series)
         self.csv.monthly_time_series(self._get_period())
         
-        print(self.csv.category_time_series.__name__)
-        print(self.csv.category_time_series.__doc__)
+        self._doc_printer(self.csv.category_time_series)
         self.csv.category_time_series(self._get_category(), self._get_period())
 
 

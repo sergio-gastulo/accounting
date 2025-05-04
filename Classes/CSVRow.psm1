@@ -51,7 +51,7 @@ class CSVRow {
                 }
             }
         }
-        Write-Host "`nParse successfull: '$($tempDate.ToString("dddd, MMMM d, yyyy"))'" -ForegroundColor Blue
+        Write-Host "`nParse successfull: '$($tempDate.ToString("dddd, MMMM d, yyyy"))'" -ForegroundColor Green
         return $tempDate
     }
 
@@ -68,10 +68,10 @@ class CSVRow {
                 }
             }
             catch {
-                Write-Host "`nRunning this again, $tempAmount could not be parsed to Double" -ForegroundColor Red
+                Write-Host "`nRunning this again, $tempAmount could not be parsed to double" -ForegroundColor Red
             }
         } while ($true)
-        Write-Host "`nParse successfull: '$namount'" -ForegroundColor Blue
+        Write-Host "`nParse successfull: '$namount'" -ForegroundColor Green
         return $namount
     }
 
@@ -85,7 +85,7 @@ class CSVRow {
             }
             Write-Host "`nDescription cannot include comma (,)." -ForegroundColor Red
         } while ($true)
-        Write-Host "`n Succcessfull parse: '$tempDescription'" -ForegroundColor Blue
+        Write-Host "`n Succcessfull parse: '$tempDescription'" -ForegroundColor Green
         return $tempDescription
     }
 
@@ -110,24 +110,26 @@ class CSVRow {
             $key = Read-Host "`nSelect a key from the dictionary above"
             $temp = $this.categoryDict[$key]        
     
-            if ($temp -is [System.Collections.Specialized.OrderedDictionary]) {            
+            if ($temp -is [System.Collections.Specialized.OrderedDictionary]) {      
+                Write-Host "`n"      
                 $temp | ConvertTo-Json | Write-Host
-                :subCategoryLoop do{
+                :subCategoryLoop do {
                     $tempSubCategory = Read-Host "`nKey belongs to Ordered Dictionary. Please select a key"
                     if($temp[$tempSubCategory]){
                         $tempCategory = $temp[$tempSubCategory]
                         break subCategoryLoop
                     } else {
                         Write-Host "`nUnrecognized subkey. Loop running again." -ForegroundColor Red
+                        Write-Host "`n"
                         $temp | ConvertTo-Json | Write-Host
                     }
-                }while($true)
+                } while($true)
                 
                 break CategoryLoop
     
             } elseif ($temp -is [string]) {
                 $tempCategory = $temp
-                Write-Host "`nCategory parsed succesfully: '$tempCategory'"
+                Write-Host "`nCategory parsed succesfully: '$tempCategory'" -ForegroundColor Green
                 break CategoryLoop
             } else {
                 Write-Host "`nCould not parse '$key'. Loop running again." -ForegroundColor Red

@@ -14,6 +14,8 @@ function AccountingCommandLineInterface {
     [alias("acccli")]
     param()
 
+    Write-Host "`nWelcome to 'AccountingCommandLineInterface', please select one of the options below to start using the CLI application.`n" -ForegroundColor Blue
+
     :mainLoop while ($true) {
 
         @{
@@ -23,22 +25,22 @@ function AccountingCommandLineInterface {
             w   =   'write'
         } | ConvertTo-Json -Depth 4
 
-        $action = Read-Host "Please select which action you would like to perform"
+        $action = Read-Host "`nPlease select which action you would like to perform" -ForegroundColor Blue
 
         switch ($action) {
             'r' { 
-                Write-Host "`nRead Data selected."
+                Write-Host "`nRead Data selected." -ForegroundColor Blue
                 $CSV.Read()
             }
 
             'w' { 
-                Write-Host "`nWrite Data selected."
+                Write-Host "`nWrite Data selected." -ForegroundColor Blue
                 $data = [CSVRow]::new($CSV.GetJSON())
                 $CSV.Write($data)
             }
 
             'p' {
-                Write-Host "`nPlotting data."
+                Write-Host "`nPlotting data." -ForegroundColor Blue
                 $CSV.Plot()
             }
 

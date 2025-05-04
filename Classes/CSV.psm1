@@ -12,30 +12,32 @@ class CSV {
         $this.PYTHONSCRIPTPATH = $pythonpath
     }
 
-    [int] ValidateInstallments() {
+    [int] ValidateInteger( [string] $validation, [int] $bound) {
         $tempInt = 0
         do {
             $temp = Read-Host "`nSelect number of installments"
             try {
                 $tempInt = [int]$temp
-                if ($tempInt -gt 1) {
+                if ($tempInt -gt $bound) {
                     break
                 } else {
-                    Write-Host "`nInstallments must be an integer greater than 1." -ForegroundColor Red
+                    Write-Host "`n$validation must be an integer greater than $bound." -ForegroundColor Red
                 }            
             } catch {
-                Write-Host "`nCould not parse '$temp' to Integer. Running this again." -ForegroundColor Red
+                Write-Host "`nCould not parse '$temp' as integer. " -ForegroundColor Red
             }
         } while ($true)
     
-        Write-Host "`nInstallments parsed successfully: '$tempInt'" -ForegroundColor Blue
+        Write-Host "`n$validation parsed successfully: '$tempInt'" -ForegroundColor Green
         return $tempInt
     }
     
     [Void] Read(){
         
-        $numberOfLines = Read-Host "`nInsert number of lines to be read"
+        $numberOfLines = $this.ValidateInteger("Lines to read", 1)
+        Write-Host "`n"
         Get-Content -Path ($this.CSVPATH) -Tail $numberOfLines | Write-Host
+        Write-Host "`n"
 
     }
 
@@ -43,20 +45,25 @@ class CSV {
 
         if (($data.Amount -gt 200) -and -not ($data.Category -in @("BLIND","INGRESO-SOLES","INGRESO-USD"))) {
 
-            $installments = $this.ValidateInstallments()
+            $installments = $this.ValidateInteger("Installments", 1)
             $data.Amount = $data.Amount / $installments
 
             for ($i = 0; $i -lt $installments; $i++) {
                 $tempData = $data.Copy()
 
-                $tempdata.Date = $data.Date.AddMonths($i)                
+                $tempdata.Date = $data.Date.AddMonths($i)
                 $tempData.Description = "$($data.Description) tag: cuota $i"
                 Add-Content -Path ($this.CSVPATH) -Value ($tempData.Parse())
+                if ($i -eq $installments - 1) {
+                    Write-Host "`nSeveral lines have been written to file. Sample: $($tempData.Parse())"
+                }
             }
+
         } else {
             Add-Content -Path ($this.CSVPATH) -Value ($data.Parse())
         }
-        Write-Host "`nData added." -ForegroundColor Blue
+        Write-Host "`nThe following line has been written to file: `n$($data.Parse())" -ForegroundColor Blue
+        Write-Host "`nData added." -ForegroundColor Green
     }
 
     [void] Plot(){

@@ -20,8 +20,8 @@ A *really simple* CLI tool to help you track accounting information from the ter
 - Update `$categoryDict` to load from a JSON stored in some sort of .env directory. 
 
 ## Requirements:
-This project was build with `powershell` and `python`.
-1. `powershell` dependencies
+This project was built with `powershell` and `python`.
+1. `powershell` version
 ```
 PS C:\> $PSVersionTable.PSVersion
 
@@ -33,8 +33,7 @@ Major  Minor  Build  Revision
 ```
 PS C:\> python --version
 Python 3.12.3
-PS C:\> $libraries = "json", "pandas", "matplotlib"
-PS C:\> $libraries | % {python -c "import $_; print(f'$_ : {$_.__version__}')"}
+PS C:\> "json", "pandas", "matplotlib" | % {python -c "import $_; print(f'$_ : {$_.__version__}')"}
 json : 2.0.9
 pandas : 2.2.2
 matplotlib : 3.8.4

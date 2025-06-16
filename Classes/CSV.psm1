@@ -15,7 +15,7 @@ class CSV {
     [int] ValidateInteger( [string] $validation, [int] $bound) {
         $tempInt = 0
         do {
-            $temp = Read-Host "`nSelect number of installments"
+            $temp = Read-Host "`nSelect number of $validation"
             try {
                 $tempInt = [int]$temp
                 if ($tempInt -gt $bound) {

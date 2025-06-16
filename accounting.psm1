@@ -25,7 +25,7 @@ function AccountingCommandLineInterface {
             w   =   'write'
         } | ConvertTo-Json -Depth 4
 
-        $action = Read-Host "`nPlease select which action you would like to perform" -ForegroundColor Blue
+        $action = Read-Host "`nPlease select which action you would like to perform"
 
         switch ($action) {
             'r' { 

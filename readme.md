@@ -17,7 +17,9 @@ A *really simple* CLI tool to help you track accounting information from the ter
    ```
 
 ## TODO:
-- Update `$categoryDict` to load from a JSON stored in some sort of .env directory. 
+- When prompting for integers, it should be able to prompt basic aritmethic operations. E.g., "1+1" should evaluate to 2. 
+- Aggregate the following options: `c` for clearing the console, `f` for filtering, and `r` for returning the CSV ready to be filtered under pandas (`python -i -c "string"`) or powershell (continuing on the terminal), `h` for listing all available categories.
+- Refactor JSON since its structure sucks.
 
 ## Requirements:
 This project was built with `powershell` and `python`.

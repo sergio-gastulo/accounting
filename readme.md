@@ -4,7 +4,6 @@
 A *really simple* CLI tool to help you track accounting information from the terminal. *(Windows only)*.  
 
 ## **Installation**  
-
 1. Clone the repository into a directory included in your PowerShell module path (`$Env:PSModulePath`).  
    - More details on PowerShell module paths can be found in the [official documentation](https://learn.microsoft.com/es-es/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.5).  
 
@@ -16,13 +15,13 @@ A *really simple* CLI tool to help you track accounting information from the ter
    AccountingCommandLineInterface # acccli
    ```
 
-3. How to structure the JSON? It defines a list of categories. Each category contains basic metadata, and optionally, subcategories. Field Descriptions: 
+### JSON Structure
+It defines a list of categories. Each category contains basic metadata, and optionally, subcategories. Field Descriptions: 
 * key (string) – Unique identifier for the category.
 * shortname (string) – A brief display name.
 * description (string) – A longer label or description for the category.
 * help (string) – Full explanation or tooltip-style guidance for users.
 * subcategories (array of json's, optional) – Nested categories that follow the same structure.
-
 ```js
 [
    {
@@ -38,19 +37,20 @@ A *really simple* CLI tool to help you track accounting information from the ter
 		"help":...,
 		"subcategories":[
 			{
-            "key":"sub key",
-            "shortname":...,
-            "description":...,
-            "help":...,
-         }
+				"key":"sub key",
+				"shortname":...,
+				"description":...,
+				"help":...,
+         	},
+			...
 		]
 	}
 ]
 ```
 
 ## TODO:
-- When prompting for integers, it should be able to prompt basic aritmethic operations. E.g., "1+1" should evaluate to 2. 
-- Aggregate the following options: `f` for filtering and `r` for returning the CSV ready to be filtered under pandas (`python -i -c "string"`) or powershell (continuing on the terminal)
+- When prompting the user for integer input, allow basic arithmetic expressions (e.g., "1+1" should be evaluated as 2).
+- Aggregate the following options: `f` for filtering and `r` for returning the CSV ready to be filtered under pandas (`python -i -c "string"`) or powershell (chaining in the terminal).
 
 ## Requirements:
 This project was built with `powershell` and `python`.

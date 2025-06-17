@@ -18,7 +18,9 @@ function AccountingCommandLineInterface {
 
     :mainLoop while ($true) {
 
-        @{
+        [ordered] @{
+            c   =   'clear console'
+            h   =   'help'
             p   =   'plot'
             q   =   'quit'
             r   =   'read'
@@ -35,7 +37,7 @@ function AccountingCommandLineInterface {
 
             'w' { 
                 Write-Host "`nWrite Data selected." -ForegroundColor Blue
-                $data = [CSVRow]::new($CSV.GetJSON())
+                $data = [CSVRow]::new($CSV.categoriesJson.hash)
                 $CSV.Write($data)
             }
 
@@ -49,8 +51,35 @@ function AccountingCommandLineInterface {
                 break mainLoop
             }
 
+            'c' {
+                Clear-Host
+            }
+
+            'h' {
+                $strTemplate = "{0}: {1}"
+                $CSV.categoriesJson.array | ForEach-Object {
+                    
+                    $strTemplate -f $_.shortname, $_.description | Write-Host
+                    $indent  = " " * ($_.shortname.Length + 2)
+                    if ($_.help) {
+                        $indent + $_.help | Write-Host
+                    }
+                    
+                    if ($_.subcategories) {
+                        Write-Host "$indent The following subcategories are:"
+                        $indent  += " " * ($_.shortname.Length + 3)
+                        $_.subcategories | ForEach-Object {
+                            $indent + ($strTemplate -f $_.shortname, $_.description) | Write-Host
+                            if ($_.help) {
+                                $indent + $_.help | Write-Host
+                            }
+                        }
+                    }
+                }
+            }
+
             Default {
-                Write-Host "Non-valid flag" -ForegroundColor Red
+                Write-Host "`nNon-valid flag" -ForegroundColor Red
             }
         }
 

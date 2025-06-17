@@ -4,15 +4,17 @@ class CSV {
     [string]    $CSVPATH
     [string]    $JSONPATH
     [string]    $PYTHONSCRIPTPATH
+    [object]    $categoriesJson
 
 
     CSV([string] $csvpath, [string] $jsonpath, [string] $pythonpath) {
         $this.CSVPATH = $csvpath
         $this.JSONPATH = $jsonpath
         $this.PYTHONSCRIPTPATH = $pythonpath
+        $this.categoriesJson = $this.GetJSON()
     }
 
-    [int] ValidateInteger( [string] $validation, [int] $bound) {
+    [int] ValidateInteger([string] $validation, [int] $bound) {
         $tempInt = 0
         do {
             $temp = Read-Host "`nSelect number of $validation"
@@ -72,36 +74,25 @@ class CSV {
         }
     }
 
-    [System.Collections.Specialized.OrderedDictionary] GetJSON() {
+    [object] GetJSON() {
             
-        $psobject = Get-Content ($this.JSONPATH) -Raw | ConvertFrom-Json
-        
-        $dictionary = [ordered]@{}
-        
-        $keys = $psobject.psobject.properties.Name
-    
-        function Get-Hashtable {
-            [OutputType([System.Collections.Specialized.OrderedDictionary])]
-            param(
-                [psobject] $psobj
-                )
-                
-                $hashtable = [ordered]@{}
-                $psobj.psobject.properties | ForEach-Object {$hashtable[$_.Name] = $_.Value.shortname} 
-                return $hashtable
-                
-            }
-        
-        $keys | ForEach-Object {
-            if ($psobject.$_.shortname) {
-                $dictionary[$_] = $psobject.$_.shortname
+        $jsonArray = Get-Content ($this.JSONPATH) -Raw | ConvertFrom-Json 
+        $hashtable = [ordered]@{}
+        $jsonArray | ForEach-Object {
+            if ($_.subcategories) {
+                $newHashtable = [ordered]@{}
+                $_.subcategories | ForEach-Object {
+                   $newHashtable[$_.key] = $_.shortname
+                }
+                $hashtable[$_.key] = $newHashtable
             } else {
-                $dictionary[$_] = Get-Hashtable ($psobject.$_)
+                $hashtable[$_.key] = $_.shortname
             }
         }
-        
-        return $dictionary
-            
+        return @{
+            array   =   $jsonArray 
+            hash    =   $hashtable
+        }
     }
 
 }

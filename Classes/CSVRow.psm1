@@ -5,9 +5,7 @@ class CSVRow {
     [String]    $Description 
     [System.Collections.Specialized.OrderedDictionary]   $categoryDict
     
-    CSVRow (
-        [System.Collections.Specialized.OrderedDictionary]$categoryDict
-    ) {
+    CSVRow ([System.Collections.Specialized.OrderedDictionary] $categoryDict) {
         $this.categoryDict      =     $categoryDict
         $this.Date              =     $this.ValidateDate() 
         $this.Amount            =     $this.ValidateAmount() 

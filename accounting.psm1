@@ -3,7 +3,7 @@ using module .\Classes\CSV.psm1
 
 $CSV = [CSV]::new(
     # csv file
-    "$PSScriptRoot\files\cuentas-dev.csv",
+    "$PSScriptRoot\files\cuentas.csv",
     # json file
     "$PSScriptRoot\files\fields.json",
     # python script file
@@ -107,11 +107,11 @@ function AccountingCommandLineInterface {
                 $option = Read-Host "`nSelect whether to proceed with Python (py) or Powershell (pw)."
                 switch ($option) {
                     'py' { 
-                        Write-Host "`nPython chose." -ForegroundColor Green
-                        python -i .\Python\console.py
-                     }
+                        Write-Host "`nPython chosen." -ForegroundColor Green
+                        python -i .\Python\console.py $CSV.CSVPATH $CSV.JSONPATH
+                    }
                     'pw' {
-                        Write-Host "`nPowershell chose." -ForegroundColor Green
+                        Write-Host "`nPowershell chosen." -ForegroundColor Green
                         $Global:CSV = Import-Csv $CSV.CSVPATH
                         Write-Host "CSV imported as `$CSV, exiting CLI."
                         break mainLoop

@@ -32,19 +32,18 @@ class CustomDictionaries:
         * The pattern `key: {skey1: {sname, desc}, skey2: {sname, desc}}` is mapped to `sname1: desc1, sname2, desc2` (flattened)
         """
         
-        templist = []
+        shortname_descript_dict = {}
 
         with open(path,'r') as file:
-            for key, value in json.load(file).items():
-                shortname = value.get('shortname')
-                if shortname:
-                    templist.append([shortname, value['description']])
-                else: 
-                    templist.extend(
-                        [[subvalue['shortname'], subvalue['description']] for subvalue in value.values()]
-                    )
+            for item_dict in json.load(file):
+                subcategories = item_dict.get("subcategories")
+                if subcategories:
+                    for item in subcategories:
+                        shortname_descript_dict.update({item["shortname"]: item["description"]})
+                else:
+                    shortname_descript_dict.update({item_dict["shortname"]: item_dict["description"]})
 
-        return dict(templist)
+        return shortname_descript_dict
 
 
 class DataPlotter:
@@ -348,18 +347,18 @@ class MainInterface:
 
 if __name__ == '__main__':
     
-    try: 
-        json_path = sys.argv[2]
-    except IndexError:
-        print("Something went wrong during the json_path call.")
-        print("Enter the path (if possible, non relative) of the JSON")
-        json_path = input()
-
     try:
         csv_path = sys.argv[1]
     except IndexError:
         print("Something went wrong during the csv_path call.")
         print("Enter the path (if possible, non-relative) of the CSV: ")
         csv_path = input()
+    
+    try: 
+        json_path = sys.argv[2]
+    except IndexError:
+        print("Something went wrong during the json_path call.")
+        print("Enter the path (if possible, non relative) of the JSON")
+        json_path = input()
 
     MainInterface(DataPlotter(csv_path, CustomDictionaries(json_path))).main_interface()

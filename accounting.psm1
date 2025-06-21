@@ -3,11 +3,11 @@ using module .\Classes\CSV.psm1
 
 $CSV = [CSV]::new(
     # csv file
-    "$PSScriptRoot\files\cuentas.csv",
+    "$PSScriptRoot\files\cuentas-dev.csv",
     # json file
     "$PSScriptRoot\files\fields.json",
     # python script file
-    "$PSScriptRoot\plot.py"
+    "$PSScriptRoot\Python\plot.py"
     )
 
 function AccountingCommandLineInterface {
@@ -20,7 +20,9 @@ function AccountingCommandLineInterface {
 
         [ordered] @{
             c   =   'clear console'
+            f   =   'filter'
             h   =   'help'
+            i   =   'interactive playground'
             p   =   'plot'
             q   =   'quit'
             r   =   'read'
@@ -78,8 +80,51 @@ function AccountingCommandLineInterface {
                 }
             }
 
+            'f' {
+                $bodyOfCSV = Get-Content $CSV.CSVPATH
+                
+                :subFilterLoop do {
+                    
+                    $pattern = Read-Host "`nEnter the filter string (regex)"
+                    $search = $bodyOfCSV | Select-String -Pattern $pattern
+                    if ($search) {
+                        Write-Host $search
+                    } else {
+                        Write-Host "`nNo match for $pattern!" -ForegroundColor Red
+                    }
+                    Write-Host "`nWould you like to exit the loop? (y/n)" -ForegroundColor Blue
+                    $option = Read-Host
+                    if ($option -eq 'y') {
+                        break subFilterLoop 
+                    } else {
+                        Write-Host "`nKeep filtering!"
+                    }
+                } while ($true)
+
+            }
+
+            'i' {
+                $option = Read-Host "`nSelect whether to proceed with Python (py) or Powershell (pw)."
+                switch ($option) {
+                    'py' { 
+                        Write-Host "`nPython chose." -ForegroundColor Green
+                        python -i .\Python\console.py
+                     }
+                    'pw' {
+                        Write-Host "`nPowershell chose." -ForegroundColor Green
+                        $Global:CSV = Import-Csv $CSV.CSVPATH
+                        Write-Host "CSV imported as `$CSV, exiting CLI."
+                        break mainLoop
+                    }
+                    Default {
+                        Write-Host "`nCould not understand request, going to Main Loop" -ForegroundColor Red
+                        break
+                    }
+                }
+            }
+
             Default {
-                Write-Host "`nNon-valid flag" -ForegroundColor Red
+                Write-Host "`nNon-valid flag!" -ForegroundColor Red
             }
         }
 

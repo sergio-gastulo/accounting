@@ -7,7 +7,7 @@ A *really simple* CLI tool to help you track accounting information from the ter
 1. Clone the repository into a directory included in your PowerShell module path (`$Env:PSModulePath`).  
    - More details on PowerShell module paths can be found in the [official documentation](https://learn.microsoft.com/es-es/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.5).  
 
-2. Run the following commands in PowerShell:  
+2. Run the following commands in PowerShell:
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
    vim accounting.psm1 # edit [CSV]::new()
@@ -50,7 +50,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 
 ## TODO:
 - When prompting the user for integer input, allow basic arithmetic expressions (e.g., "1+1" should be evaluated as 2).
-- Aggregate the following options: `f` for filtering and `r` for returning the CSV ready to be filtered under pandas (`python -i -c "string"`) or powershell (chaining in the terminal).
+- Aggregate the following options: `f` for filtering and `i` for interactive terminal interface: `python -i -c "code"` or `Import-CSV "pathToCSV"`.
 
 ## Requirements:
 This project was built with `powershell` and `python`.

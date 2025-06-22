@@ -49,8 +49,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## TODO:
-- When prompting the user for integer input, allow basic arithmetic expressions (e.g., "1+1" should be evaluated as 2).
-- Aggregate the following options: `f` for filtering and `i` for interactive terminal interface: `python -i -c "code"` or `Import-CSV "pathToCSV"`.
+- Python interactivity when plotting could be improved in general.
 
 ## Requirements:
 This project was built with `powershell` and `python`.

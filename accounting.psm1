@@ -6,8 +6,10 @@ $CSV = [CSV]::new(
     "$PSScriptRoot\files\cuentas.csv",
     # json file
     "$PSScriptRoot\files\fields.json",
-    # python script file
-    "$PSScriptRoot\Python\plot.py"
+    # plotting script file
+    "$PSScriptRoot\Python\plot.py",
+    # interactive script file
+    "$PSScriptRoot\Python\console.py"
     )
 
 function AccountingCommandLineInterface {
@@ -88,7 +90,7 @@ function AccountingCommandLineInterface {
                     $pattern = Read-Host "`nEnter the filter string (regex)"
                     $search = $bodyOfCSV | Select-String -Pattern $pattern
                     if ($search) {
-                        Write-Host $search
+                        $search | Write-Host
                     } else {
                         Write-Host "`nNo match for $pattern!" -ForegroundColor Red
                     }
@@ -104,11 +106,11 @@ function AccountingCommandLineInterface {
             }
 
             'i' {
-                $option = Read-Host "`nSelect whether to proceed with Python (py) or Powershell (pw)."
+                $option = Read-Host "`nSelect whether to proceed with Python (py) or Powershell (pw)"
                 switch ($option) {
                     'py' { 
                         Write-Host "`nPython chosen." -ForegroundColor Green
-                        python -i .\Python\console.py $CSV.CSVPATH $CSV.JSONPATH
+                        python -i $CSV.IPYTHONPATH $CSV.CSVPATH $CSV.JSONPATH
                     }
                     'pw' {
                         Write-Host "`nPowershell chosen." -ForegroundColor Green

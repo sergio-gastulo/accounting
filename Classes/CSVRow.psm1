@@ -1,3 +1,5 @@
+using module .\GeneralUtilities.psm1
+
 class CSVRow {
     [datetime]  $Date
     [Double]    $Amount
@@ -7,9 +9,9 @@ class CSVRow {
     
     CSVRow ([System.Collections.Specialized.OrderedDictionary] $categoryDict) {
         $this.categoryDict      =     $categoryDict
-        $this.Date              =     $this.ValidateDate() 
-        $this.Amount            =     $this.ValidateAmount() 
-        $this.Description       =     $this.ValidateDescription()
+        $this.Date              =     [GeneralUtilities]::ValidateDate() 
+        $this.Amount            =     [GeneralUtilities]::ValidateDouble("Amount", 0.0)
+        $this.Description       =     [GeneralUtilities]::ValidateStringForCSV("Description")
         $this.Category          =     $this.ValidateCategory()
     }
 
@@ -27,66 +29,7 @@ class CSVRow {
             $this.Description = $Description
     }
     
-    hidden [datetime] ValidateDate() {
-        $tempDate = (Get-Date)
-        
-        while($true){
-            $period = Read-Host "`nInsert (day) or (day month)"
-            
-            try {
-                $day, $month = $period.Split(" ")
-                if($month){
-                    $tempDate = Get-Date -day $day -month $month
-                } else {
-                    $tempDate = Get-Date -day $day
-                }
-                break
-            } catch {
-                Write-Host "`nRunning this again, could not parse '$period'." -ForegroundColor Red
-                $flag = Read-Host "`nUse Date=Today? (y/anything to go back)" 
-                if ($flag -eq 'y') {
-                    break
-                }
-            }
-        }
-        Write-Host "`nParse successfull: '$($tempDate.ToString("dddd, MMMM d, yyyy"))'" -ForegroundColor Green
-        return $tempDate
-    }
-
-    hidden [double] ValidateAmount() {
-        $namount = 0.0
-        do {
-            $tempAmount = (Read-Host "`nInsert expense")
-            try {
-                $namount = [double]$tempAmount
-                if ($namount -gt 0.0) {
-                    break
-                } else {
-                    Write-Host "`n$tempAmount must be a positive integer." -ForegroundColor Red
-                }
-            }
-            catch {
-                Write-Host "`nRunning this again, $tempAmount could not be parsed to double" -ForegroundColor Red
-            }
-        } while ($true)
-        Write-Host "`nParse successfull: '$namount'" -ForegroundColor Green
-        return $namount
-    }
-
-    hidden [String] ValidateDescription() {
-        $tempDescription = ''
-        
-        do {
-            $tempDescription = Read-Host "`nType description, no commas"
-            if ($tempDescription -notmatch ',') {
-                break
-            }
-            Write-Host "`nDescription cannot include comma (,)." -ForegroundColor Red
-        } while ($true)
-        Write-Host "`n Succcessfull parse: '$tempDescription'" -ForegroundColor Green
-        return $tempDescription
-    }
-
+    # Only god knows what I did here 
     hidden [String] ValidateCategory() {
     
         $tempCategory= ""

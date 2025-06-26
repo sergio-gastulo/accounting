@@ -22,6 +22,7 @@ function AccountingCommandLineInterface {
 
         [ordered] @{
             c   =   'clear console'
+	    e 	=   'edit on vim'
             f   =   'filter'
             h   =   'help'
             i   =   'interactive playground'
@@ -104,6 +105,25 @@ function AccountingCommandLineInterface {
                 } while ($true)
 
             }
+
+	    'e' {
+		Write-Host "`nSelect (v)im or (n)otepad++."
+		Write-Host "`nIf none is available, notepad will be chosen."
+		$option = Read-Host
+		switch ($option) {
+			'v' {
+				vim $CSV.CSVPATH
+			} 
+			'n' {
+				notepad++.exe $CSV.CSVPATH
+			}
+			Default {
+				Write-Host "`nRunning default notepad for Windows."
+				Start-Process notepad -ArgumentList $CSV.CSVPATH
+			}				
+		}			
+			$CSV.CSVPATH	    
+	    }	
 
             'i' {
                 $option = Read-Host "`nSelect whether to proceed with Python (py) or Powershell (pw)"

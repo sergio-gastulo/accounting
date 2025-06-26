@@ -50,6 +50,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 
 ## TODO:
 - Python interactivity when plotting could be improved in general.
+- Add arguments to main function `acccli arg option`. 
 
 ## Requirements:
 This project was built with `powershell` and `python`.

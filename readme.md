@@ -51,6 +51,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ## TODO:
 - Python interactivity when plotting could be improved in general.
 - Add arguments to main function `acccli arg option`. 
+- Re-factor python: should ask `period` only at the beginning and should be more readable
 
 ## Requirements:
 This project was built with `powershell` and `python`.

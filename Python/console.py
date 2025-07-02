@@ -2,6 +2,26 @@ import sys
 import pandas as pd
 import json
 import matplotlib.pyplot as plt
+from typing import Optional
+
+
+def filter_category(category: str, period_arg: Optional[str] = None) -> pd.DataFrame:
+	if period_arg is None:
+		global period
+		period_arg = period
+	try:
+		year, month = period_arg.split("-")
+		year = int(year)
+		month = int(month)
+	except ValueError:	
+		raise ValueError("gg bro this is not a valied period")
+
+	return df[
+		(df.Date.dt.month == month) &
+		(df.Date.dt.year == year) &
+		(df.Category == category)
+	]
+
 
 def set_darkmode() -> None:
     plt.style.use('dark_background')
@@ -71,6 +91,9 @@ if __name__ == "__main__":
             json_path = input()
 
         categories = load_json(json_path)
+	
+        period = input("Prompt a category in ('YYYY-mm' format)")
 
+        print("You may want to print df.head(5) or df.info")
         print("The variables 'df' and 'categories' were loaded to kernel. Feel free to filter and play as desired.")
 

@@ -22,7 +22,7 @@ function AccountingCommandLineInterface {
 
         [ordered] @{
             c   =   'clear console'
-	    e 	=   'edit on vim'
+	        e 	=   'edit on vim'
             f   =   'filter'
             h   =   'help'
             i   =   'interactive playground'

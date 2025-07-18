@@ -22,18 +22,18 @@ function AccountingCommandLineInterface {
     :mainLoop while ($true) {
 
         [ordered] @{
-            c   =   'clear console'
+            c       =   'clear console'
             # We are disabling this option, will need to edit it carefuly -- will have to test how to edit user-friendlyly.
 	        # e 	=   'edit on vim' 
-            sql   =   'opens "db" in sqlite3'
-            h   =   'help'
+            h       =   'help'
             # We are disabling this option too, no need to do interactive filtering if one can now open the sqlite3 CLI.
             # i   =   'interactive playground' 
-            p   =   'plot'
-            q   =   'quit'
-            r   =   'read'
-            w   =   'write'
+            p       =   'plot' # missing this
+            r       =   'read'
+            sql     =   'opens "db" in sqlite3'
+            w       =   'write'
         } | ConvertTo-Json -Depth 4
+        Write-Host "Press 'q' to (q)uit."
 
         $action = Read-Host "`nPlease select which action you would like to perform"
 
@@ -47,6 +47,7 @@ function AccountingCommandLineInterface {
                 Write-Host "`nWrite Data selected." -ForegroundColor Blue
                 $data = [CSVRow]::new($CSV.categoriesJson.hash)
                 $CSV.Write($data)
+                Write-Host "`n"
             }
 
             'p' {
@@ -63,7 +64,7 @@ function AccountingCommandLineInterface {
 
             'h' { $CSV.Help() }
 
-            'f' { sqlite3.exe $CSV.DBPATH }
+            'sql' { sqlite3.exe $CSV.DBPATH }
 
             Default { Write-Host "`nNon-valid flag!" -ForegroundColor Red }
         }

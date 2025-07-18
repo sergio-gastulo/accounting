@@ -15,7 +15,7 @@ class GeneralUtilities {
                 Write-Host "`nCould not parse '$temp' as integer." -ForegroundColor Red
             }
         } while ($true)
-        Write-Host "`n$validation parsed successfully: '$tempInt'" -ForegroundColor Green
+        Write-Host "`n'$validation' parsed successfully: '$tempInt'" -ForegroundColor Green
         return $tempInt
     }
 

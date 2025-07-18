@@ -2,17 +2,21 @@ using module .\GeneralUtilities.psm1
 
 class CSVRow {
     [datetime]  $Date
-    [Double]    $Amount
-    [String]    $Category
-    [String]    $Description 
+    [double]    $Amount
+    [string]    $Description 
+    [string]    $Category
+    [string]    $Currency
     [System.Collections.Specialized.OrderedDictionary]   $categoryDict
     
     CSVRow ([System.Collections.Specialized.OrderedDictionary] $categoryDict) {
-        $this.categoryDict      =     $categoryDict
-        $this.Date              =     [GeneralUtilities]::ValidateDate() 
-        $this.Amount            =     [GeneralUtilities]::ValidateDouble("Amount", 0.0)
-        $this.Description       =     [GeneralUtilities]::ValidateStringForCSV("Description")
-        $this.Category          =     $this.ValidateCategory()
+        $this.categoryDict      =       $categoryDict
+        $this.Date              =       [GeneralUtilities]::ValidateDate() 
+        # temp variable
+        $amountCurrency         =       [GeneralUtilities]::ValidateDoubleCurrency("Amount", 0.0)
+        $this.Amount            =       $amountCurrency[0]
+        $this.Currency          =       $amountCurrency[1]
+        $this.Description       =       [GeneralUtilities]::ValidateStringForCSV("Description")
+        $this.Category          =       $this.ValidateCategory()
     }
 
     CSVRow(
@@ -20,6 +24,7 @@ class CSVRow {
         [double]$Amount, 
         [string]$Category, 
         [string]$Description, 
+        [string]$Currency,
         [System.Collections.Specialized.OrderedDictionary]$categoryDict
         ) {
             $this.categoryDict = $categoryDict
@@ -27,6 +32,7 @@ class CSVRow {
             $this.Amount = $Amount
             $this.Category = $Category
             $this.Description = $Description
+            $this.Currency = $Currency
     }
     
     # Only god knows what I did here 
@@ -80,14 +86,15 @@ class CSVRow {
         return $tempCategory
     }
 
-    [String]Parse(){
+    [hashtable]Parse(){
 
-        return @(
-            $this.Date.ToString("dd-MM-yyyy"),
-            $this.Amount,
-            $this.Description,
-            $this.Category
-        ) -join ","
+        return @{
+            date        = $this.Date.ToString("yyyy-MM-dd")
+            amount      = $this.Amount
+            description = $this.Description
+            category    = $this.Category
+            currency    = $this.Currency
+        }
 
     }
 
@@ -101,7 +108,7 @@ Category:    $($this.Category)
     }
 
     [CSVRow] Copy(){
-        return [CSVRow]::new($this.Date, $this.Amount, $this.Category, $this.Description, $this.categoryDict)
+        return [CSVRow]::new($this.Date, $this.Amount, $this.Category, $this.Description, $this.Currency, $this.categoryDict)
     }
 
 }

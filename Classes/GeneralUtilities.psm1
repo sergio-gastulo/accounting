@@ -19,10 +19,29 @@ class GeneralUtilities {
         return $tempInt
     }
 
-    static [double] ValidateDouble([string] $validation, [double] $lower_bound) {
+    static [object] ValidateDoubleCurrency([string] $validation, [double] $lower_bound) {
         $tempAmount = 0.0
-        $temp = Read-Host "`nSelect number of $validation"
+        $currency = ""
+
         do {
+            Write-Host "`nTo use this parser, you can do (basic arithmetic operation) (usd|eur|...|[empty])"
+            $temp = Read-Host "`nSelect number of $validation"
+            
+            # this splits the string based on the last space
+            $temp, $currency = $temp -split '\s(?=[^\s]*$)', 2
+            
+            if($currency -match '^[a-zA-Z]{3}$') {
+                #if matches currency, return it as upper
+                $currency = $currency.ToUpper()
+            } elseif ($currency -match '\d+') {
+                # if we picked a number, add it back to temp
+                $temp += " " + $currency
+                $currency = "PEN"
+            } else {
+                # default
+                $currency = "PEN"
+            }
+
             if ($temp -match "^[\+-].*") {
                 Write-Host "`nParsing basic arithmetic operation..." -ForegroundColor Yellow
                 if ($temp -match "[a-zA-Z]") {
@@ -37,21 +56,22 @@ class GeneralUtilities {
                 }
             } else {
                 try {
-                $tempAmount = [double]$temp
-                if ($tempAmount -gt $lower_bound) {
-                    break
-                } else {
-                    Write-Host "`n$tempAmount must be a positive double." -ForegroundColor Red
-                }
+                    $tempAmount = [double]$temp
+                    if ($tempAmount -gt $lower_bound) {
+                        break
+                    } else {
+                        Write-Host "`n$tempAmount must be a positive double." -ForegroundColor Red
+                    }
                 }
                 catch {
-                    Write-Host "`nRunning this again, $tempAmount could not be parsed to double" -ForegroundColor Red
+                    Write-Host "`nRunning this again, '$temp' could not be parsed to double" -ForegroundColor Red
                 }
             }
         } while ($true)
         
         Write-Host "`n$validation parsed succesfully: '$tempAmount'" -ForegroundColor Green
-        return $tempAmount
+        Write-Host "Currency: $currency"
+        return $tempAmount, $currency
     }
 
     static [string] ValidateStringForCSV([string] $field) {
@@ -128,6 +148,18 @@ class GeneralUtilities {
             array   =   $jsonArray 
             hash    =   $hashtable
         }
+    }
+
+    static [string] GetSQLQuery([string] $file, [hashtable] $hash) {
+        
+        $sqlFile = [IO.Path]::Combine((Split-Path $PSScriptRoot), "SQL", $file) 
+        $query = Get-Content $sqlFile -Raw
+
+        foreach ($key in $hash.Keys){
+            $query = $query -replace "@$key", $hash[$key]
+        }
+        
+        return $query
     }
 
 }

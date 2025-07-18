@@ -2,14 +2,15 @@ using module .\Classes\CSVRow.psm1
 using module .\Classes\CSV.psm1
 
 $CSV = [CSV]::new(
-    # csv file
-    "$PSScriptRoot\files\cuentas.csv",
-    # json file
+    
+    # db file (sqlite support)
+    "$($env:USERPROFILE)\dbs\cuentas",
+    
+    # json file for categories
     "$PSScriptRoot\files\fields.json",
+    
     # plotting script file
-    "$PSScriptRoot\Python\plot.py",
-    # interactive script file
-    "$PSScriptRoot\Python\console.py"
+    "$PSScriptRoot\Python\plot.py"
     )
 
 function AccountingCommandLineInterface {
@@ -22,10 +23,12 @@ function AccountingCommandLineInterface {
 
         [ordered] @{
             c   =   'clear console'
-	        e 	=   'edit on vim'
-            f   =   'filter'
+            # We are disabling this option, will need to edit it carefuly -- will have to test how to edit user-friendlyly.
+	        # e 	=   'edit on vim' 
+            sql   =   'opens "db" in sqlite3'
             h   =   'help'
-            i   =   'interactive playground'
+            # We are disabling this option too, no need to do interactive filtering if one can now open the sqlite3 CLI.
+            # i   =   'interactive playground' 
             p   =   'plot'
             q   =   'quit'
             r   =   'read'
@@ -56,98 +59,13 @@ function AccountingCommandLineInterface {
                 break mainLoop
             }
 
-            'c' {
-                Clear-Host
-            }
+            'c' { Clear-Host }
 
-            'h' {
-                $strTemplate = "{0}: {1}"
-                $CSV.categoriesJson.array | ForEach-Object {
-                    
-                    $strTemplate -f $_.shortname, $_.description | Write-Host
-                    $indent  = " " * ($_.shortname.Length + 2)
-                    if ($_.help) {
-                        $indent + $_.help | Write-Host
-                    }
-                    
-                    if ($_.subcategories) {
-                        Write-Host "$indent The following subcategories are:"
-                        $indent  += " " * ($_.shortname.Length + 3)
-                        $_.subcategories | ForEach-Object {
-                            $indent + ($strTemplate -f $_.shortname, $_.description) | Write-Host
-                            if ($_.help) {
-                                $indent + $_.help | Write-Host
-                            }
-                        }
-                    }
-                }
-            }
+            'h' { $CSV.Help() }
 
-            'f' {
-                $bodyOfCSV = Get-Content $CSV.CSVPATH
-                
-                :subFilterLoop do {
-                    
-                    $pattern = Read-Host "`nEnter the filter string (regex)"
-                    $search = $bodyOfCSV | Select-String -Pattern $pattern
-                    if ($search) {
-                        $search | Write-Host
-                    } else {
-                        Write-Host "`nNo match for $pattern!" -ForegroundColor Red
-                    }
-                    Write-Host "`nWould you like to exit the loop? (y/n)" -ForegroundColor Blue
-                    $option = Read-Host
-                    if ($option -eq 'y') {
-                        break subFilterLoop 
-                    } else {
-                        Write-Host "`nKeep filtering!"
-                    }
-                } while ($true)
+            'f' { sqlite3.exe $CSV.DBPATH }
 
-            }
-
-	    'e' {
-		Write-Host "`nSelect (v)im or (n)otepad++."
-		Write-Host "`nIf none is available, notepad will be chosen."
-		$option = Read-Host
-		switch ($option) {
-			'v' {
-				vim $CSV.CSVPATH
-			} 
-			'n' {
-				notepad++.exe $CSV.CSVPATH
-			}
-			Default {
-				Write-Host "`nRunning default notepad for Windows."
-				Start-Process notepad -ArgumentList $CSV.CSVPATH
-			}				
-		}			
-			$CSV.CSVPATH	    
-	    }	
-
-            'i' {
-                $option = Read-Host "`nSelect whether to proceed with Python (py) or Powershell (pw)"
-                switch ($option) {
-                    'py' { 
-                        Write-Host "`nPython chosen." -ForegroundColor Green
-                        python -i $CSV.IPYTHONPATH $CSV.CSVPATH $CSV.JSONPATH
-                    }
-                    'pw' {
-                        Write-Host "`nPowershell chosen." -ForegroundColor Green
-                        $Global:CSV = Import-Csv $CSV.CSVPATH
-                        Write-Host "CSV imported as `$CSV, exiting CLI."
-                        break mainLoop
-                    }
-                    Default {
-                        Write-Host "`nCould not understand request, going to Main Loop" -ForegroundColor Red
-                        break
-                    }
-                }
-            }
-
-            Default {
-                Write-Host "`nNon-valid flag!" -ForegroundColor Red
-            }
+            Default { Write-Host "`nNon-valid flag!" -ForegroundColor Red }
         }
 
     }

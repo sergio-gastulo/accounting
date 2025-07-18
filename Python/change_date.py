@@ -16,5 +16,5 @@ df = pd.read_csv(
 df_soles = df[~ df.Category.str.contains('USD')]
 df_usd = df[df.Category.str.contains('USD')]
 
-df_soles.to_csv(r"files\cuentas-soles.csv",index=False)
-df_usd.to_csv(r"files\cuentas-usd.csv",index=False)
+# df_soles.to_csv(r"files\cuentas-soles.csv",index=False)
+# df_usd.to_csv(r"files\cuentas-usd.csv",index=False)

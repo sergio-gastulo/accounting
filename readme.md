@@ -51,7 +51,9 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ## TODO:
 - Python interactivity when plotting could be improved in general.
 - Add arguments to main function `acccli arg option`. 
-- Re-factor python: should ask `period` only at the beginning and should be more readable
+- Re-factor python: should ask `period` only at the beginning and should be more readable (implemented but still needs fixes).
+- Refactor plot. We are should not be using `read_csv`. 
+- Rename modules: We migrated from CSV to SQLITE, we must re-name modules and stuff: `$CSV`, `$CSVRow` seems pretty useless now. 
 
 ## Requirements:
 This project was built with `powershell` and `python`.

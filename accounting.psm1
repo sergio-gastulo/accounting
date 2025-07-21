@@ -23,7 +23,7 @@ function AccountingCommandLineInterface {
 
         [ordered] @{
             c       =   'clear console'
-            # We are disabling this option, will need to edit it carefuly -- will have to test how to edit user-friendlyly.
+            # We are disabling this option, will need to edit it carefuly -- will have to test how to edit 'user-friendlyly'.
 	        # e 	=   'edit on vim' 
             h       =   'help'
             # We are disabling this option too, no need to do interactive filtering if one can now open the sqlite3 CLI.
@@ -43,7 +43,7 @@ function AccountingCommandLineInterface {
                 $CSV.Read()
             }
 
-            'w' { 
+            'w' {
                 Write-Host "`nWrite Data selected." -ForegroundColor Blue
                 $data = [CSVRow]::new($CSV.categoriesJson.hash)
                 $CSV.Write($data)

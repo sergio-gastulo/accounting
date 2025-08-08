@@ -5,12 +5,22 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
+def darkmode() -> None:
+    plt.style.use('dark_background')
+    plt.rcParams['font.family'] = 'monospace'
+    plt.rcParams['font.size'] = 12
+
+
 def sql_to_pd(db_path: Path) -> pd.DataFrame:
     """
     Connects to 'db_path' and returns dataframe. Filters only by user currency for now.
     """
     with connect(db_path) as conn:
-        df = pd.read_sql("SELECT * FROM cuentas WHERE currency='PEN';", conn)
+        df = pd.read_sql(
+            "SELECT * FROM cuentas WHERE currency='PEN';", 
+            conn,
+            parse_dates='date'
+        )
     return df
 
 
@@ -21,7 +31,7 @@ def categories_per_month(df: pd.DataFrame, period: pd.Period, categories: dict, 
         """
 
         # If 'period' is no where found for grouping, it is assigned the value of the current period
-        df_grouped_period = df.groupby([df.Date.dt.to_period('M'), 'category']).Amount.sum()
+        df_grouped_period = df.groupby([df.date.dt.to_period('M'), 'category']).amount.sum()
         try:
             df_grouped_period = df_grouped_period[str(period)] 
         except KeyError:
@@ -88,7 +98,7 @@ def expenses_time_series(df: pd.DataFrame, period: pd.Period) -> None:
     """
 
     df_period_amount = df[~df.category.isin(['BLIND','INGRESO'])]
-    df_period_amount = df_period_amount.groupby(df_period_amount.Date.dt.to_period('M')).Amount.sum()
+    df_period_amount = df_period_amount.groupby(df_period_amount.date.dt.to_period('M')).amount.sum()
     
     fig, ax = plt.subplots()
     ax.plot(df_period_amount.index.to_timestamp(), df_period_amount.values, marker='o', color=(1,1,1))
@@ -118,7 +128,7 @@ def category_time_series(df: pd.DataFrame, period: pd.Period, category: str) -> 
     """
     
     df_category_ts = df[df.category == category]
-    df_category_ts = df_category_ts.groupby(df_category_ts.Date.dt.to_period('M')).Amount.sum()
+    df_category_ts = df_category_ts.groupby(df_category_ts.date.dt.to_period('M')).amount.sum()
     td_period_string = str(period)
     
     fig, ax = plt.subplots()
@@ -164,7 +174,7 @@ def monthly_time_series(df: pd.DataFrame, period: pd.Period, months_es: dict) ->
 
 
     df_year_month = df[~df.Category.isin(['BLIND','INGRESO'])]
-    df_year_month = df_year_month.groupby(df_year_month.Date.dt.to_period('D')).Amount.sum()
+    df_year_month = df_year_month.groupby(df_year_month.date.dt.to_period('D')).amount.sum()
 
     # this collects the three consecutive-monthly periods: [-1,0,1]
     dfs = [df_year_month.get((period + i).__str__(), pd.Series(dtype='float64')) for i in range (-1,2)]
@@ -186,12 +196,13 @@ def monthly_time_series(df: pd.DataFrame, period: pd.Period, months_es: dict) ->
     plt.show()
 
 
-# really useful to run python -i path/to/functions.py
+# really useful to run python -i path/to/plot.py
 if __name__ == "__main__":
     
-    from acc_py.classes.custom_dictionaries import CustomDictionaries
     from os import getenv
     from dotenv import load_dotenv
+    # custom module
+    from classes import CustomDictionaries
     
     load_dotenv()
     df = sql_to_pd(getenv("DB_PATH"))
@@ -199,13 +210,15 @@ if __name__ == "__main__":
     
     period = pd.Timestamp.today().to_period('M')
     category = 'CASA' # modify accordingly to fields.json
-    
+    darkmode()
+
     print(df.head(5))
     
-    # Uncomment below to run the plots
-    # categories_per_month(df, period, categories=cd.categories, months_es=cd.months_es)
-    # expenses_time_series(df, period)
-    # category_time_series(df, period, category)
-    # monthly_time_series(df, period, months_es=cd.months_es)
+
+    # Uncomment the lines to run the plots
+    plot1 = lambda : categories_per_month(df, period, categories=cd.categories, months_es=cd.months_es)
+    plot2 = lambda : expenses_time_series(df, period)
+    plot3 = lambda : category_time_series(df, period, category)
+    plot4 = lambda : monthly_time_series(df, period, months_es=cd.months_es)
 
     # or play with them when running python -i ...

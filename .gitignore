@@ -1,4 +1,5 @@
 test/
 files/
-Python/env/
-Python/.env
+**/env/
+**/.env
+**/__pycache__

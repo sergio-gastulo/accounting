@@ -25,7 +25,7 @@ class GeneralUtilities {
 
         do {
             Write-Host "`nTo use this parser, you can do (basic arithmetic operation) (usd|eur|...|[empty])"
-            $temp = Read-Host "`nSelect number of $validation"
+            $temp = Read-Host "Select number of $validation"
             
             # this splits the string based on the last space
             $temp, $currency = $temp -split '\s(?=[^\s]*$)', 2
@@ -51,7 +51,7 @@ class GeneralUtilities {
                     if ($tempAmount -gt $lower_bound) {
                         break
                     } else {
-                        Write-Host "`n'$validation' must be an integer greater than $lower_bound." -ForegroundColor Red
+                        Write-Host "`n'$validation' must be an Double greater than '$lower_bound'." -ForegroundColor Red
                     }  
                 }
             } else {
@@ -160,6 +160,57 @@ class GeneralUtilities {
         }
         
         return $query
+    }
+
+    # only God knows how this works
+    static [string] ValidateCategory([System.Collections.Specialized.OrderedDictionary] $categoryDict) {
+    
+        $tempCategory= ""
+    
+        :CategoryLoop do {
+            Write-Host "["
+            
+            $categoryDict.Keys | ForEach-Object { 
+                $temporaryValueOfCategoryDict = $categoryDict[$_]
+                if ($temporaryValueOfCategoryDict -is [string]) {
+                    $valueStringToPrint = ": `t$temporaryValueOfCategoryDict,"
+                } else {
+                    $valueStringToPrint = ","
+                }
+                Write-Host "`t$_$valueStringToPrint" 
+            }
+            
+            Write-Host "]"
+            $key = Read-Host "`nSelect a key from the dictionary above"
+            $temp = $categoryDict[$key]        
+    
+            if ($temp -is [System.Collections.Specialized.OrderedDictionary]) {      
+                Write-Host "`n"      
+                $temp | ConvertTo-Json | Write-Host
+                :subCategoryLoop do {
+                    $tempSubCategory = Read-Host "`nKey belongs to Ordered Dictionary. Please select a key"
+                    if($temp[$tempSubCategory]){
+                        $tempCategory = $temp[$tempSubCategory]
+                        break subCategoryLoop
+                    } else {
+                        Write-Host "`nUnrecognized subkey. Loop running again." -ForegroundColor Red
+                        Write-Host "`n"
+                        $temp | ConvertTo-Json | Write-Host
+                    }
+                } while($true)
+                
+                break CategoryLoop
+    
+            } elseif ($temp -is [string]) {
+                $tempCategory = $temp
+                Write-Host "`nCategory parsed succesfully: '$tempCategory'" -ForegroundColor Green
+                break CategoryLoop
+            } else {
+                Write-Host "`nCould not parse '$key'. Loop running again." -ForegroundColor Red
+            }
+        } while($true)
+    
+        return $tempCategory
     }
 
 }

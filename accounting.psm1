@@ -1,9 +1,11 @@
 using module .\Classes\CSVRow.psm1
 using module .\Classes\CSV.psm1
+using module .\Classes\GeneralUtilities.psm1
 
 $CSV = [CSV]::new(
     
     # db file (sqlite support)
+    # "$PSScriptRoot\files\db-test",
     "$($env:USERPROFILE)\dbs\cuentas",
     
     # json file for categories
@@ -20,7 +22,6 @@ function AccountingCommandLineInterface {
     Write-Host "`nWelcome to 'AccountingCommandLineInterface', please select one of the options below to start using the CLI application.`n" -ForegroundColor Blue
 
     :mainLoop while ($true) {
-
         [ordered] @{
             c       =   'clear console'
             # We are disabling this option, will need to edit it carefuly -- will have to test how to edit 'user-friendlyly'.
@@ -32,32 +33,40 @@ function AccountingCommandLineInterface {
             r       =   'read'
             sql     =   'opens "db" in sqlite3'
             w       =   'write'
-        } | ConvertTo-Json -Depth 4
+            wl      =   'write a list'
+        } | Format-Table
         Write-Host "Press 'q' to (q)uit."
-
-        $action = Read-Host "`nPlease select which action you would like to perform"
+        $action = Read-Host "Please select which action you would like to perform"
 
         switch ($action) {
             'r' { 
-                Write-Host "`nRead Data selected." -ForegroundColor Blue
+                Write-Host "`nReading from database." -ForegroundColor Blue
                 $CSV.Read()
             }
-
-            'w' {
-                Write-Host "`nWrite Data selected." -ForegroundColor Blue
-                $data = [CSVRow]::new($CSV.categoriesJson.hash)
-                $CSV.Write($data)
-                Write-Host "`n"
-            }
-
             'p' {
-                Write-Host "`nPlotting data." -ForegroundColor Blue
+                Write-Host "`nPlotting from database." -ForegroundColor Blue
                 $CSV.Plot()
             }
-
             'q' {
                 Write-Host "`nBreaking Loop. Bye!`n" -ForegroundColor Blue
                 break mainLoop
+            }
+            'w' {
+                Write-Host "`nWrite to database." -ForegroundColor Blue
+                $CSV.Write([CSVRow]::new($CSV.categoriesJson.hash))
+                Write-Host "`n"
+            }
+            'wl' {
+                Write-Host "`nWrite a List to database." -ForegroundColor Blue
+                $date = [GeneralUtilities]::ValidateDate()
+                $category = [GeneralUtilities]::ValidateCategory($CSV.categoriesJson.hash)
+                :listLoop while($true){
+                    $CSV.Write([CSVRow]::new($date, $category))
+                    do {
+                        $opt = Read-Host "Would you like to continue? (y/n)"
+                    } until ($opt -match '^[yn]$')
+                    if ($opt -eq 'n') { break listLoop}
+                }
             }
 
             'c' { Clear-Host }

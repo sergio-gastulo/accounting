@@ -30,7 +30,6 @@ class CSV {
         # lambda function for writing
         $write = {
             param($csvParsed, $db)
-
             [GeneralUtilities]::GetSQLQuery(
                 "write.sql",
                 $csvParsed 

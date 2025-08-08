@@ -54,6 +54,8 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Re-factor python: should ask `period` only at the beginning and should be more readable (implemented but still needs fixes).
 - Refactor plot. We are should not be using `read_csv`. 
 - Rename modules: We migrated from CSV to SQLITE, we must re-name modules and stuff: `$CSV`, `$CSVRow` seems pretty useless now. 
+- Categories should be sorted when printed. 
+- One could improve how to track payings in installments (some unique UUID?)
 
 ## Requirements:
 This project was built with `powershell` and `python`.

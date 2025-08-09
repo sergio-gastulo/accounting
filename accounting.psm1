@@ -60,8 +60,9 @@ function AccountingCommandLineInterface {
                 Write-Host "`nWrite a List to database." -ForegroundColor Blue
                 $date = [GeneralUtilities]::ValidateDate()
                 $category = [GeneralUtilities]::ValidateCategory($CSV.categoriesJson.hash)
+                $currency = [GeneralUtilities]::ValidateCurrency("")
                 :listLoop while($true){
-                    $CSV.Write([CSVRow]::new($date, $category))
+                    $CSV.Write([CSVRow]::new($date, $category, $currency))
                     do {
                         $opt = Read-Host "Would you like to continue? (y/n)"
                     } until ($opt -match '^[yn]$')

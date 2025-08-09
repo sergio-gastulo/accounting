@@ -69,7 +69,7 @@ class GeneralUtilities {
                 if (-not $operation) {
                     Write-Host "`nTo use this parser, you can type a number or use basic arithmetic."
                     Write-Host "Example: '=1+1' parses to '2'. Must start with '='."
-                    $operation = Read-Host "`nWrite here"
+                    $operation = Read-Host "`nWrite here '$validation'"
                 }
                 $tempDouble = $validateOperation.Invoke($operation)[0]
                 break

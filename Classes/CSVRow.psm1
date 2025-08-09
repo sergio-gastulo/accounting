@@ -33,14 +33,13 @@ class CSVRow {
     #for Writing a list to database support
     CSVRow(
         [datetime] $date,
-        [string] $category
+        [string] $category,
+        [string] $currency
     ){
         $this.Date              =       $date 
         $this.Category          =       $category
-        # temp variable
-        $amountCurrency         =       [GeneralUtilities]::ValidateDoubleCurrency("Amount")
-        $this.Amount            =       $amountCurrency[0]
-        $this.Currency          =       $amountCurrency[1]
+        $this.Currency          =       $currency
+        $this.Amount            =       [GeneralUtilities]::ValidateDoubleArithmeticOperation("Amount", 0.0, "")
         $this.Description       =       [GeneralUtilities]::ValidateStringForCSV("Description")
     }
 

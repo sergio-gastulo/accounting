@@ -1,78 +1,155 @@
 class GeneralUtilities {
-
-    static [int] ValidateInteger([string] $validation, [int] $lower_bound) {
+    static [int] ValidateInteger([string] $validation, [int] $lowerBound) {
         $tempInt = 0
-        do {
+        while ($true) {
             $temp = Read-Host "`nSelect number of $validation"
-            try {
-                $tempInt = [int]$temp
-                if ($tempInt -gt $lower_bound) {
-                    break
-                } else {
-                    Write-Host "`n'$validation' must be an integer greater than $lower_bound." -ForegroundColor Red
-                }            
-            } catch {
+
+            # parsing
+            if (-not [int]::TryParse($temp, [ref]$tempInt)) {
                 Write-Host "`nCould not parse '$temp' as integer." -ForegroundColor Red
+                continue
             }
-        } while ($true)
-        Write-Host "`n'$validation' parsed successfully: '$tempInt'" -ForegroundColor Green
+
+            # checking bounds
+            if ($tempInt -le $lowerBound) {
+                Write-Host "`n'$validation' must be an integer greater than $lowerBound." -ForegroundColor Red
+                continue
+            }
+
+            # if we're here, valid integer
+            Write-Host "`n'$validation' parsed successfully: '$tempInt'" -ForegroundColor Green
+            break
+        }
         return $tempInt
     }
 
-    static [object] ValidateDoubleCurrency([string] $validation, [double] $lower_bound) {
+
+    static [double] ValidateDoubleArithmeticOperation([string] $validation, [double] $lowerBound, [string] $operation = ""){
+        $tempDouble = 0.0
+        $validateOperation = {
+            param([string] $operation)
+            $doubleVar = 0.0
+
+            # does $operation start with '=' or '+' or '-'?
+            if ($operation -match "^[=\+-].*"){
+                Write-Host "`nParsing double operation."
+            }
+            # if it doesn't, user is probably trying to pass a double.
+            else {
+                Write-Host "`nParsing basic double number."
+                if(-not [double]::TryParse($operation, [ref]$doubleVar)) {
+                    Write-Host  "`nCould not parse '$operation' as double." -ForegroundColor Red
+                    throw
+                }
+            }
+
+            # catching injections
+            if ($operation -match "[a-zA-Z]") {
+                Write-Host "`nParse failed, dangerous evaluation could lead to potential issues." -ForegroundColor Red
+                throw
+            }
+
+            # if we're here, wether it's double or an arithmetic operation
+            $doubleVar = [double](Invoke-Expression ($operation).Replace("=",""))
+
+            #if parse successfull, check bounds:
+            if ($doubleVar -le $lowerBound) {
+                Write-Host "'$doubleVar' must be greater than '$lowerBound'"
+                throw
+            }
+
+            # here: completely valid double
+            Write-Host "`nParsed successfully: '$doubleVar'" -ForegroundColor Green
+            return [double]$doubleVar
+
+        }
+
+        while ($true) {
+            try {
+                if (-not $operation) {
+                    Write-Host "`nTo use this parser, you can type a number or use basic arithmetic."
+                    Write-Host "Example: '=1+1' parses to '2'. Must start with '='."
+                    $operation = Read-Host "`nWrite here"
+                }
+                $tempDouble = $validateOperation.Invoke($operation)[0]
+                break
+            }
+            catch {
+                Write-Host "`n'$operation' could not be parsed."
+                # forcing prompt
+                $operation = $null
+            }
+        }
+
+        return [double]$tempDouble
+    }
+
+
+    static [string] ValidateCurrency([string]$currency = "") {
+        $tempCurr = ""
+        $defaultCurr = "PEN"
+        $validateCurr = {
+            param($curr)
+            # check if length = 3
+            if ($curr.length -eq 0) {
+                Write-Host "Defaulting to default currency: '$defaultCurr'"
+                $curr = $defaultCurr 
+            } elseif (-not $curr.Length -eq 3) {
+                Write-Host "'$curr' is not a valid currency as per ISO convention: https://en.wikipedia.org/wiki/ISO_4217"
+                throw                 
+            }
+            # return in uppercase
+            return $curr.ToUpper()
+        }
+
+        while ($true) {
+            if (-not $currency) {
+                Write-Host "`nValidation of currency. Remember that a valid currency has string length = 3."
+                $currency = Read-Host "Write your currency here"
+            }
+            try {
+                $tempCurr = $validateCurr.Invoke($currency)[0]
+                break
+            }
+            catch {
+                Write-Host "'$currency' could not be parsed as a valid currency."
+                $currency = $null
+            }
+        }        
+        return $tempCurr
+    }
+
+    static [object] ValidateDoubleCurrency([string] $validation) {
+        $lowerBound = 0.0 # money should always be positive
         $tempAmount = 0.0
         $currency = ""
 
         do {
-            Write-Host "`nTo use this parser, you can do (basic arithmetic operation) (usd|eur|...|[empty])"
+            Write-Host "`nTo use this parser, you can do (basic arithmetic operation) (usd|eur|...|[empty for default currency])"
             $temp = Read-Host "Select number of $validation"
             
             # this splits the string based on the last space
             $temp, $currency = $temp -split '\s(?=[^\s]*$)', 2
-            
-            if($currency -match '^[a-zA-Z]{3}$') {
-                #if matches currency, return it as upper
-                $currency = $currency.ToUpper()
-            } elseif ($currency -match '\d+') {
-                # if we picked a number, add it back to temp
-                $temp += " " + $currency
-                $currency = "PEN"
-            } else {
-                # default
-                $currency = "PEN"
-            }
 
-            if ($temp -match "^[\+-].*") {
-                Write-Host "`nParsing basic arithmetic operation..." -ForegroundColor Yellow
-                if ($temp -match "[a-zA-Z]") {
-                    Write-Host "`nParse failed, dangerous evaluation could lead to potential issues." -ForegroundColor Red
-                } else {
-                    $tempAmount = Invoke-Expression $temp
-                    if ($tempAmount -gt $lower_bound) {
-                        break
-                    } else {
-                        Write-Host "`n'$validation' must be an Double greater than '$lower_bound'." -ForegroundColor Red
-                    }  
-                }
-            } else {
-                try {
-                    $tempAmount = [double]$temp
-                    if ($tempAmount -gt $lower_bound) {
-                        break
-                    } else {
-                        Write-Host "`n$tempAmount must be a positive double." -ForegroundColor Red
-                    }
-                }
-                catch {
-                    Write-Host "`nRunning this again, '$temp' could not be parsed to double" -ForegroundColor Red
-                }
+            # if we picked a number, append it back to $temp
+            if($currency -match "\d+") {
+                $temp += $currency
+            }
+            try {
+                $tempAmount = [GeneralUtilities]::ValidateDoubleArithmeticOperation("Amount", $lowerBound, $temp)
+                $currency = [GeneralUtilities]::ValidateCurrency($currency)
+                break
+            }
+            catch {
+                Write-Host "Something went wrong while parsing."
             }
         } while ($true)
         
-        Write-Host "`n$validation parsed succesfully: '$tempAmount'" -ForegroundColor Green
-        Write-Host "Currency: $currency"
+        Write-Host "$validation parsed succesfully: '$tempAmount'" -ForegroundColor Green
+        Write-Host "Currency: $currency" -ForegroundColor Green
         return $tempAmount, $currency
     }
+
 
     static [string] ValidateStringForCSV([string] $field) {
         $tempDescription = ''
@@ -87,6 +164,7 @@ class GeneralUtilities {
         Write-Host "`nSucessfull string: '$tempDescription'" -ForegroundColor Green
         return $tempDescription
     }
+
 
     static [datetime] ValidateDate() {
         $today = $tempDate = (Get-Date)
@@ -129,6 +207,7 @@ class GeneralUtilities {
         return $tempDate
     }
 
+
     static [object] GetJSON([string] $path) {
             
         $jsonArray = Get-Content ($path) -Raw | ConvertFrom-Json 
@@ -150,6 +229,7 @@ class GeneralUtilities {
         }
     }
 
+
     static [string] GetSQLQuery([string] $file, [hashtable] $hash) {
         
         $sqlFile = [IO.Path]::Combine((Split-Path $PSScriptRoot), "SQL", $file) 
@@ -161,6 +241,7 @@ class GeneralUtilities {
         
         return $query
     }
+
 
     # only God knows how this works
     static [string] ValidateCategory([System.Collections.Specialized.OrderedDictionary] $categoryDict) {

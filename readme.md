@@ -55,7 +55,9 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Refactor plot. We are should not be using `read_csv`. 
 - Rename modules: We migrated from CSV to SQLITE, we must re-name modules and stuff: `$CSV`, `$CSVRow` seems pretty useless now. 
 - Categories should be sorted when printed. 
+- Reading from CSV should be supported.
 - One could improve how to track payings in installments (some unique UUID?)
+- Add support for pivoting Currency when writing to list.
 
 ## Requirements:
 This project was built with `powershell` and `python`.

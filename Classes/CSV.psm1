@@ -21,7 +21,7 @@ class CSV {
             "read.sql", 
             @{
                 today           = (Get-Date).ToString("yyyy-MM-dd")
-                numberOfLines   = [GeneralUtilities]::ValidateInteger("Lines to read", 0) 
+                numberOfLines   = [GeneralUtilities]::ValidateInteger("Lines to read", 0)
             }) | sqlite3.exe ($this.DBPATH) | Write-Host -Separator "`n"
     }
 

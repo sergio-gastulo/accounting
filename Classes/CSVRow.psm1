@@ -9,7 +9,7 @@ class CSVRow {
     
     CSVRow ([System.Collections.Specialized.OrderedDictionary] $categoryDict) {
         $this.Date              =       [GeneralUtilities]::ValidateDate() 
-        $amountCurrency         =       [GeneralUtilities]::ValidateDoubleCurrency("Amount", 0.0)
+        $amountCurrency         =       [GeneralUtilities]::ValidateDoubleCurrency("Amount")
         $this.Amount            =       $amountCurrency[0]
         $this.Currency          =       $amountCurrency[1]
         $this.Description       =       [GeneralUtilities]::ValidateStringForCSV("Description")
@@ -38,7 +38,7 @@ class CSVRow {
         $this.Date              =       $date 
         $this.Category          =       $category
         # temp variable
-        $amountCurrency         =       [GeneralUtilities]::ValidateDoubleCurrency("Amount", 0.0)
+        $amountCurrency         =       [GeneralUtilities]::ValidateDoubleCurrency("Amount")
         $this.Amount            =       $amountCurrency[0]
         $this.Currency          =       $amountCurrency[1]
         $this.Description       =       [GeneralUtilities]::ValidateStringForCSV("Description")

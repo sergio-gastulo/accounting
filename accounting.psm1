@@ -12,7 +12,7 @@ $CSV = [CSV]::new(
     "$PSScriptRoot\files\fields.json",
     
     # plotting script file
-    "$PSScriptRoot\Python\plot.py"
+    "$PSScriptRoot\acc_py\main.py"
     )
 
 function AccountingCommandLineInterface {
@@ -25,11 +25,9 @@ function AccountingCommandLineInterface {
         [ordered] @{
             c       =   'clear console'
             # We are disabling this option, will need to edit it carefuly -- will have to test how to edit 'user-friendlyly'.
-	        # e 	=   'edit on vim' 
+	        # e 	=   'edit record' 
             h       =   'help'
-            # We are disabling this option too, no need to do interactive filtering if one can now open the sqlite3 CLI.
-            # i   =   'interactive playground' 
-            p       =   'plot' # missing this
+            p       =   'plot'
             r       =   'read'
             sql     =   'opens "db" in sqlite3'
             w       =   'write'

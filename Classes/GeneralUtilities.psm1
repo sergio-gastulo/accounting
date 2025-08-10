@@ -32,20 +32,20 @@ class GeneralUtilities {
 
             # does $operation start with '=' or '+' or '-'?
             if ($operation -match "^[=\+-].*"){
-                Write-Host "`nParsing double operation."
+                Write-Host "Parsing double operation."
             }
             # if it doesn't, user is probably trying to pass a double.
             else {
-                Write-Host "`nParsing basic double number."
+                Write-Host "Parsing basic double number."
                 if(-not [double]::TryParse($operation, [ref]$doubleVar)) {
-                    Write-Host  "`nCould not parse '$operation' as double." -ForegroundColor Red
+                    Write-Host  "Could not parse '$operation' as double." -ForegroundColor Red
                     throw
                 }
             }
 
             # catching injections
             if ($operation -match "[a-zA-Z]") {
-                Write-Host "`nParse failed, dangerous evaluation could lead to potential issues." -ForegroundColor Red
+                Write-Host "Parse failed, dangerous evaluation could lead to potential issues." -ForegroundColor Red
                 throw
             }
 
@@ -76,7 +76,7 @@ class GeneralUtilities {
             }
             catch {
                 Write-Host "`n'$operation' could not be parsed."
-                # forcing prompt
+                # forcing read-host
                 $operation = $null
             }
         }
@@ -103,10 +103,6 @@ class GeneralUtilities {
         }
 
         while ($true) {
-            if (-not $currency) {
-                Write-Host "`nValidation of currency. Remember that a valid currency has string length = 3."
-                $currency = Read-Host "Write your currency here"
-            }
             try {
                 $tempCurr = $validateCurr.Invoke($currency)[0]
                 break
@@ -114,6 +110,10 @@ class GeneralUtilities {
             catch {
                 Write-Host "'$currency' could not be parsed as a valid currency."
                 $currency = $null
+            }
+            if (-not $currency) {
+                Write-Host "`nValidation of currency. Remember that a valid currency has string length = 3."
+                $currency = Read-Host "Write your currency here"
             }
         }        
         return $tempCurr

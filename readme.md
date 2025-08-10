@@ -15,6 +15,13 @@ A *really simple* CLI tool to help you track accounting information from the ter
    AccountingCommandLineInterface # acccli
    ```
 
+3. If you have python-dependencies issues, don't worry! You can:
+	```
+	cd /path/to/cloned/repo/acc_py
+	poetry install
+	```
+	Of course, you must have [poetry](https://python-poetry.org/) installed.
+
 ### JSON Structure
 It defines a list of categories. Each category contains basic metadata, and optionally, subcategories. Field Descriptions: 
 * key (string) – Unique identifier for the category.

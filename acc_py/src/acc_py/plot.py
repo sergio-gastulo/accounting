@@ -173,7 +173,7 @@ def monthly_time_series(df: pd.DataFrame, period: pd.Period, months_es: dict) ->
     """
 
 
-    df_year_month = df[~df.Category.isin(['BLIND','INGRESO'])]
+    df_year_month = df[~df.category.isin(['BLIND','INGRESO'])]
     df_year_month = df_year_month.groupby(df_year_month.date.dt.to_period('D')).amount.sum()
 
     # this collects the three consecutive-monthly periods: [-1,0,1]
@@ -182,8 +182,8 @@ def monthly_time_series(df: pd.DataFrame, period: pd.Period, months_es: dict) ->
 
     for i, dframes in enumerate(dfs):
         temp_color = (1,1,1) if i != 1 else (0,1,0)
-        ax[0].plot( dframes.index.to_timestamp(), dframes.values, marker='o', color=temp_color)
-        ax[1].plot( dframes.index.to_timestamp(), dframes.values.cumsum(), color= temp_color, marker='o')
+        ax[0].plot(dframes.index.to_timestamp(), dframes.values, marker='o', color=temp_color)
+        ax[1].plot(dframes.index.to_timestamp(), dframes.values.cumsum(), color= temp_color, marker='o')
 
     for axes in ax:
         axes.axvline( mdates.date2num(period.asfreq('D', how='start') + pd.Timestamp.today().day), color=(1,0,0))
@@ -201,13 +201,26 @@ if __name__ == "__main__":
     
     from os import getenv
     from dotenv import load_dotenv
-    # custom module
-    from classes import CustomDictionaries
-    
+    from validate import _get_json
+
     load_dotenv()
     df = sql_to_pd(getenv("DB_PATH"))
-    cd = CustomDictionaries(getenv("JSON_PATH"))
-    
+    months_es = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre"
+        }
+    categories = _get_json(getenv("JSON_PATH"))
+
     period = pd.Timestamp.today().to_period('M')
     category = 'CASA' # modify accordingly to fields.json
     darkmode()
@@ -216,9 +229,9 @@ if __name__ == "__main__":
     
 
     # Uncomment the lines to run the plots
-    plot1 = lambda : categories_per_month(df, period, categories=cd.categories, months_es=cd.months_es)
+    plot1 = lambda : categories_per_month(df, period, categories=categories, months_es=months_es)
     plot2 = lambda : expenses_time_series(df, period)
     plot3 = lambda : category_time_series(df, period, category)
-    plot4 = lambda : monthly_time_series(df, period, months_es=cd.months_es)
+    plot4 = lambda : monthly_time_series(df, period, months_es=months_es)
 
     # or play with them when running python -i ...

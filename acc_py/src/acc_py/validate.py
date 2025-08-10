@@ -38,7 +38,7 @@ def _get_period(default_period: Period) -> Period:
 
     else:
         try:
-            year, month = user_input.split('-')
+            year, month = [int(x) for x in user_input.split('-')]
             return (Period(year=year,month=month, freq='M'))
         except ValueError:
             print(f"Not enough variables to parse in '{user_input}'.")
@@ -51,17 +51,15 @@ def _get_period(default_period: Period) -> Period:
         return default_period
 
 
-def _get_category(json_path: Path):
+def _get_category(dict_cat: dict[str, str]):
     """
     Returns a 'category' from user input, part of all the 'shortnames' in 'json_paths'. 
     If no category is chosen, one is randomly picked.
     """
-    dict_cat = _get_json(json_path)
-
     while True:
         try:
             print(json.dumps(dict_cat, indent=4))
-            print("Type the category you would like to plot. Press [return] to skip and chose a random category.")
+            print("Type the category you would like to plot. Press [return] to skip and chose a random category:")
             category = str(input()).upper()
 
             if category in dict_cat:
@@ -82,6 +80,15 @@ def _doc_printer(func: callable) -> None:
     end_str = '\033[0m'
     print(f'{cyan_str}Function name: \n{func.__name__}{end_str}\n')
     print(f'{cyan_str}Documentation{end_str}: {func.__doc__}')
+
+
+def _get_path(path: Path = None)-> Path:
+    while not (path and path.is_file()):
+        if path is not None:
+            print(f"'{path}' is not a valid file.")
+        path = Path(input("Enter the absolute path to the JSON category file: ")).resolve()
+    
+    return path
 
 
 

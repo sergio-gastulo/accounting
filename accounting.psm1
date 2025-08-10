@@ -5,8 +5,8 @@ using module .\Classes\GeneralUtilities.psm1
 $CSV = [CSV]::new(
     
     # db file (sqlite support)
-    # "$PSScriptRoot\files\db-test",
-    "$($env:USERPROFILE)\dbs\cuentas",
+    "$PSScriptRoot\files\db-test",
+    # "$($env:USERPROFILE)\dbs\cuentas",
     
     # json file for categories
     "$PSScriptRoot\files\fields.json",
@@ -24,11 +24,10 @@ function AccountingCommandLineInterface {
     :mainLoop while ($true) {
         [ordered] @{
             c       =   'clear console'
-            # We are disabling this option, will need to edit it carefuly -- will have to test how to edit 'user-friendlyly'.
-	        # e 	=   'edit record' 
+	        e 	=   'edit record' 
             h       =   'help'
             p       =   'plot'
-            r       =   'read'
+            r       =   'read last "n" lines'
             sql     =   'opens "db" in sqlite3'
             w       =   'write'
             wl      =   'write a list'
@@ -54,27 +53,25 @@ function AccountingCommandLineInterface {
                 $CSV.Write([CSVRow]::new($CSV.categoriesJson.hash))
                 Write-Host "`n"
             }
+
             'wl' {
                 Write-Host "`nWrite a List to database." -ForegroundColor Blue
-                $date = [GeneralUtilities]::ValidateDate()
-                $category = [GeneralUtilities]::ValidateCategory($CSV.categoriesJson.hash)
-                $currency = [GeneralUtilities]::ValidateCurrency("")
-                :listLoop while($true){
-                    $CSV.Write([CSVRow]::new($date, $category, $currency))
-                    do {
-                        $opt = Read-Host "Would you like to continue? (y/n)"
-                    } until ($opt -match '^[yn]$')
-                    if ($opt -eq 'n') { break listLoop}
-                }
+                $CSV.WriteList()
+            }
+
+            'e' {
+                Write-Host "Editing database selected. Currently, no support for data validation. Edit at your own risk."
+                $CSV.Edit()
             }
 
             'c' { Clear-Host }
-
             'h' { $CSV.Help() }
-
             'sql' { sqlite3.exe $CSV.DBPATH }
 
-            Default { Write-Host "`nNon-valid flag!" -ForegroundColor Red }
+            Default { 
+                Clear-Host
+                Write-Host "`nNot a valid flag!" -ForegroundColor Red
+            }
         }
 
     }

@@ -29,11 +29,11 @@ class CSV {
 
         # lambda function for writing
         $write = {
-            param($csvParsed, $db)
+            param($csvParsed)
             [GeneralUtilities]::GetSQLQuery(
                 "write.sql",
                 $csvParsed 
-            ) | sqlite3.exe ($db)
+            ) | sqlite3.exe ($this.DBPATH)
         }
 
         if (($data.Amount -gt 200) -and -not ($data.Category -in @("BLIND","INGRESO"))) {
@@ -47,11 +47,11 @@ class CSV {
                 $tempdata.Date = $data.Date.AddMonths($i)
                 $tempData.Description = "$($data.Description) tag: cuota $i"
 
-                $write.Invoke($tempData.Parse(), $this.DBPATH)
+                $write.Invoke($tempData.Parse())
             }
 
         } else {
-            $write.Invoke($data.Parse(), $this.DBPATH)
+            $write.Invoke($data.Parse())
         }
         Write-Host "`nThe following line has been written to file: `n$($data.Parse() | ConvertTo-Json -Compress)" -ForegroundColor Blue
         Write-Host "`nData added." -ForegroundColor Green
@@ -84,6 +84,51 @@ class CSV {
                     }
                 }
             }
+        }
+    }
+
+    [void] Edit() {
+        $recordID = 0
+        do {
+            $recordID = Read-Host "Write the ID you would like to edit, press 'r' to read."
+            if ($recordID -eq 'r') {
+                $this.Read()
+                $recordID = $null
+            }
+        } until ($recordID -match "^\d+$")
+        $recordID = [int]$recordID
+
+        Write-Host "Available columns:" -ForegroundColor Blue
+        # manually writing columns from schema
+        $schema = ".schema" | sqlite3.exe $this.DBPATH
+        $schema[1..7] | ForEach-Object {$_.Split(" ")[4] | Write-Host }
+        $column = Read-Host "Write the column you would like to modify"
+        $value = Read-Host "Write the attribute you would like to edit"
+
+        # if column is a numeric value (due to the schema, if column=amount), do not add '' (otherwise, it could be recognized as string)
+        if (-not ($column -eq 'amount')) {
+            $value = "'$value'"
+        }
+        
+        [GeneralUtilities]::GetSQLQuery("edit.sql", @{
+            id=$recordID
+            column=$column
+            value=$value
+        }) | sqlite3.exe $this.DBPATH
+
+    }
+
+    [void] WriteList(){
+        $opt = ""
+        $date = [GeneralUtilities]::ValidateDate()
+        $category = [GeneralUtilities]::ValidateCategory($this.categoriesJson.hash)
+        $currency = [GeneralUtilities]::ValidateCurrency("")
+        while($true){
+            $this.Write([CSVRow]::new($date, $category, $currency))
+            do {
+                $opt = Read-Host "Would you like to continue? (y/n)"
+            } until ($opt -match '^[yn]$')
+            if ($opt -eq 'n') { return }
         }
     }
 }

@@ -24,7 +24,7 @@ function AccountingCommandLineInterface {
     :mainLoop while ($true) {
         [ordered] @{
             c       =   'clear console'
-	        e 	=   'edit record' 
+	        e 	    =   'edit record' 
             h       =   'help'
             p       =   'plot'
             r       =   'read last "n" lines'

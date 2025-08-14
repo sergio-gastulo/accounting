@@ -2,6 +2,16 @@ from pandas import Period
 from random import choices
 from pathlib import Path
 import json
+import re
+
+def _validate_currency() -> str:
+    currency = ""
+    print("Select the currency you would like to plot: PEN, USD, EUR")
+    while True:
+        currency = str(input())
+        if re.match("^(eur|usd|pen)$", currency.lower()):
+            break
+    return currency.upper()
 
 
 def _get_json(json_path: Path) -> dict[str, str]:

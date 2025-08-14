@@ -4,7 +4,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-
 def darkmode() -> None:
     plt.style.use('dark_background')
     plt.rcParams['font.family'] = 'monospace'
@@ -17,85 +16,101 @@ def sql_to_pd(db_path: Path) -> pd.DataFrame:
     """
     with connect(db_path) as conn:
         df = pd.read_sql(
-            "SELECT * FROM cuentas WHERE currency='PEN';", 
+            f"SELECT * FROM cuentas;", 
             conn,
-            parse_dates='date'
+            parse_dates={"date": {"format": "%y-%m-%d"}}
         )
     return df
 
 
-def categories_per_month(df: pd.DataFrame, period: pd.Period, categories: dict, months_es: dict) -> None:
+def categories_per_month(db_path: Path, period: pd.Period, categories: dict, months_es: dict) -> None:
         """
-        Plots dataframe 'df' grouped by 'category' in the given 'period'. Format: 'yyyy-MM' (e.g. 2025-07). 
-        If 'period' not available when grouping, it is assigned the value of the current period.
+        Plots dataframe 'df' grouped by 'category' for each 'currency' in the specified 'period' in the db. 
+        period format: pandas.Period 
         """
-
-        # If 'period' is no where found for grouping, it is assigned the value of the current period
-        df_grouped_period = df.groupby([df.date.dt.to_period('M'), 'category']).amount.sum()
-        try:
-            df_grouped_period = df_grouped_period[str(period)] 
-        except KeyError:
-            current_period = pd.Timestamp.today().to_period('M')
-            print(f"Period {period} not found. Using current period as default: {current_period}")
-            period = current_period
-            df_grouped_period = df_grouped_period[str(period)] 
         
-        except Exception as e:
-            print(f"Unknown error: {e}")
-            return
-        
-        # Plotting spendings only. Removing 'BLIND' and 'INGRESO'.
-        df_grouped_period = df_grouped_period[~df_grouped_period.index.isin(['BLIND','INGRESO'])]
+        with connect(db_path) as conn:
+            query = """
+                SELECT 
+                    currency, category, SUM(amount) AS total_amount
+                FROM cuentas 
+                WHERE 
+                    date LIKE :period || '%' 
+                    AND (NOT category IN ('INGRESO', 'BLIND')) 
+                GROUP BY 
+                    currency, category;
+            """
 
-        # Main plot
-        fig, ax = plt.subplots()
+            # df structure being returned:
+            #    currency   category     SUM(amount)
+            # 0       EUR   HOME         420.000000
+            df = pd.read_sql(
+                query,
+                conn,
+                params={"period": str(period)}
+            )
+            currency_list = pd.read_sql("SELECT DISTINCT currency FROM cuentas;", conn)["currency"].tolist()
 
-        values = df_grouped_period.values
-        temp_max = max(values)
 
-        bars = ax.barh(
-            [categories[key] for key in df_grouped_period.index],  
-            values,  
-            height=0.8,
-            color=(1,1,1),
-            align='center'
-        )
+        def core_plot_logic(df: pd.DataFrame, currency: str) -> None:            
+            # this uses a df whose structure goes as follows:
+            #   df.index = category
+            #   a single value column with floats
+            fig, ax = plt.subplots()
+            values = df.total_amount
+            max_value = max(values)
 
-        ax.tick_params(axis='y', labelsize=10)
-
-        for bar in bars:
-            width = bar.get_width()
-            y = bar.get_y() + bar.get_height() / 2
-            ax.text(
-                (0.5 if temp_max / 2 < width else 1.1) * width,
-                y,
-                f'{width:.2f}',
-                va='center',
-                ha='left',
-                fontsize=10,
-                color = (0,0,0) if temp_max / 2 < width else (1,1,1)
+            bars = ax.barh(
+                [categories[key] for key in df.category],  
+                values,  
+                height=0.8,
+                color=(1,1,1),
+                align='center'
             )
 
-        ax.set_title(
-            label=f'Spending registered on {months_es[period.month]}, {period.year}:\nPEN {sum(values):.2f}',
-            pad=20,
-            loc='center',
-            y = 1.0
-        )
+            ax.tick_params(axis='y', labelsize=10)
 
-        ax.set_xlabel('Spendings', labelpad=8.0)
-        ax.set_ylabel('Categories', labelpad=16.0)
+            for bar in bars:
+                width = bar.get_width()
+                y = bar.get_y() + bar.get_height() / 2
+                ax.text(
+                    (0.5 if max_value / 2 < width else 1.1) * width,
+                    y,
+                    f'{width:.2f}',
+                    va='center',
+                    ha='left',
+                    fontsize=10,
+                    color = (0,0,0) if max_value / 2 < width else (1,1,1)
+                )
 
-        fig.subplots_adjust(left=0.2, right=0.9)
-        plt.show()
+            ax.set_title(
+                label=f'Spending registered on {months_es[period.month]}, {period.year}:\n{currency} {sum(values):.2f}',
+                pad=20,
+                loc='center',
+                y = 1.0
+            )
+
+            ax.set_xlabel('Spendings', labelpad=8.0)
+            ax.set_ylabel('Categories', labelpad=16.0)
+
+            fig.subplots_adjust(left=0.2, right=0.9)
+            plt.show()
+            
+            
+        for currency in currency_list:
+            df_currency = df.loc[df.currency == currency, ['category', 'total_amount']]
+            core_plot_logic(df_currency, currency)
 
 
-def expenses_time_series(df: pd.DataFrame, period: pd.Period) -> None:
+
+def expenses_time_series(db_path: Path, period: pd.Period) -> None:
     """
     Groups spendings by month, and plots it scattering the given 'period' in red.
     If 'period' is not specified, then it scatters the current period.
     If 'period' is specified but the month is not included in the time series, nothing is scattered.
     """
+
+    
 
     df_period_amount = df[~df.category.isin(['BLIND','INGRESO'])]
     df_period_amount = df_period_amount.groupby(df_period_amount.date.dt.to_period('M')).amount.sum()
@@ -125,6 +140,7 @@ def category_time_series(df: pd.DataFrame, period: pd.Period, category: str) -> 
     Plots a time series from the given 'category'.
     If 'period' is not specified, then it will try to scatter the current period.
     If 'period' is specified but the month is not included in the time series, a simple warning is printed.
+    This is good for categories that should mantain a certain average: INGRESOS, CASA-ALQUILER, etc.
     """
     
     df_category_ts = df[df.category == category]
@@ -196,7 +212,24 @@ def monthly_time_series(df: pd.DataFrame, period: pd.Period, months_es: dict) ->
     plt.show()
 
 
-# really useful to run python -i path/to/plot.py
+# ------------------------------------------------------------
+# Testing Instructions
+#
+# 1. Navigate to the acc_py directory:
+#        cd acc_py
+# 2. Run in interactive mode:
+#        python -i ./src/acc_py/plot.py
+# 3. Call plot1(), plot2(), plot3(), or plot4() — each should 
+#    display the correct plot.
+#
+# Variables to configure:
+#   * .env file
+#   * period — specify as a pandas.Period expression:
+#       https://pandas.pydata.org/docs/reference/api/pandas.Period.html
+#   * category
+# ------------------------------------------------------------
+
+
 if __name__ == "__main__":
     
     from os import getenv
@@ -204,7 +237,8 @@ if __name__ == "__main__":
     from validate import _get_json
 
     load_dotenv()
-    df = sql_to_pd(getenv("DB_PATH"))
+    db_path = getenv("DB_PATH")
+    df = sql_to_pd(db_path=db_path)
     months_es = {
         1: "Enero",
         2: "Febrero",
@@ -229,7 +263,7 @@ if __name__ == "__main__":
     
 
     # Uncomment the lines to run the plots
-    plot1 = lambda : categories_per_month(df, period, categories=categories, months_es=months_es)
+    plot1 = lambda : categories_per_month(db_path, period, categories=categories, months_es=months_es)
     plot2 = lambda : expenses_time_series(df, period)
     plot3 = lambda : category_time_series(df, period, category)
     plot4 = lambda : monthly_time_series(df, period, months_es=months_es)

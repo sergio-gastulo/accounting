@@ -3,16 +3,13 @@ from random import choices
 from pathlib import Path
 import json
 import re
-
-def _validate_currency() -> str:
-    currency = ""
-    print("Select the currency you would like to plot: PEN, USD, EUR")
-    while True:
-        currency = str(input())
-        if re.match("^(eur|usd|pen)$", currency.lower()):
-            break
-    return currency.upper()
-
+from sqlite3 import connect
+from pandas import read_sql
+# global context
+try: 
+    from .context import ctx 
+except:
+    from context import ctx
 
 def _get_json(json_path: Path) -> dict[str, str]:
     """
@@ -92,13 +89,18 @@ def _doc_printer(func: callable) -> None:
     print(f'{cyan_str}Documentation{end_str}: {func.__doc__}')
 
 
-def _get_path(path: Path = None)-> Path:
-    while not (path and path.is_file()):
-        if path is not None:
-            print(f"'{path}' is not a valid file.")
-        path = Path(input("Enter the absolute path to the JSON category file: ")).resolve()
-    
-    return path
+def _validate_currency_list(curr_list: list)-> list:
+    print("Currently, the list of currencies is: ")
+    print(curr_list)
+    opt = ""
+    while not re.match('^(y|n)$', opt):
+        print("I you believe it's changed, write 'y' to re-execute the list of currencies. Otherwise, write 'n' (y/n)")
+        opt = str(input())
+    if opt == 'y':
+        with connect(ctx.db_path) as conn:
+            curr_list = read_sql("SELECT DISTINCT currency FROM cuentas;", conn)["currency"].tolist()
+
+    return curr_list
 
 
 
@@ -108,10 +110,16 @@ if __name__ == "__main__":
     from pandas import Timestamp
     
     load_dotenv()
-    json_path = getenv("JSON_PATH")
-    default_period = Timestamp.today().to_period('M')
+    ctx.json_path = Path(getenv("JSON_PATH"))
+    ctx.db_path = Path(getenv("DB_PATH"))
+    ctx.default_period = Timestamp.today().to_period('M')
 
-    plot1 = lambda : _get_json(json_path=json_path)
-    plot2 = lambda : _get_period(default_period=default_period)
-    plot3 = lambda : _get_category(json_path=json_path)
+    categories = _get_json(json_path=ctx.json_path)
+    period = _get_period(default_period=ctx.default_period)
+    print("""
+          [TEST MODE]
+          'categories' variable loaded.
+          'period' variable loaded.
+          you can validate category with '_get_category(dict_cat=categories)'
+""")
     

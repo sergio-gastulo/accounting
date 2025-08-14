@@ -5,8 +5,8 @@ using module .\Classes\GeneralUtilities.psm1
 $CSV = [CSV]::new(
     
     # db file (sqlite support)
-    "$PSScriptRoot\files\db-test",
-    # "$($env:USERPROFILE)\dbs\cuentas",
+    # "$PSScriptRoot\files\db-test",
+    "$($env:USERPROFILE)\dbs\cuentas",
     
     # json file for categories
     "$PSScriptRoot\files\fields.json",

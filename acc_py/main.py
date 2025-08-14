@@ -1,39 +1,47 @@
 import sys 
 import pandas as pd
-# custom modules
-import src.acc_py.plot as plot
-import src.acc_py.validate as val
+from pathlib import Path
+from src.acc_py.context import ctx # custom context
+import src.acc_py.validate as val # custom validation
+import src.acc_py.plot as plot # custom plotting functions
 
-plot.darkmode()
-df = plot.sql_to_pd(db_path=sys.argv[1])
+if __name__ == "__main__":
 
-print("To proceed, choose a period to plot.")
-td_period = val._get_period(pd.Timestamp.today().to_period('M'))
-categories = val._get_json(json_path=sys.argv[2])
-
-months_es = {
-    1: "Enero",
-    2: "Febrero",
-    3: "Marzo",
-    4: "Abril",
-    5: "Mayo",
-    6: "Junio",
-    7: "Julio",
-    8: "Agosto",
-    9: "Septiembre",
-    10: "Octubre",
-    11: "Noviembre",
-    12: "Diciembre"
+    plot.darkmode()
+    ctx.db_path = Path(sys.argv[1])
+    ctx.period = val._get_period(pd.Timestamp.today().to_period('M'))
+    ctx.categories_dict = val._get_json(json_path=Path(sys.argv[2]))
+    ctx.month_es = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre"
     }
+    ctx.currency_list = val._validate_currency_list(['PEN', 'EUR', 'USD']) # custom order
+    ctx.selected_category = val._get_category(dict_cat=ctx.categories_dict)
 
-# list for interation
-plot_tasks = [
-    (plot.categories_per_month, dict(df=df, period=td_period, categories=categories, months_es=months_es)),
-    (plot.expenses_time_series, dict(df=df, period=td_period)),
-    (plot.category_time_series, dict(df=df, period=td_period, category=val._get_category(categories))),
-    (plot.monthly_time_series,  dict(df=df, period=td_period, months_es=months_es)),
-]
+    # check args later
+    # check args later
+    # check args later
+    # check args later
+    # check args later
+    plot_tasks = [
+        plot.categories_per_month,
+        plot.expenses_time_series,
+        # currently unsupported
+        # plot.category_time_series,
+        plot.monthly_time_series
+    ]
 
-for func, kwargs in plot_tasks:
-    val._doc_printer(func)
-    func(**kwargs)
+    # this is not printing in powershell... wtf?
+    for func in plot_tasks:
+        val._doc_printer(func)
+        func()

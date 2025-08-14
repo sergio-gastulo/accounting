@@ -10,9 +10,9 @@ A *really simple* CLI tool to help you track accounting information from the ter
 2. Run the following commands in PowerShell:
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
-   vim accounting.psm1 # edit [CSV]::new()
+   vim accounting.psm1 # edit [CSV]::new() entries
    Import-Module accounting
-   AccountingCommandLineInterface # acccli
+   AccountingCommandLineInterface # or 'acccli'
    ```
 
 3. If you have python-dependencies issues, don't worry! You can:
@@ -58,16 +58,15 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ## TODO:
 - Python interactivity when plotting could be improved in general.
 - Add arguments to main function `acccli arg option`. 
-- Re-factor python: should ask `period` only at the beginning and should be more readable (implemented but still needs fixes).
-- Refactor plot. We are should not be using `read_csv`. 
 - Rename modules: We migrated from CSV to SQLITE, we must re-name modules and stuff: `$CSV`, `$CSVRow` seems pretty useless now. 
-- Categories should be sorted when printed. 
-- Reading from CSV should be supported.
-- One could improve how to track payings in installments (some unique UUID?)
-- Add support for pivoting Currency when writing to list.
+- Categories should be sorted when printed in accounting.psm1. 
+- Reading from CSV and writing to DB should be supported.
+- One could improve how to track installments (some unique UUID?)
+- Fix powershell not printing function documentation.
+- Fix `category_time_series`.
 
 ## Requirements:
-This project was built with `powershell` and `python`.
+This project was built with `powershell`, `python`, and `sqlite`.
 1. `powershell` version
 ```
 PS C:\> $PSVersionTable.PSVersion
@@ -76,12 +75,10 @@ Major  Minor  Build  Revision
 -----  -----  -----  --------
 5      1      26100  3624
 ```
-2. `python` dependencies
+2. For `python` dependencies, check `poetry.lock` and `pyproject.toml`.
+
+3. `sqlite`:
 ```
-PS C:\> python --version
-Python 3.12.3
-PS C:\> "json", "pandas", "matplotlib" | % {python -c "import $_; print(f'$_ : {$_.__version__}')"}
-json : 2.0.9
-pandas : 2.2.2
-matplotlib : 3.8.4
+sqlite> SELECT sqlite_version();
+3.50.2
 ```

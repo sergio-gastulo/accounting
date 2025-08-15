@@ -44,10 +44,12 @@ class CSVRow {
     }
 
     [hashtable]Parse(){
-
+        if(-not $Global:tasa) {
+            $Global:tasa = 1
+        }
         return @{
             date        = $this.Date.ToString("yyyy-MM-dd")
-            amount      = $this.Amount
+            amount      = $this.Amount * $Global:tasa
             description = $this.Description
             category    = $this.Category
             currency    = $this.Currency

@@ -82,3 +82,6 @@ Major  Minor  Build  Revision
 sqlite> SELECT sqlite_version();
 3.50.2
 ```
+
+## Recomendations
+- In many cases, you spend money in a given currency CU1 but it is discounted from your card in another currency: CU2. I strongly believe one should always use static values when writing to 'db'. For that reason, you can set `$tasa = CU2/CU1` in your global session and it will automatically convert your spendings being writen in CU1 as in CU2. (Unfortunately, you must manually specify `currency = CU2`)`.

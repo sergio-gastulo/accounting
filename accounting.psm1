@@ -20,7 +20,7 @@ function AccountingCommandLineInterface {
     param()
 
     Write-Host "`nWelcome to 'AccountingCommandLineInterface', please select one of the options below to start using the CLI application.`n" -ForegroundColor Blue
-
+    Write-Host "'db' selected: $($CSV.DBPATH)"
     :mainLoop while ($true) {
         [ordered] @{
             c       =   'clear console'

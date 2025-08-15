@@ -94,9 +94,9 @@ class GeneralUtilities {
             if ($curr.length -eq 0) {
                 Write-Host "Defaulting to default currency: '$defaultCurr'"
                 $curr = $defaultCurr 
-            } elseif (-not $curr.Length -eq 3) {
+            } elseif (-not ($curr.Length -eq 3)) {
                 Write-Host "'$curr' is not a valid currency as per ISO convention: https://en.wikipedia.org/wiki/ISO_4217"
-                throw                 
+                throw
             }
             # return in uppercase
             return $curr.ToUpper()
@@ -115,7 +115,9 @@ class GeneralUtilities {
                 Write-Host "`nValidation of currency. Remember that a valid currency has string length = 3."
                 $currency = Read-Host "Write your currency here"
             }
-        }        
+        }    
+        # success
+        Write-Host "Currency successfully parsed: $tempCurr" -ForegroundColor Green
         return $tempCurr
     }
 

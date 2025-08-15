@@ -53,8 +53,8 @@ class CSV {
         } else {
             $write.Invoke($data.Parse())
         }
-        Write-Host "`nThe following line has been written to file: `n$($data.Parse() | ConvertTo-Json -Compress)" -ForegroundColor Blue
-        Write-Host "`nData added." -ForegroundColor Green
+        Write-Host "`nThe following line has been written to file:" -ForegroundColor Green
+        $data.Parse() | Format-Table | Write-Host -Separator "`n"
     }
 
     [void] Plot(){
@@ -122,7 +122,7 @@ class CSV {
         $opt = ""
         $date = [GeneralUtilities]::ValidateDate()
         $category = [GeneralUtilities]::ValidateCategory($this.categoriesJson.hash)
-        $currency = [GeneralUtilities]::ValidateCurrency("")
+        $currency = [GeneralUtilities]::ValidateCurrency("not-a-valid-currency")
         while($true){
             $this.Write([CSVRow]::new($date, $category, $currency))
             do {

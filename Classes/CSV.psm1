@@ -58,9 +58,8 @@ class CSV {
     }
 
     [void] Plot(){
-        python $this.PYTHONSCRIPTPATH $this.DBPATH $this.JSONPATH | ForEach-Object {
-            Write-Host $_
-        }
+        # as per https://github.com/python/cpython/issues/132962
+        $env:PYTHON_BASIC_REPL = "anyvalue"; python -i $this.PYTHONSCRIPTPATH $this.DBPATH $this.JSONPATH | Write-Host -Separator "`n"
     }
 
     [void] Help(){

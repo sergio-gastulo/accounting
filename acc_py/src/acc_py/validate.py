@@ -5,11 +5,6 @@ import json
 import re
 from sqlite3 import connect
 from pandas import read_sql
-# global context
-try: 
-    from .context import ctx 
-except:
-    from context import ctx
 
 def _get_json(json_path: Path) -> dict[str, str]:
     """
@@ -89,26 +84,17 @@ def _doc_printer(func: callable) -> None:
     print(f'{cyan_str}Documentation{end_str}: {func.__doc__}')
 
 
-def _validate_currency_list(curr_list: list)-> list:
-    print("Currently, the list of currencies is: ")
-    print(curr_list)
-    opt = ""
-    while not re.match('^(y|n)$', opt):
-        print("I you believe it's changed, write 'y' to re-execute the list of currencies. Otherwise, write 'n' (y/n)")
-        opt = str(input())
-    if opt == 'y':
-        with connect(ctx.db_path) as conn:
-            curr_list = read_sql("SELECT DISTINCT currency FROM cuentas;", conn)["currency"].tolist()
-
-    return curr_list
-
 
 
 if __name__ == "__main__":
     from os import getenv
     from dotenv import load_dotenv
     from pandas import Timestamp
-    
+    try: 
+        from .context import ctx 
+    except:
+        from context import ctx
+
     load_dotenv()
     ctx.json_path = Path(getenv("JSON_PATH"))
     ctx.db_path = Path(getenv("DB_PATH"))

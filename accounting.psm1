@@ -26,12 +26,12 @@ function AccountingCommandLineInterface {
             c       =   'clear console'
 	        e 	    =   'edit record' 
             h       =   'help'
-            p       =   'plot'
+            p       =   'opens a python session with pre-loaded functions to plot'
             r       =   'read last "n" lines'
             sql     =   'opens "db" in sqlite3'
             w       =   'write'
             wl      =   'write a list'
-        } | Format-Table
+        } | ConvertTo-Json
         Write-Host "Press 'q' to (q)uit."
         $action = Read-Host "Please select which action you would like to perform"
 
@@ -41,7 +41,7 @@ function AccountingCommandLineInterface {
                 $CSV.Read()
             }
             'p' {
-                Write-Host "`nPlotting from database." -ForegroundColor Blue
+                Write-Host "`nRuning python for plotting." -ForegroundColor Blue
                 $CSV.Plot()
             }
             'q' {
@@ -68,7 +68,7 @@ function AccountingCommandLineInterface {
             'h' { $CSV.Help() }
             'sql' { sqlite3.exe $CSV.DBPATH }
 
-            Default { 
+            Default {
                 Clear-Host
                 Write-Host "`nNot a valid flag!" -ForegroundColor Red
             }

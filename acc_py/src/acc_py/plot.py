@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from numpy import atleast_1d
 # custom context
 try:
     from .context import ctx 
@@ -16,91 +17,120 @@ def darkmode() -> None:
     plt.rcParams['font.size'] = 12
 
 
-def categories_per_month() -> None:
+def categories_per_period(period: str | pd.Period | None = None) -> None:
         """
         Plots dataframe 'df' grouped by 'category' for each 'currency' in the specified 'period' in the db. 
         period format: pandas.Period 
         """
-        
+
+        if period is None:
+            period = ctx.period
+        else: 
+            period = pd.Period(period, 'M')
+
         with connect(ctx.db_path) as conn:
-            query = """
+            query_totals = """
                 SELECT 
                     currency, category, SUM(amount) AS total_amount
                 FROM cuentas 
                 WHERE 
                     date LIKE :period || '%' 
-                    AND (NOT category IN ('INGRESO', 'BLIND')) 
+                    AND category NOT IN ('INGRESO', 'BLIND') 
                 GROUP BY 
                     currency, category;
             """
+            df = pd.read_sql(query_totals, conn, params={"period": str(period)})
+            
+            query_currencies = """
+                SELECT DISTINCT currency 
+                FROM cuentas 
+                WHERE 
+                    date LIKE :period || '%'
+                    AND category NOT IN ('INGRESO', 'BLIND');
+            """
+            currency_list = pd.read_sql(query_currencies, conn, params={"period": str(period)})["currency"].to_list()
 
-            # df structure being returned:
-            #    currency   category     SUM(amount)
-            # 0       EUR   HOME         420.000000
-            df = pd.read_sql(
-                query,
-                conn,
-                params={"period": str(ctx.period)}
-            )
+        bars_per_ax = []
 
-
-        def core_plot_logic(df: pd.DataFrame, currency: str) -> None:            
-            # this uses a df whose structure goes as follows:
-            #   df.index = category
-            #   a single value column with floats
-            fig, ax = plt.subplots()
+        def core_plot_logic(df: pd.DataFrame, currency: str, ax=None, fig=None) -> None:            
             values = df.total_amount
             max_value = max(values)
+            labels = [ctx.categories_dict[key] for key in df.category]
+            bars = ax.barh(labels, values, height=0.8, color=(1,1,1), align='center')
+            ax.tick_params(axis='y', labelsize=10.5)
 
-            bars = ax.barh(
-                [ctx.categories_dict[key] for key in df.category],  
-                values,  
-                height=0.8,
-                color=(1,1,1),
-                align='center'
-            )
-
-            ax.tick_params(axis='y', labelsize=10)
-
+            bars_per_ax.append((ax, bars, df.category.to_list(), currency))
+            
             for bar in bars:
-                width = bar.get_width()
-                y = bar.get_y() + bar.get_height() / 2
-                ax.text(
-                    (0.5 if max_value / 2 < width else 1.1) * width,
-                    y,
-                    f'{width:.2f}',
-                    va='center',
-                    ha='left',
-                    fontsize=10,
-                    color = (0,0,0) if max_value / 2 < width else (1,1,1)
+                width   = bar.get_width()
+                inside  = width > max_value / 2
+                xpos    = (0.5 if inside else 1.1) * width
+                ypos    = bar.get_y() + bar.get_height() / 2
+                color   = (0,0,0) if inside else (1,1,1)
+                
+                ax.text(xpos, ypos, f'{width:.2f} {currency}', 
+                    va='center', ha='left', fontsize=10, color=color
                 )
 
-            ax.set_title(
-                label=f'Spending registered on {ctx.month_es[ctx.period.month]}, {ctx.period.year}:\n{currency} {sum(values):.2f}',
-                pad=20,
-                loc='center',
-                y = 1.0
-            )
+            ax.text(0.90, 0.95, f'{currency} {values.sum():.2f}', transform=ax.transAxes, ha="left", va="top", fontsize=12)
+            fig.subplots_adjust(left=0.25, right=0.95)
 
-            ax.set_xlabel('Spendings', labelpad=8.0)
-            ax.set_ylabel('Categories', labelpad=16.0)
+        def on_click(event):
+            for ax, bars, labels, currency in bars_per_ax:
+                if event.inaxes == ax:
+                    for bar, label in zip(bars, labels):
+                        contains, _ = bar.contains(event)
+                        if contains:
+                            bar.set_color('red')
+                            print(f"\n\nCategory: {label}, Currency {currency}\n\n")
+                            with connect(ctx.db_path) as conn:
+                                query = """
+                                    SELECT amount, description 
+                                    FROM cuentas 
+                                    WHERE 
+                                        date LIKE :period || '%'
+                                        AND category = :category
+                                        AND currency = :currency;                               
+                                """
+                                print(pd.read_sql(
+                                    query, 
+                                    conn, 
+                                    params={
+                                        "period": str(period), 
+                                        "category": label, 
+                                        "currency": currency}
+                                    ).sort_values("amount", ascending=False).to_markdown())
+                            ax.figure.canvas.draw()
+                            return
 
-            fig.subplots_adjust(left=0.2, right=0.9)
-            plt.show()
-            
-            
-        for currency in ctx.currency_list:
-            df_currency = df.loc[df.currency == currency, ['category', 'total_amount']]
-            core_plot_logic(df_currency, currency)
+        heights = [
+            len(df.loc[df.currency == currency, 'category'].unique())
+            for currency in currency_list
+        ]
+
+        fig, axs = plt.subplots(len(currency_list), 1, sharex=True, gridspec_kw={'height_ratios': heights})
+        axs = atleast_1d(axs)
+        for i, currency in enumerate(currency_list):
+            df_currency = df.loc[df.currency == currency, ['category', 'total_amount']].sort_values('total_amount', ascending=False)
+            core_plot_logic(df_currency, currency, ax=axs[i], fig=fig)
+        
+        fig.suptitle(f"Spendings registered on {ctx.month_es[period.month]}, {period.year}")
+    
+        fig.canvas.mpl_connect('button_press_event', on_click)
+        plt.show()
 
 
-
-def expenses_time_series() -> None:
+def expenses_time_series(period: str | pd.Period | None = None) -> None:
     """
     Groups spendings by month, and plots it scattering the given 'period' in red.
     If 'period' is not specified, then it scatters the current period.
     If 'period' is specified but the month is not included in the time series, nothing is scattered.
     """
+
+    if period is None:
+        period = ctx.period
+    else: 
+        period = pd.Period(period, 'M')
 
     with connect(ctx.db_path) as conn:
         query = """
@@ -112,35 +142,45 @@ def expenses_time_series() -> None:
             WHERE NOT (category IN ('INGRESO', 'BLIND')) 
             GROUP BY currency, strftime('%Y-%m',date);
         """
-        df = pd.read_sql(
-            query,
-            conn,
-            parse_dates={"period": {"format": "%Y-%m"}}
-        )
+        df = pd.read_sql(query, conn, parse_dates={"period": {"format": "%Y-%m"}})
         df.period = df.period.dt.to_period('M')
+        query_currencies = """
+            SELECT DISTINCT currency 
+            FROM cuentas 
+            WHERE 
+                date LIKE :period || '%'
+                AND category NOT IN ('INGRESO', 'BLIND');
+        """
+        currency_list_in_period = pd.read_sql(query_currencies, conn, params={"period": str(period)})["currency"].to_list()
+        currency_list = pd.read_sql("SELECT DISTINCT currency FROM cuentas", conn)["currency"].to_list()
 
-    def core_plot_logic(df: pd.DataFrame, currency: str) -> None:
-        fig, ax = plt.subplots()
-        ax.plot(df.index.to_timestamp(), df.values, marker='o', color=(1,1,1))
+
+    def core_plot_logic(df: pd.DataFrame, currency: str, color: str, ax = None, fig = None) -> None:
+        ax.plot(df.index.to_timestamp(), df.values, marker='o', color=color, label=currency)
         
-        try:
-            scatter_value = df.loc[ctx.period, "total_amount"]
-            ax.scatter(ctx.period.to_timestamp(), scatter_value, color=(1,0,0), zorder=5)
-            ax.text(ctx.period.to_timestamp() + pd.Timedelta(days=10), 1.05 * scatter_value, s=f'{currency} {scatter_value:.2f}', size='11')
-            ax.axhline(scatter_value, color=(1,0,0))
-        except KeyError:
-            print(f"'{str(ctx.period)}' is not part of the index of df. Ignoring said period on the plot.")
+        if currency in currency_list_in_period:
+            scatter_value = df.loc[period, "total_amount"]
+            ax.scatter(period.to_timestamp(), scatter_value, color='red', zorder=5)
+            x = period.to_timestamp() + pd.Timedelta(days=10)       # x-axis + offset
+            y = scatter_value * 1.05                                # y-axis * offset
+            text = f'{currency} {scatter_value:.2f}'
+            ax.text(x, y, s=text, size='12')
+        else:
+            print(f"'{currency}' is not available to be scattered.")
 
-        ax.set_title(f"Spendings through the months and years in {currency}", pad=20)
         ax.set_xlabel('Date', labelpad=16.0)
-        ax.set_ylabel(f"Spendings in {currency}", labelpad=16.0)
         fig.autofmt_xdate()
-        plt.show()
 
-    for currency in ctx.currency_list:
+
+    fig, ax = plt.subplots()
+    colors = [(r / 255, g / 255, b / 255) for r, g, b in [(128, 128, 255), (26, 255, 163), (255, 255, 255)]] # https://www.w3schools.com/colors/colors_picker.asp
+
+    for currency, color in zip(currency_list, colors):
         df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-        core_plot_logic(df_currency, currency)
-
+        core_plot_logic(df_currency, currency, ax=ax, fig=fig, color=color)
+    fig.suptitle("Spendings as a Time Series")
+    plt.legend()
+    plt.show()
 
 
 def category_time_series() -> None:
@@ -204,7 +244,6 @@ def category_time_series() -> None:
         core_plot_logic(df_currency, currency)
 
 
-
 def monthly_time_series() -> None:
     """
     Plots two time series charts for daily expenses across three months: the previous, current, and next month (relative to 'period').
@@ -239,8 +278,8 @@ def monthly_time_series() -> None:
         df.period = df.period.dt.to_period('D')
 
     def core_plot_logic(df: pd.DataFrame, currency: str) -> None:
-        # this collects the three consecutive-monthly periods: [-1,0,1]
-        dfs = [df.loc[str(ctx.period + i)] for i in range (-1,2)]
+        
+        dfs = [df.loc[str(ctx.period + i)] for i in range (-1,2)] # collects the three consecutive-monthly periods: [-1,0,1]
         fig, ax = plt.subplots(1,2, figsize=(12,5))
 
         for i, dframes in enumerate(dfs):
@@ -291,7 +330,6 @@ if __name__ == "__main__":
 
     load_dotenv()
     ctx.db_path = getenv("DB_PATH")
-    # df = sql_to_pd(db_path=ctx.db_path)
     ctx.month_es = {
         1: "Enero",
         2: "Febrero",
@@ -307,20 +345,20 @@ if __name__ == "__main__":
         12: "Diciembre"
         }
     ctx.categories_dict = _get_json(getenv("JSON_PATH"))
-    ctx.currency_list = ['EUR', 'USD', 'PEN']
-    ctx.period = pd.Timestamp.today().to_period('M')
-    ctx.selected_category = 'COMIDA-GROCERIES' # modify accordingly to fields.json
-    darkmode()
+    # ctx.period = pd.Timestamp.today().to_period('M')        
+    ctx.period = pd.Period('2025-01', 'M')                # to check a given period: pd.Period('yyyy-MM', 'M')   
+    ctx.selected_category = 'COMIDA-GROCERIES'              # modify accordingly to fields.json
+    darkmode()                                              # setting dark mode
 
     # Uncomment the lines to run the plots
-    # categories_per_month()
+    categories_per_period()
     # expenses_time_series()
-    category_time_series()
+    # category_time_series()
     # monthly_time_series()
     # or play with them when running python -i ...
     print("""
         functions loaded ready to be called:
-            - categories_per_month()
+            - categories_per_period()
             - expenses_time_series()
             - category_time_series()
             - monthly_time_series()

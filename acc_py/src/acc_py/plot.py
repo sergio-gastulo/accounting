@@ -1,9 +1,9 @@
 from sqlite3 import connect
 import pandas as pd
-from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from numpy import atleast_1d
+import re
 # custom context
 try:
     from .context import ctx 
@@ -267,8 +267,7 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
     plt.show()
 
 
-
-def monthly_time_series() -> None:
+def monthly_time_series(currency: str, period: str | pd.Period | None = None) -> None:
     """
     Plots two time series charts for daily expenses across three months: the previous, current, and next month (relative to 'period').
     - The left plot shows daily spendings.
@@ -280,6 +279,15 @@ def monthly_time_series() -> None:
     - If 'period' is not current period, then the vertical line is calculated as 'period.asfreq('D') + today.days'
     - Excludes categories: 'BLIND', 'INGRESO'
     """
+
+    if period is None:
+        period = ctx.period
+    else: 
+        period = pd.Period(period, 'M')
+    if not re.match('^[a-zA-Z]{3}$', currency):
+        raise Exception(f"'{currency}' not a valid currency")
+    else: 
+        currency = currency.upper()
 
     # it's the exact df as in expenses_time_series, worth executing it only once?
     with connect(ctx.db_path) as conn:
@@ -301,7 +309,7 @@ def monthly_time_series() -> None:
         )
         df.period = df.period.dt.to_period('D')
 
-    def core_plot_logic(df: pd.DataFrame, currency: str) -> None:
+    def core_plot_logic(df: pd.DataFrame) -> None:
         
         dfs = [df.loc[str(ctx.period + i)] for i in range (-1,2)] # collects the three consecutive-monthly periods: [-1,0,1]
         fig, ax = plt.subplots(1,2, figsize=(12,5))
@@ -320,12 +328,11 @@ def monthly_time_series() -> None:
         fig.autofmt_xdate()
         plt.show()
 
-    for currency in ctx.currency_list:
-        df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-        try: 
-            core_plot_logic(df_currency, currency)
-        except KeyError:
-            print(f"{currency} omitted here. Few entries available.")
+    df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
+    try: 
+        core_plot_logic(df_currency, currency)
+    except KeyError:
+        print(f"{currency} not plotted: few records available.")
 
 
 # ------------------------------------------------------------
@@ -371,20 +378,21 @@ if __name__ == "__main__":
     ctx.categories_dict = _get_json(getenv("JSON_PATH"))
     ctx.period = pd.Timestamp.today().to_period('M')        
     # ctx.period = pd.Period('2025-01', 'M')                # to check a given period: pd.Period('yyyy-MM', 'M')   
-    ctx.selected_category = 'INGRESO'                  # modify accordingly to fields.json
+    ctx.selected_category = 'INGRESO'                       # modify accordingly to fields.json
     darkmode()                                              # setting dark mode
     ctx.colors = {currency: (r / 255, g / 255, b / 255) for currency, (r, g, b) in zip(['EUR', 'USD', 'PEN'], [(128, 128, 255), (26, 255, 163), (255, 255, 255)])}
 
     # Uncomment the lines to run the plots
     # categories_per_period()
     # expenses_time_series()
-    category_time_series(category='BLIND')
+    # category_time_series()
     # monthly_time_series()
+
     # or play with them when running python -i ...
     print("""
-        functions loaded ready to be called:
-            - categories_per_period()
-            - expenses_time_series()
-            - category_time_series()
-            - monthly_time_series()
+functions loaded ready to be called:
+    - categories_per_period(period: str | pd.Period | None = None)
+    - expenses_time_series(period: str | pd.Period | None = None)
+    - category_time_series(category: str = None, period: str | pd.Period | None = None)
+    - monthly_time_series(currency: str, period: str | pd.Period | None = None)
     """)

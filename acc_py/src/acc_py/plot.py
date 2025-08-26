@@ -173,75 +173,99 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
 
 
     fig, ax = plt.subplots()
-    colors = [(r / 255, g / 255, b / 255) for r, g, b in [(128, 128, 255), (26, 255, 163), (255, 255, 255)]] # https://www.w3schools.com/colors/colors_picker.asp
 
-    for currency, color in zip(currency_list, colors):
+    for currency, color in zip(currency_list, ctx.colors):
         df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
         core_plot_logic(df_currency, currency, ax=ax, fig=fig, color=color)
-    fig.suptitle("Spendings as a Time Series")
-    plt.legend()
+    
+    fig.suptitle("Spendings as a Time Series per Currency")
     plt.show()
 
 
-def category_time_series() -> None:
+def category_time_series(category: str = None, period: str | pd.Period | None = None) -> None:
     """
     Plots a time series from the given 'category'.
     If 'period' is not specified, then it will try to scatter the current period.
     If 'period' is specified but the month is not included in the time series, a simple warning is printed.
-    This is good for categories that should mantain a certain average: INGRESOS, CASA-ALQUILER, etc.
+    This is good for categories that should keep an average value: INGRESOS, CASA-ALQUILER, etc.
     """
 
+    if category is None:
+        category = ctx.selected_category
+    if category not in ctx.categories_dict:
+        print(f"Category '{category}' is not a valid category.")
+        return
+    if period is None:
+        period = ctx.period
+    else: 
+        period = pd.Period(period, 'M')
+    
+    timestamp_period = period.to_timestamp()
+    period_str = str(period)
+
     with connect(ctx.db_path) as conn:
-        query = """
+        query_total = """
             SELECT 
                 currency,
                 strftime('%Y-%m', date) AS period,
-                SUM(amount) as total_amount 
+                SUM(amount) as total_amount
             FROM cuentas 
             WHERE category = :category
             GROUP BY currency, period;
         """
         df = pd.read_sql(
-            query,
+            query_total,
             conn,
-            params={"category": ctx.selected_category},
+            params={"category": category},
             parse_dates={"period": {"format": "%Y-%m"}}
         )
         df.period = df.period.dt.to_period('M')
 
-    period = str(ctx.period)
-    timestamp_period = ctx.period.to_timestamp()
+    currency_list_period = df[df.period == period_str].currency.unique()
+    currency_list = df.currency.unique()
 
-    def core_plot_logic(df: pd.DataFrame, currency: str) -> None:
-        fig, ax = plt.subplots()
-        ax.plot(df.index.to_timestamp(), df.values, color=(1,1,1), marker='o')
+    # main plot -- not a single scatter here
+    fig, ax = plt.subplots()
+    for currency in currency_list:
+        # https://stackoverflow.com/questions/43206554/typeerror-float-argument-must-be-a-string-or-a-number-not-period
+        df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period') 
+        # enumerating instead of zipping ensures that ctx.colors will be picked with no IndexErrors if len(currency_list) != len(ctx.colors)
+        ax.plot(df_currency.index.to_timestamp() , df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
 
+    ax.set_title(f"{category} Time Series Plot")
+    ax.set_xlabel("Spendings")
+    ax.set_ylabel("Dates")
+
+    def scatter_logic(df: pd.DataFrame, currency: str, ax = None) -> None:
+        # scattering red points first
         try:
-            category_value_td = df.loc[ctx.period, "total_amount"]
-            ax.scatter(timestamp_period, category_value_td, color=(1,0,0), zorder=5)
-
+            category_amount_period = df.loc[period, "total_amount"]
+            ax.scatter(timestamp_period, category_amount_period, color='red', zorder=5)
+            ax.axhline(category_amount_period, color='red')
             ax.text(
                 timestamp_period,
-                category_value_td,
-                s=f'{currency} {category_value_td:.2f}',
+                category_amount_period,
+                s=f'{currency} {category_amount_period:.2f}',
                 size='11',
-                # I don't remember how it works, but it calibrates the placement of 'period' as a string in the plot 
+                # I don't remember how this works, but it calibrates the placement of 'period' as a string in the plot 
                 horizontalalignment = 'left' if mdates.date2num(timestamp_period) < ax.get_xlim()[1] / 2 else 'right',
-                verticalalignment = 'bottom' if df[(ctx.period - 1).__str__()] <= category_value_td else 'top'
+                verticalalignment = 'bottom' if df["total_amount"].get(period - 1, 0) <= category_amount_period else 'top'
             )
-            ax.axhline(category_value_td, color=(1,0,0))        
-        except:
-            print(f"'{str(period)}' wasn't found on 'df' index.")
+        except KeyError:
+            print(f"{currency}: Period '{period_str}' is not available for scattering in the current plot")
+            return
 
-        ax.set_title(f"{ctx.selected_category.upper()}, currency: {currency}", pad=16.0)
-        ax.set_ylabel(f"Spendings in {currency}",labelpad=16.0)
-        ax.set_xlabel('Periods',labelpad=16.0)
-        fig.autofmt_xdate()
-        plt.show()
-    
-    for currency in ctx.currency_list:
-        df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-        core_plot_logic(df_currency, currency)
+    if len(currency_list_period) == 0:
+        print(f"Period '{period_str}' does not have any records associated to {category}.")
+    else:
+        for currency in currency_list_period:
+            df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
+            scatter_logic(df=df_currency, currency=currency, ax=ax)  
+
+    ax.legend()
+    fig.autofmt_xdate()
+    plt.show()
+
 
 
 def monthly_time_series() -> None:
@@ -345,15 +369,16 @@ if __name__ == "__main__":
         12: "Diciembre"
         }
     ctx.categories_dict = _get_json(getenv("JSON_PATH"))
-    # ctx.period = pd.Timestamp.today().to_period('M')        
-    ctx.period = pd.Period('2025-01', 'M')                # to check a given period: pd.Period('yyyy-MM', 'M')   
-    ctx.selected_category = 'COMIDA-GROCERIES'              # modify accordingly to fields.json
+    ctx.period = pd.Timestamp.today().to_period('M')        
+    # ctx.period = pd.Period('2025-01', 'M')                # to check a given period: pd.Period('yyyy-MM', 'M')   
+    ctx.selected_category = 'INGRESO'                  # modify accordingly to fields.json
     darkmode()                                              # setting dark mode
+    ctx.colors = {currency: (r / 255, g / 255, b / 255) for currency, (r, g, b) in zip(['EUR', 'USD', 'PEN'], [(128, 128, 255), (26, 255, 163), (255, 255, 255)])}
 
     # Uncomment the lines to run the plots
-    categories_per_period()
+    # categories_per_period()
     # expenses_time_series()
-    # category_time_series()
+    category_time_series(category='BLIND')
     # monthly_time_series()
     # or play with them when running python -i ...
     print("""

@@ -8,7 +8,7 @@ from pandas import read_sql
 
 def _get_json(json_path: Path) -> dict[str, str]:
     """
-    Loads JSON from 'path' and flattens the fields.json.        
+    Loads JSON from 'path' and flattens the fields.json in the key-value pair format: 'shortname': 'description'   
     """
     shortname_descript_dict = {}
 

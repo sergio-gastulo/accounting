@@ -26,6 +26,12 @@ if __name__ == "__main__":
         12: "Diciembre"
     }
     ctx.selected_category = val._get_category(dict_cat=ctx.categories_dict)
+    ctx.colors = {
+        currency: (r / 255, g / 255, b / 255) 
+        for currency, (r, g, b) in zip(
+            ['EUR', 'USD', 'PEN'], 
+            [(128, 128, 255), (26, 255, 163), (255, 255, 255)])
+        } # https://www.w3schools.com/colors/colors_picker.asp
 
     plot_tasks = [
         plot.categories_per_period,

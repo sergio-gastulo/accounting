@@ -23,15 +23,17 @@ function AccountingCommandLineInterface {
     Write-Host "'db' selected: $($CSV.DBPATH)"
     :mainLoop while ($true) {
         [ordered] @{
-            c       =   'clear console'
-	        e 	    =   'edit record' 
-            h       =   'help'
-            p       =   'opens a python session with pre-loaded functions to plot'
-            r       =   'read last "n" lines'
-            sql     =   'opens "db" in sqlite3'
-            w       =   'write'
-            wl      =   'write a list'
-        } | ConvertTo-Json
+            b       =   "backup $($CSV.DBPATH)"
+            c       =   "clear console"
+	        e 	    =   "edit record" 
+            h       =   "help"
+            p       =   "opens a python session with pre-loaded functions to plot"
+			ps		= 	"execute command in PowerShell"
+            r       =   "read last 'n' lines"
+            sql     =   "opens 'db' in sqlite3"
+            w       =   "write"
+            wl      =   "write a list"
+        } | Format-Table
         Write-Host "Press 'q' to (q)uit."
         $action = Read-Host "Please select which action you would like to perform"
 
@@ -39,6 +41,7 @@ function AccountingCommandLineInterface {
             'r' { 
                 Write-Host "`nReading from database." -ForegroundColor Blue
                 $CSV.Read()
+                Read-Host "Press any key to continue"
             }
             'p' {
                 Write-Host "`nRuning python for plotting." -ForegroundColor Blue
@@ -55,13 +58,26 @@ function AccountingCommandLineInterface {
             }
 
             'wl' {
-                Write-Host "`nWrite a List to database." -ForegroundColor Blue
+                Write-Host "`nWrite List of records to database." -ForegroundColor Blue
                 $CSV.WriteList()
             }
 
             'e' {
-                Write-Host "Editing database selected. Currently, no support for data validation. Edit at your own risk."
+                Write-Host "Editing database selected. Currently, no support for data validation. Edit at your own risk." -ForegroundColor Yellow
                 $CSV.Edit()
+            }
+
+			'ps' {
+				Write-Host "Warning: this is directly executed on PowerShell. Use with caution." -ForegroundColor Red
+                Write-Host "No profile is loaded. A completely new session is started." -ForegroundColor Yellow
+				$command = Read-Host "Command"
+				powershell.exe -NoProfile -NoExit -Command $command
+			}
+
+            'b' {
+                $date = (get-date).ToString("yyyy-MM-dd")
+                $db_name = Join-Path (Split-Path $CSV.DBPATH) -ChildPath "db-backup-$date.sqlite"
+                ".backup $db_name" | sqlite3.exe $CSV.DBPATH 
             }
 
             'c' { Clear-Host }

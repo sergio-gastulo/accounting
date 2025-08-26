@@ -154,17 +154,9 @@ class GeneralUtilities {
 
 
     static [string] ValidateStringForCSV([string] $field) {
-        $tempDescription = ''
-        
-        do {
-            $tempDescription = Read-Host "`nType $field, no commas"
-            if ($tempDescription -notmatch ',') {
-                break
-            }
-            Write-Host "`nDescription cannot include comma (,)." -ForegroundColor Red
-        } while ($true)
-        Write-Host "`nSucessfull string: '$tempDescription'" -ForegroundColor Green
-        return $tempDescription
+        $description = Read-Host "`nType '$field'"
+        $description.Replace("'", "''")
+        return $description
     }
 
 

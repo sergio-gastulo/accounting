@@ -56,14 +56,12 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## TODO:
-- Python interactivity when plotting could be improved in general.
-- Add arguments to main function `acccli arg option`. 
-- Rename modules: We migrated from CSV to SQLITE, we must re-name modules and stuff: `$CSV`, `$CSVRow` seems pretty useless now. 
-- Categories should be sorted when printed in accounting.psm1. 
-- Reading from CSV and writing to DB should be supported.
+- Provide support for passing arguments to main function: `acccli -arg value`. 
+- Rename modules: as we migrated from CSV records to SQLite, we must re-name modules and stuff -- `$CSV`, `$CSVRow` seems pretty useless now. 
+- Categories should be sorted when printed in accounting.psm1.
+- Reading from CSV (or allow manipulative user input) to DB should be supported.
 - One could improve how to track installments (some unique UUID?)
-- Fix powershell not printing function documentation.
-- Fix `category_time_series`.
+- Implement support for transactions (from currency CU1 to CU2)
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.
@@ -75,7 +73,7 @@ Major  Minor  Build  Revision
 -----  -----  -----  --------
 5      1      26100  3624
 ```
-2. For `python` dependencies, check `poetry.lock` and `pyproject.toml`.
+2. For `python` dependencies, check [`pyproject.toml`](acc_py/pyproject.toml).
 
 3. `sqlite`:
 ```

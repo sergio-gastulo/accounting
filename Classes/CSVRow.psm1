@@ -44,9 +44,18 @@ class CSVRow {
     }
 
     [hashtable]Parse(){
-        if(-not $Global:tasa) {
+        $var = ""
+        if ($Global:tasa){
+            Write-Host "Global tasa detected: $($Global:tasa)"
+            do {
+                $var = Read-Host 'Type (y)es to accept $tasa. Type (n)o to set $tasa to 1.'
+            } until ($var -match "^(y|n)$")
+        }
+        if ($var -eq 'n') {
+            Write-Host "Tasa set to 1. Set it again by (q)uitting the CLI."
             $Global:tasa = 1
         }
+
         return @{
             date        = $this.Date.ToString("yyyy-MM-dd")
             amount      = $this.Amount * $Global:tasa

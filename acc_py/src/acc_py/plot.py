@@ -10,8 +10,6 @@ try:
 except:
     from context import ctx
 
-separator = "-" * 82
-
 def darkmode() -> None:
     plt.style.use('dark_background')
     plt.rcParams['font.family'] = 'monospace'
@@ -101,12 +99,14 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
                                     "category": label, 
                                     "currency": currency
                                     })
-                            global separator
+                            df_print_str = df_category.sort_values(by=['date', 'amount'], ascending=False).to_markdown(index=False)
+                            separator = "-" * len(df_print_str.partition('\n')[0]) # printing "----" nicely aligned with markdown df
                             print(
-                                f"{separator}\n"
+                                f"\n{separator}\n"
                                 f"Category: {label}, Currency: {currency}, Total: {df_category.amount.sum()}\n"
                                 f"{separator}\n"
-                                f"{df_category.sort_values(by=['date', 'amount'], ascending=False).to_markdown(index=False)}\n\n"
+                                f"{df_print_str}\n"
+                                f"{separator}\n"
                             )
 
                         ax.figure.canvas.draw()
@@ -225,8 +225,7 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
             SELECT 
                 currency,
                 strftime('%Y-%m', date) AS period,
-                SUM(amount) as total_amount,
-                description
+                SUM(amount) as total_amount
             FROM cuentas 
             WHERE category = :category
             GROUP BY currency, period;
@@ -246,11 +245,28 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
     fig, ax = plt.subplots()
     for currency in currency_list:
         # https://stackoverflow.com/questions/43206554/typeerror-float-argument-must-be-a-string-or-a-number-not-period
-        df_currency = df.loc[df.currency == currency, ['period', 'total_amount', 'description']].set_index('period')
-        print(
-            f"Category: {category}, Currency: {currency}\n"
-            f"{df_currency.sort_values(by='period').to_markdown()}\n\n"
-        ) 
+        df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
+        with connect(ctx.db_path) as conn:
+            query_get_description = """
+                SELECT id, date, description, amount 
+                FROM cuentas
+                WHERE
+                    category = :category
+                    AND currency = :currency
+            """
+            print_df = pd.read_sql(query_get_description, conn, params={
+                "category": category,
+                "currency": currency
+            }).sort_values("date").to_markdown(index=False)
+            separator = "-" * len(print_df.partition('\n')[0])
+            print(
+                f"\n{separator}\n"
+                f"Category: {category}, Currency: {currency}\n"
+                f"{separator}\n"
+                f"{print_df}\n"
+                f"{separator}\n"
+            )
+        
         # enumerating instead of zipping ensures that ctx.colors will be picked with no IndexErrors if len(currency_list) != len(ctx.colors)
         ax.plot(df_currency.index.to_timestamp() , df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
 

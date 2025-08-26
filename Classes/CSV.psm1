@@ -17,12 +17,14 @@ class CSV {
 
 
     [Void] Read(){
+        Clear-Host
         [GeneralUtilities]::GetSQLQuery(
             "read.sql", 
             @{
                 today           = (Get-Date).ToString("yyyy-MM-dd")
                 numberOfLines   = [GeneralUtilities]::ValidateInteger("Lines to read", 0)
-            }) | sqlite3.exe ($this.DBPATH) | Write-Host -Separator "`n"
+            }) | sqlite3.exe -header -column -header -column ($this.DBPATH) | Write-Host -Separator "`n"
+            Read-Host "Press any key to continue"
     }
 
     [Void] Write([CSVRow]$data){
@@ -53,9 +55,10 @@ class CSV {
         } else {
             $write.Invoke($data.Parse())
         }
-        Write-Host "`nThe following line has been written to file:" -ForegroundColor Green
-        $data.Parse() | Format-Table | Write-Host -Separator "`n"
-    }
+            Write-Host "`nThe following line has been written to file:" -ForegroundColor Green
+            $data.Parse() | ConvertTo-Json -Depth 4 | Write-Host -Separator "`n" -ForegroundColor Blue
+		}
+
 
     [void] Plot(){
         # as per https://github.com/python/cpython/issues/132962
@@ -89,7 +92,7 @@ class CSV {
     [void] Edit() {
         $recordID = 0
         do {
-            $recordID = Read-Host "Write the ID you would like to edit, press 'r' to read."
+            $recordID = Read-Host "Write the ID you would like to edit, press 'r' to read"
             if ($recordID -eq 'r') {
                 $this.Read()
                 $recordID = $null
@@ -99,8 +102,7 @@ class CSV {
 
         Write-Host "Available columns:" -ForegroundColor Blue
         # manually writing columns from schema
-        $schema = ".schema" | sqlite3.exe $this.DBPATH
-        $schema[1..7] | ForEach-Object {$_.Split(" ")[4] | Write-Host }
+        "SELECT name, type FROM pragma_table_info('cuentas')" | sqlite3.exe -header -column $this.DBPATH | Write-Host -Separator "`n"
         $column = Read-Host "Write the column you would like to modify"
         $value = Read-Host "Write the attribute you would like to edit"
 

@@ -2,9 +2,8 @@ from pandas import Period
 from random import choices
 from pathlib import Path
 import json
-import re
-from sqlite3 import connect
-from pandas import read_sql
+import inspect
+
 
 def _get_json(json_path: Path) -> dict[str, str]:
     """
@@ -80,10 +79,14 @@ def _get_category(dict_cat: dict[str, str]):
 def _doc_printer(func: callable) -> None:
     cyan_str = '\033[96m'
     end_str = '\033[0m'
-    print(f'{cyan_str}Function name: \n{func.__name__}{end_str}\n')
-    print(f'{cyan_str}Documentation{end_str}: {func.__doc__}')
 
+    print(f'{cyan_str}Function name:{end_str}\n{func.__name__}\n')
 
+    sig = inspect.signature(func)
+    print(f'{cyan_str}Arguments:{end_str} {sig}\n')
+
+    doc = func.__doc__
+    print(f'{cyan_str}Documentation:{end_str}\n{doc}')
 
 
 if __name__ == "__main__":

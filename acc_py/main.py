@@ -29,19 +29,38 @@ if __name__ == "__main__":
     ctx.colors = {
         currency: (r / 255, g / 255, b / 255) 
         for currency, (r, g, b) in zip(
-            ['EUR', 'USD', 'PEN'], 
-            [(128, 128, 255), (26, 255, 163), (255, 255, 255)])
-        } # https://www.w3schools.com/colors/colors_picker.asp
+            ['EUR', 'USD', 'PEN'],
+            [(128, 128, 255), (26, 255, 163), (255, 255, 255)] # https://www.w3schools.com/colors/colors_picker.asp
+            )
+        }
 
-    plot_tasks = [
-        plot.categories_per_period,
-        plot.expenses_time_series
-        # currently unsupported
-        # plot.category_time_series,
-        # plot.monthly_time_series
-    ]
+    help_message = """
+Interactive plotting CLI
 
-    # # this is not printing in powershell... wtf?
-    # for func in plot_tasks:
-    #     val._doc_printer(func)
-    #     func()
+Available functions:
+    - p1(period=None) -> plot.categories_per_period
+    - p2(period=None) -> plot.expenses_time_series
+    - p3(category=None, period=None) -> plot.category_time_series
+    - p4(currency, period=None) -> plot.monthly_time_series
+
+Context variables (available under ctx):
+    - db_path
+    - period
+    - categories_dict
+    - selected_category
+    - colors
+
+Other:
+    - h(function) -> show function docstring (use full name, e.g. h(plot.categories_per_period))
+
+Tip: Reprint this message with h()
+    """
+
+    # Alias for easier navigation
+    p1 = lambda period=None: plot.categories_per_period(period=period)
+    p2 = lambda period=None: plot.expenses_time_series(period=period)
+    p3 = lambda category=None, period=None: plot.category_time_series(period=period, category=category)
+    p4 = lambda currency, period=None: plot.monthly_time_series(currency=currency, period=period)
+    h = lambda f=None: print(help_message) if f is None else val._doc_printer(func=f)
+
+    h()

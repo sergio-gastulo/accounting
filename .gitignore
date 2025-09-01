@@ -1,4 +1,6 @@
 test/
+!acc_py/test
+acc_py/test/context.py
 files/
 **/env/
 **/.env

@@ -4,11 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from numpy import atleast_1d
 import re
-# custom context
-try:
-    from .context import ctx 
-except:
-    from context import ctx
+from ..context.context import ctx # custom context
+
 
 def darkmode() -> None:
     plt.style.use('dark_background')
@@ -373,65 +370,3 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
     except KeyError:
         print(f"{currency} not plotted: few records available.")
 
-
-# ------------------------------------------------------------
-# Testing Instructions
-#
-# 1. Navigate to the acc_py directory:
-#        cd acc_py
-# 2. Run in interactive mode:
-#        python -i ./src/acc_py/plot.py
-# 3. Call plot1(), plot2(), plot3(), or plot4() -- each should 
-#    display the correct plot.
-#
-# Variables to configure:
-#   * .env file
-#   * period — specify as a pandas.Period expression:
-#       https://pandas.pydata.org/docs/reference/api/pandas.Period.html
-#   * category
-# ------------------------------------------------------------
-
-
-if __name__ == "__main__":
-    
-    from os import getenv
-    from dotenv import load_dotenv
-    from validate import _get_json
-
-    load_dotenv()
-    ctx.db_path = getenv("DB_PATH")
-    ctx.month_es = {
-        1: "Enero",
-        2: "Febrero",
-        3: "Marzo",
-        4: "Abril",
-        5: "Mayo",
-        6: "Junio",
-        7: "Julio",
-        8: "Agosto",
-        9: "Septiembre",
-        10: "Octubre",
-        11: "Noviembre",
-        12: "Diciembre"
-        }
-    ctx.categories_dict = _get_json(getenv("JSON_PATH"))
-    ctx.period = pd.Timestamp.today().to_period('M')        
-    # ctx.period = pd.Period('2025-01', 'M')                # to check a given period: pd.Period('yyyy-MM', 'M')   
-    ctx.selected_category = 'EDUCATION'                       # modify accordingly to fields.json
-    darkmode()                                              # setting dark mode
-    ctx.colors = {currency: (r / 255, g / 255, b / 255) for currency, (r, g, b) in zip(['EUR', 'USD', 'PEN'], [(128, 128, 255), (26, 255, 163), (255, 255, 255)])}
-
-    # Uncomment the lines to run the plots
-    # categories_per_period()
-    # expenses_time_series()
-    category_time_series()
-    # monthly_time_series()
-
-    # or play with them when running python -i ...
-    print("""
-functions loaded ready to be called:
-    - categories_per_period(period: str | pd.Period | None = None)
-    - expenses_time_series(period: str | pd.Period | None = None)
-    - category_time_series(category: str = None, period: str | pd.Period | None = None)
-    - monthly_time_series(currency: str, period: str | pd.Period | None = None)
-    """)

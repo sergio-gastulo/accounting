@@ -88,27 +88,3 @@ def _doc_printer(func: callable) -> None:
     doc = func.__doc__
     print(f'{cyan_str}Documentation:{end_str}\n{doc}')
 
-
-if __name__ == "__main__":
-    from os import getenv
-    from dotenv import load_dotenv
-    from pandas import Timestamp
-    try: 
-        from .context import ctx 
-    except:
-        from context import ctx
-
-    load_dotenv()
-    ctx.json_path = Path(getenv("JSON_PATH"))
-    ctx.db_path = Path(getenv("DB_PATH"))
-    ctx.default_period = Timestamp.today().to_period('M')
-
-    categories = _get_json(json_path=ctx.json_path)
-    period = _get_period(default_period=ctx.default_period)
-    print("""
-          [TEST MODE]
-          'categories' variable loaded.
-          'period' variable loaded.
-          you can validate category with '_get_category(dict_cat=categories)'
-""")
-    

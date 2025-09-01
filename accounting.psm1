@@ -5,8 +5,8 @@ using module .\Classes\GeneralUtilities.psm1
 $CSV = [CSV]::new(
     
     # db file (sqlite support)
-    # "$PSScriptRoot\files\db-test",
-    "$($env:USERPROFILE)\dbs\cuentas",
+    "$PSScriptRoot\files\db-test",
+    # "$($env:USERPROFILE)\dbs\cuentas",
     
     # json file for categories
     "$PSScriptRoot\files\fields.json",
@@ -38,10 +38,9 @@ function AccountingCommandLineInterface {
         $action = Read-Host "Please select which action you would like to perform"
 
         switch ($action) {
-            'r' { 
+            'r' {
                 Write-Host "`nReading from database." -ForegroundColor Blue
                 $CSV.Read()
-                Read-Host "Press any key to continue"
             }
             'p' {
                 Write-Host "`nRuning python for plotting." -ForegroundColor Blue

@@ -115,16 +115,25 @@ class CSV {
     }
 
     [void] WriteList(){
-        $opt = ""
-        $date = [GeneralUtilities]::ValidateDate()
+        $date = ([GeneralUtilities]::ValidateDate()).ToString("yyyy-MM-dd")
         $category = [GeneralUtilities]::ValidateCategory($this.categoriesJson.hash)
         $currency = [GeneralUtilities]::ValidateCurrency("not-a-valid-currency")
-        while($true){
-            $this.Write([CSVRow]::new($date, $category, $currency))
-            do {
-                $opt = Read-Host "Would you like to continue? (y/n)"
-            } until ($opt -match '^[yn]$')
-            if ($opt -eq 'n') { return }
+        $file = Join-Path -Path $env:TEMP -ChildPath "temp-acccli.txt"
+        New-Item $file -Force
+        Set-Content $file "date,description"
+        Write-Host "Openning editor..." -ForegroundColor Blue
+        Start-Sleep -Seconds 1
+        Start-Process notepad++.exe -ArgumentList $file -Wait
+        $content = (Get-Content $file).Split("`n")
+
+        $values = foreach ($i in 1..($content.Count - 1)){
+            $amount, $description = $content[$i].Split(",")
+            "('$date', '$currency', $amount, '$description', '$category')"
         }
-    }
+        $values = $values -join ",`n"
+        $sqlString = "INSERT INTO cuentas (date, currency, amount, description, category) VALUES $values;"
+        $sqlString | sqlite3.exe $this.DBPATH
+        Write-Host "Query executed." -ForegroundColor Green
+
+        }
 }

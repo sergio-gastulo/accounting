@@ -45,7 +45,7 @@ function AccountingCommandLineInterface {
             }
             'p' {
                 Write-Host "`nRuning python for plotting." -ForegroundColor Blue
-                $CSV.Plot()
+                python -i $CSV.PYTHONSCRIPTPATH $CSV.DBPATH $CSV.JSONPATH
             }
             'q' {
                 Write-Host "`nBreaking Loop. Bye!`n" -ForegroundColor Blue

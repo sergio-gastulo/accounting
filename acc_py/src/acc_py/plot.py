@@ -99,7 +99,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
                                     "category": label, 
                                     "currency": currency
                                     })
-                            df_print_str = df_category.sort_values(by=['date', 'amount'], ascending=False).to_markdown(index=False)
+                            df_print_str = df_category.sort_values(by=['amount', 'date'], ascending=False).to_markdown(index=False)
                             separator = "-" * len(df_print_str.partition('\n')[0]) # printing "----" nicely aligned with markdown df
                             print(
                                 f"\n{separator}\n"
@@ -253,11 +253,13 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
                 WHERE
                     category = :category
                     AND currency = :currency
+                    AND date LIKE :period || '%'
             """
             print_df = pd.read_sql(query_get_description, conn, params={
                 "category": category,
-                "currency": currency
-            }).sort_values("date").to_markdown(index=False)
+                "currency": currency,
+                "period": period_str
+            }).sort_values('amount').to_markdown(index=False)
             separator = "-" * len(print_df.partition('\n')[0])
             print(
                 f"\n{separator}\n"
@@ -267,7 +269,6 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
                 f"{separator}\n"
             )
         
-        # enumerating instead of zipping ensures that ctx.colors will be picked with no IndexErrors if len(currency_list) != len(ctx.colors)
         ax.plot(df_currency.index.to_timestamp() , df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
 
     ax.set_title(f"{category} Time Series Plot")

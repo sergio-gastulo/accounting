@@ -51,7 +51,7 @@ class CSVRow {
                 $var = Read-Host 'Type (y)es to accept $tasa. Type (n)o to set $tasa to 1.'
             } until ($var -match "^(y|n)$")
         }
-        if ($var -eq 'n') {
+        if (-not ($var -eq 'y')) {
             Write-Host "Tasa set to 1. Set it again by (q)uitting the CLI."
             $Global:tasa = 1
         }

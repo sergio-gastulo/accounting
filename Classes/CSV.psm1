@@ -37,7 +37,7 @@ class CSV {
                 $csvParsed 
             ) | sqlite3.exe ($this.DBPATH)
         }
-
+		$parse = ""
         if (($data.Amount -gt 200) -and -not ($data.Category -in @("BLIND","INGRESO"))) {
 
             $installments = [GeneralUtilities]::ValidateInteger("Installments", 1)
@@ -48,22 +48,17 @@ class CSV {
 
                 $tempdata.Date = $data.Date.AddMonths($i)
                 $tempData.Description = "$($data.Description) tag: cuota $i"
-
-                $write.Invoke($tempData.Parse())
+				$parse = $tempData.Parse()	
+                $write.Invoke($parse)
             }
 
         } else {
-            $write.Invoke($data.Parse())
+			$parse = $data.Parse()	
+            $write.Invoke($parse)
         }
             Write-Host "`nThe following line has been written to file:" -ForegroundColor Green
-            $data.Parse() | ConvertTo-Json -Depth 4 | Write-Host -Separator "`n" -ForegroundColor Blue
+            $parse | ConvertTo-Json -Depth 4 | Write-Host -Separator "`n" -ForegroundColor Blue
 		}
-
-
-    [void] Plot(){
-        # as per https://github.com/python/cpython/issues/132962
-        $env:PYTHON_BASIC_REPL = "anyvalue"; python -i $this.PYTHONSCRIPTPATH $this.DBPATH $this.JSONPATH | Write-Host -Separator "`n"
-    }
 
     [void] Help(){
 

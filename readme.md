@@ -62,6 +62,9 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Reading from CSV (or allow manipulative user input) to DB should be supported.
 - One could improve how to track installments (some unique UUID?)
 - Implement support for transactions (from currency CU1 to CU2)
+- Provide support for second plot interactivity: when selecting a point, print the associated records.
+- Re-structure in Python: instead of writing infinite loops, let program fail.
+- Important TODO: Support for reading from a text editor.
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.

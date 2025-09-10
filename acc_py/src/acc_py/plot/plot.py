@@ -12,6 +12,7 @@ def darkmode() -> None:
     plt.rcParams['font.family'] = 'monospace'
     plt.rcParams['font.size'] = 12
 
+
 # p1
 def categories_per_period(period: str | pd.Period | None = None) -> None:
     """

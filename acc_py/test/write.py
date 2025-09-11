@@ -7,15 +7,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 context_main()
-engine = init_engine()
 
-with Session(engine) as session:
+with Session(ctx.engine) as session:
     record = Record(
         date = datetime.date(2025,9,29),
         amount=Decimal("123.54"),
         currency="EUR",
         description="foo barsdfdsfds",
-        category="sadfsdfasdf"
+        category="EXCHANGE"
     )
 
     session.add(record)

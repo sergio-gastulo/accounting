@@ -1,4 +1,5 @@
 class GeneralUtilities {
+    # not sure why necessary
     static [int] ValidateInteger([string] $validation, [int] $lowerBound) {
         $tempInt = 0
         while ($true) {
@@ -23,7 +24,7 @@ class GeneralUtilities {
         return $tempInt
     }
 
-
+    # done
     static [double] ValidateDoubleArithmeticOperation([string] $validation, [double] $lowerBound, [string] $operation = ""){
         $tempDouble = 0.0
         $validateOperation = {
@@ -84,7 +85,7 @@ class GeneralUtilities {
         return [double]$tempDouble
     }
 
-
+    # done
     static [string] ValidateCurrency([string]$currency = "") {
         $tempCurr = ""
         $defaultCurr = "PEN"
@@ -121,6 +122,7 @@ class GeneralUtilities {
         return $tempCurr
     }
 
+    # done
     static [object] ValidateDoubleCurrency([string] $validation) {
         $lowerBound = 0.0 # money should always be positive
         $tempAmount = 0.0
@@ -159,7 +161,7 @@ class GeneralUtilities {
         return $description
     }
 
-
+    # done
     static [datetime] ValidateDate() {
         $today = $tempDate = (Get-Date)
 
@@ -201,7 +203,7 @@ class GeneralUtilities {
         return $tempDate
     }
 
-
+    # already implemented in plot.validate
     static [object] GetJSON([string] $path) {
             
         $jsonArray = Get-Content ($path) -Raw | ConvertFrom-Json 
@@ -223,7 +225,7 @@ class GeneralUtilities {
         }
     }
 
-
+    # not needed
     static [string] GetSQLQuery([string] $file, [hashtable] $hash) {
         
         $sqlFile = [IO.Path]::Combine((Split-Path $PSScriptRoot), "SQL", $file) 
@@ -238,6 +240,7 @@ class GeneralUtilities {
 
 
     # only God knows how this works
+    # 09/11/2025 23:56:39: time to know how tf it works
     static [string] ValidateCategory([System.Collections.Specialized.OrderedDictionary] $categoryDict) {
     
         $tempCategory= ""

@@ -4,6 +4,5 @@ CREATE TABLE cuentas (
     amount REAL NOT NULL,
     currency CHAR(3) DEFAULT 'PEN', -- ISO convention https://en.wikipedia.org/wiki/ISO_4217
     description TEXT,
-    category TEXT NOT NULL,
-    conversion_id TEXT
+    category TEXT NOT NULL
 );

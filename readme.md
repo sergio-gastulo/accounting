@@ -64,7 +64,8 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Implement support for transactions (from currency CU1 to CU2)
 - Provide support for second plot interactivity: when selecting a point, print the associated records.
 - Re-structure in Python: instead of writing infinite loops, let program fail.
-- Important TODO: Support for reading from a text editor.
+- Important TODO: Support for reading from a text editor. (partially implemented: notepad++)
+- Plots should sum the expenses in their respective default currency.
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.

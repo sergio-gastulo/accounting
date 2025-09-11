@@ -4,7 +4,7 @@ from pathlib import Path
 from src.acc_py.context.context import ctx # custom context
 import src.acc_py.plot.validate as val # custom validation
 import src.acc_py.plot.plot as plot # custom plotting functions
-
+from sqlalchemy import create_engine
 
 # Alias for plotting functions for improved navigation
 p1 = lambda period=None: plot.categories_per_period(period=period)
@@ -42,12 +42,12 @@ Tip: Reprint this message with h()
         val._doc_printer(func=f)
 
 
-def main() -> None:
+def main(db_path : Path, json_path : Path) -> None:
 
     plot.darkmode()
-    ctx.db_path = Path(sys.argv[1])
+    ctx.engine = create_engine(f"sqlite:///{db_path}")
+    ctx.categories_dict = val._get_json(json_path=json_path)
     ctx.period = val._get_period(pd.Timestamp.today().to_period('M'))
-    ctx.categories_dict = val._get_json(json_path=Path(sys.argv[2]))
     ctx.month_es = {
         1: "Enero",
         2: "Febrero",
@@ -72,8 +72,6 @@ def main() -> None:
             )
         }
 
-
-
 if __name__ == "__main__":
-    main()
+    main(db_path=sys.argv[1], json_path=sys.argv[2])
     h()

@@ -122,12 +122,15 @@ class CSV {
         New-Item $file -Force
         Set-Content $file "date,description"
         Write-Host "Openning editor..." -ForegroundColor Blue
-        Start-Sleep -Seconds 1
         Start-Process notepad++.exe -ArgumentList $file -Wait
         $content = (Get-Content $file).Split("`n")
 
+		$tasa = if ($Global:tasa) { $Global:tasa } else { 1 }
+		Write-Host "Current multiplier: '$tasa'" -ForegroundColor Blue
+
         $values = foreach ($i in 1..($content.Count - 1)){
             $amount, $description = $content[$i].Split(",")
+			$amount *= $tasa
             "('$date', '$currency', $amount, '$description', '$category')"
         }
         $values = $values -join ",`n"

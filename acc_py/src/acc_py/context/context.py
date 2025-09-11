@@ -2,21 +2,18 @@ from dataclasses import dataclass
 from pathlib import Path
 import pandas as pd
 from typing import Tuple
+from sqlalchemy.engine import Dialect
+from sqlalchemy import create_engine
 
 @dataclass
 class AccountingContext:
-    db_path: Path
-    json_path: str | Path | None
+    engine: Dialect | None
+    json_path: str | Path
     period: pd.Period
     month_es: dict[int, str]
     categories_dict: dict[str, str]
     selected_category: str
     colors: dict[str, Tuple[float, float, float]]
-
-    # https://stackoverflow.com/questions/56665298/how-to-apply-default-value-to-python-dataclass-field-when-none-was-passed
-    def __post_init__(self):
-        if self.json_path is None:
-            self.json_path = '!test' 
 
 
 ctx = AccountingContext

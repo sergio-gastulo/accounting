@@ -1,17 +1,11 @@
 from decimal import Decimal
 import datetime
-from sqlalchemy import String, Date, Numeric, create_engine
-from sqlalchemy.orm import Mapped, mapped_column, declarative_base, sessionmaker
+from sqlalchemy import String, Date, Numeric
+from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
 from ..context.context import ctx
-from sqlalchemy.engine import Dialect
+from typing import List
 
 Base = declarative_base()
-engine = None
-
-def init_engine() -> Dialect:
-    global engine
-    engine = create_engine(f"sqlite:///{ctx.db_path}", echo=True)
-    return engine
 
 
 class Record(Base):
@@ -27,4 +21,16 @@ class Record(Base):
 
     def __repr__(self) -> str:
         return f"Record(id={self.id!r}, date={self.date!r}, amount={self.amount!r}, currency={self.currency!r}, description={self.description!r}, category={self.category!r})"
-    
+
+    def write(self):
+        with Session(ctx.engine) as session:
+            session.add(self)
+            session.commit()
+
+
+
+def write_from_file(records : List[Record]):
+    with Session(ctx.engine) as session:
+        session.add_all(records)
+        session.commit()
+

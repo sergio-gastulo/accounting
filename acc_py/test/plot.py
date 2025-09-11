@@ -19,8 +19,9 @@ from context import main as context_main
 
 
 def main() -> None:
+
     darkmode()
-    context_main()
+    context_main()    
     default_currency = 'EUR'
 
     categories_per_period()

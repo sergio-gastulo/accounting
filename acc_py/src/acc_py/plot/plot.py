@@ -1,4 +1,3 @@
-from sqlite3 import connect
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -28,27 +27,26 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
     else:
         period = pd.Period(period, 'M')
 
-    with connect(ctx.db_path) as conn:
-        query_totals = """
-            SELECT 
-                currency, category, SUM(amount) AS total_amount
-            FROM cuentas 
-            WHERE 
-                date LIKE :period || '%' 
-                AND category NOT IN ('INGRESO', 'BLIND') 
-            GROUP BY 
-                currency, category;
-        """
-        df = pd.read_sql(query_totals, conn, params={"period": str(period)})
-        
-        query_currencies = """
+    query_totals = """
+        SELECT 
+            currency, category, SUM(amount) AS total_amount
+        FROM cuentas 
+        WHERE 
+            date LIKE :period || '%' 
+            AND category NOT IN ('INGRESO', 'BLIND') 
+        GROUP BY 
+            currency, category;
+    """
+    query_currencies = """
             SELECT DISTINCT currency 
             FROM cuentas 
             WHERE 
                 date LIKE :period || '%'
                 AND category NOT IN ('INGRESO', 'BLIND');
         """
-        currency_list = pd.read_sql(query_currencies, conn, params={"period": str(period)})["currency"].to_list()
+
+    df = pd.read_sql(query_totals, con=ctx.engine, params={"period": str(period)})
+    currency_list = pd.read_sql(query_currencies, con=ctx.engine, params={"period": str(period)})["currency"].to_list()
 
     bars_per_ax = []
 
@@ -82,30 +80,29 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
                     contains, _ = bar.contains(event)
                     if contains:
                         bar.set_color('red')
-                        with connect(ctx.db_path) as conn:
-                            query = """
-                                SELECT id, date, amount, description 
-                                FROM cuentas 
-                                WHERE 
-                                    date LIKE :period || '%'
-                                    AND category = :category
-                                    AND currency = :currency;                               
-                            """
-                            df_category = pd.read_sql(query, conn, 
-                                params={
-                                    "period": str(period), 
-                                    "category": label, 
-                                    "currency": currency
-                                    })
-                            df_print_str = df_category.sort_values(by=['amount', 'date'], ascending=False).to_markdown(index=False)
-                            separator = "-" * len(df_print_str.partition('\n')[0]) # printing "----" nicely aligned with markdown df
-                            print(
-                                f"\n{separator}\n"
-                                f"Category: {label}, Currency: {currency}, Total: {df_category.amount.sum()}\n"
-                                f"{separator}\n"
-                                f"{df_print_str}\n"
-                                f"{separator}\n"
-                            )
+                        query = """
+                            SELECT id, date, amount, description 
+                            FROM cuentas 
+                            WHERE 
+                                date LIKE :period || '%'
+                                AND category = :category
+                                AND currency = :currency;                               
+                        """
+                        df_category = pd.read_sql(query, con=ctx.engine, 
+                            params={
+                                "period": str(period), 
+                                "category": label, 
+                                "currency": currency
+                                })
+                        df_print_str = df_category.sort_values(by=['amount', 'date'], ascending=False).to_markdown(index=False)
+                        separator = "-" * len(df_print_str.partition('\n')[0]) # printing "----" nicely aligned with markdown df
+                        print(
+                            f"\n{separator}\n"
+                            f"Category: {label}, Currency: {currency}, Total: {df_category.amount.sum()}\n"
+                            f"{separator}\n"
+                            f"{df_print_str}\n"
+                            f"{separator}\n"
+                        )
 
                         ax.figure.canvas.draw()
                         return
@@ -123,7 +120,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
     
     fig.suptitle(f"Spendings registered on {ctx.month_es[period.month]}, {period.year}")
 
-    fig.canvas.mpl_connect('button_press_event', on_click)
+    fig.canvas.mpl_con=ctx.engineect('button_press_event', on_click)
     plt.show()
 
 
@@ -142,27 +139,28 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
     else: 
         period = pd.Period(period, 'M')
 
-    with connect(ctx.db_path) as conn:
-        query = """
-            SELECT 
-                currency,
-                strftime('%Y-%m', date) AS period,
-                SUM(amount) AS total_amount
-            FROM cuentas
-            WHERE NOT (category IN ('INGRESO', 'BLIND')) 
-            GROUP BY currency, strftime('%Y-%m',date);
-        """
-        df = pd.read_sql(query, conn, parse_dates={"period": {"format": "%Y-%m"}})
-        df.period = df.period.dt.to_period('M')
-        query_currencies = """
-            SELECT DISTINCT currency 
-            FROM cuentas 
-            WHERE 
-                date LIKE :period || '%'
-                AND category NOT IN ('INGRESO', 'BLIND');
-        """
-        currency_list_in_period = pd.read_sql(query_currencies, conn, params={"period": str(period)})["currency"].to_list()
-        currency_list = pd.read_sql("SELECT DISTINCT currency FROM cuentas", conn)["currency"].to_list()
+    
+    query = """
+        SELECT 
+            currency,
+            strftime('%Y-%m', date) AS period,
+            SUM(amount) AS total_amount
+        FROM cuentas
+        WHERE NOT (category IN ('INGRESO', 'BLIND')) 
+        GROUP BY currency, strftime('%Y-%m',date);
+    """
+    df = pd.read_sql(query, con=ctx.engine, parse_dates={"period": {"format": "%Y-%m"}})
+    df.period = df.period.dt.to_period('M')
+
+    query_currencies = """
+        SELECT DISTINCT currency 
+        FROM cuentas 
+        WHERE 
+            date LIKE :period || '%'
+            AND category NOT IN ('INGRESO', 'BLIND');
+    """
+    currency_list_in_period = pd.read_sql(query_currencies, con=ctx.engine, params={"period": str(period)})["currency"].to_list()
+    currency_list = pd.read_sql("SELECT DISTINCT currency FROM cuentas", con=ctx.engine)["currency"].to_list()
 
 
     def core_plot_logic(df: pd.DataFrame, currency: str, color: str, ax = None, fig = None) -> None:
@@ -218,23 +216,22 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
     timestamp_period = period.to_timestamp()
     period_str = str(period)
 
-    with connect(ctx.db_path) as conn:
-        query_total = """
-            SELECT 
-                currency,
-                strftime('%Y-%m', date) AS period,
-                SUM(amount) as total_amount
-            FROM cuentas 
-            WHERE category = :category
-            GROUP BY currency, period;
-        """
-        df = pd.read_sql(
-            query_total,
-            conn,
-            params={"category": category},
-            parse_dates={"period": {"format": "%Y-%m"}}
-        )
-        df.period = df.period.dt.to_period('M')
+    query_total = """
+        SELECT 
+            currency,
+            strftime('%Y-%m', date) AS period,
+            SUM(amount) as total_amount
+        FROM cuentas 
+        WHERE category = :category
+        GROUP BY currency, period;
+    """
+    df = pd.read_sql(
+        query_total,
+        con=ctx.engine,
+        params={"category": category},
+        parse_dates={"period": {"format": "%Y-%m"}}
+    )
+    df.period = df.period.dt.to_period('M')
 
     currency_list_period = df[df.period == period_str].currency.unique()
     currency_list = df.currency.unique()
@@ -244,28 +241,27 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
     for currency in currency_list:
         # https://stackoverflow.com/questions/43206554/typeerror-float-argument-must-be-a-string-or-a-number-not-period
         df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-        with connect(ctx.db_path) as conn:
-            query_get_description = """
-                SELECT id, date, description, amount 
-                FROM cuentas
-                WHERE
-                    category = :category
-                    AND currency = :currency
-                    AND date LIKE :period || '%'
-            """
-            print_df = pd.read_sql(query_get_description, conn, params={
-                "category": category,
-                "currency": currency,
-                "period": period_str
-            }).sort_values('amount').to_markdown(index=False)
-            separator = "-" * len(print_df.partition('\n')[0])
-            print(
-                f"\n{separator}\n"
-                f"Category: {category}, Currency: {currency}\n"
-                f"{separator}\n"
-                f"{print_df}\n"
-                f"{separator}\n"
-            )
+        query_get_description = """
+            SELECT id, date, description, amount 
+            FROM cuentas
+            WHERE
+                category = :category
+                AND currency = :currency
+                AND date LIKE :period || '%'
+        """
+        print_df = pd.read_sql(query_get_description, con=ctx.engine, params={
+            "category": category,
+            "currency": currency,
+            "period": period_str
+        }).sort_values('amount').to_markdown(index=False)
+        separator = "-" * len(print_df.partition('\n')[0])
+        print(
+            f"\n{separator}\n"
+            f"Category: {category}, Currency: {currency}\n"
+            f"{separator}\n"
+            f"{print_df}\n"
+            f"{separator}\n"
+        )
         
         ax.plot(df_currency.index.to_timestamp() , df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
 
@@ -327,24 +323,23 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
         currency = currency.upper()
 
     # it's the exact df as in expenses_time_series, worth executing it only once?
-    with connect(ctx.db_path) as conn:
-        query = """
-            SELECT 
-                currency,
-                strftime('%Y-%m-%d', date) AS period,
-                SUM(amount) AS total_amount
-            FROM cuentas
-            WHERE NOT (category IN ('INGRESO', 'BLIND')) 
-            GROUP BY 
-                currency, 
-                strftime('%Y-%m-%d', date);
-        """
-        df = pd.read_sql(
-            query,
-            conn,
-            parse_dates={"period": {"format": "%Y-%m-%d"}}
-        )
-        df.period = df.period.dt.to_period('D')
+    query = """
+        SELECT 
+            currency,
+            strftime('%Y-%m-%d', date) AS period,
+            SUM(amount) AS total_amount
+        FROM cuentas
+        WHERE NOT (category IN ('INGRESO', 'BLIND')) 
+        GROUP BY 
+            currency, 
+            strftime('%Y-%m-%d', date);
+    """
+    df = pd.read_sql(
+        query,
+        con=ctx.engine,
+        parse_dates={"period": {"format": "%Y-%m-%d"}}
+    )
+    df.period = df.period.dt.to_period('D')
 
     def core_plot_logic(df: pd.DataFrame) -> None:
         

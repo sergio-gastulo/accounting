@@ -1,10 +1,12 @@
 import sys 
 import pandas as pd
 from pathlib import Path
+from sqlalchemy import create_engine
+
 from src.acc_py.context.context import ctx # custom context
 import src.acc_py.plot.validate as val # custom validation
 import src.acc_py.plot.plot as plot # custom plotting functions
-from sqlalchemy import create_engine
+import src.acc_py.utilities.get as get
 
 # Alias for plotting functions for improved navigation
 p1 = lambda period=None: plot.categories_per_period(period=period)
@@ -47,6 +49,7 @@ def main(db_path : Path, json_path : Path) -> None:
     plot.darkmode()
     ctx.engine = create_engine(f"sqlite:///{db_path}")
     ctx.categories_dict = val._get_json(json_path=json_path)
+    ctx.keybinds = get.fetch_keybind_dict(json_path=json_path)
     ctx.period = val._get_period(pd.Timestamp.today().to_period('M'))
     ctx.month_es = {
         1: "Enero",

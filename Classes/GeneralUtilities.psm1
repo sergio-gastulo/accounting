@@ -14,7 +14,7 @@ class GeneralUtilities {
             # checking bounds
             if ($tempInt -le $lowerBound) {
                 Write-Host "`n'$validation' must be an integer greater than $lowerBound." -ForegroundColor Red
-                continue
+                continuee
             }
 
             # if we're here, valid integer
@@ -154,7 +154,7 @@ class GeneralUtilities {
         return $tempAmount, $currency
     }
 
-
+     # objetively unnecessary
     static [string] ValidateStringForCSV([string] $field) {
         $description = Read-Host "`nType '$field'"
         $description.Replace("'", "''")
@@ -241,6 +241,7 @@ class GeneralUtilities {
 
     # only God knows how this works
     # 09/11/2025 23:56:39: time to know how tf it works
+    # 09/12/2025 16:11:18: done
     static [string] ValidateCategory([System.Collections.Specialized.OrderedDictionary] $categoryDict) {
     
         $tempCategory= ""

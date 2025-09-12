@@ -28,7 +28,6 @@ function AccountingCommandLineInterface {
 	        e 	    =   "edit record" 
             h       =   "help"
             p       =   "opens a python session with pre-loaded functions to plot"
-			ps		= 	"execute command in PowerShell"
             r       =   "read last 'n' lines"
             sql     =   "opens 'db' in sqlite3"
             w       =   "write"
@@ -38,11 +37,11 @@ function AccountingCommandLineInterface {
         $action = Read-Host "Please select which action you would like to perform"
 
         switch ($action) {
-            'r' {
+            'r' { # python
                 Write-Host "`nReading from database." -ForegroundColor Blue
                 $CSV.Read()
             }
-            'p' {
+            'p' { # python
                 Write-Host "`nRuning python for plotting." -ForegroundColor Blue
                 python -i $CSV.PYTHONSCRIPTPATH $CSV.DBPATH $CSV.JSONPATH
             }
@@ -50,37 +49,30 @@ function AccountingCommandLineInterface {
                 Write-Host "`nBreaking Loop. Bye!`n" -ForegroundColor Blue
                 break mainLoop
             }
-            'w' {
+            'w' { # python
                 Write-Host "`nWrite to database." -ForegroundColor Blue
                 $CSV.Write([CSVRow]::new($CSV.categoriesJson.hash))
                 Write-Host "`n"
             }
 
-            'wl' {
+            'wl' { # python
                 Write-Host "`nWrite List of records to database." -ForegroundColor Blue
                 $CSV.WriteList()
             }
 
-            'e' {
+            'e' { # python
                 Write-Host "Editing database selected. Currently, no support for data validation. Edit at your own risk." -ForegroundColor Yellow
                 $CSV.Edit()
             }
 
-			'ps' {
-				Write-Host "Warning: this is directly executed on PowerShell. Use with caution." -ForegroundColor Red
-                Write-Host "No profile is loaded. A completely new session is started." -ForegroundColor Yellow
-				$command = Read-Host "Command"
-				powershell.exe -NoProfile -NoExit -Command $command
-			}
-
-            'b' {
+            'b' { # leave pwsh
                 $date = (get-date).ToString("yyyy-MM-dd")
                 $db_name = Join-Path (Split-Path $CSV.DBPATH) -ChildPath "db-backup-$date.sqlite"
                 ".backup $db_name" | sqlite3.exe $CSV.DBPATH 
             }
 
             'c' { Clear-Host }
-            'h' { $CSV.Help() }
+            'h' { $CSV.Help() } # python
             'sql' { sqlite3.exe $CSV.DBPATH }
 
             Default {

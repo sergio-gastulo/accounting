@@ -1,4 +1,4 @@
-from acc_py.write.write import *
+from acc_py.db.write import *
 import datetime
 from decimal import Decimal
 from context import main as context_main

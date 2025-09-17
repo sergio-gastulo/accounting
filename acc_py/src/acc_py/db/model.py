@@ -42,3 +42,7 @@ class Record(Base):
         with Session(ctx.engine) as session:
             session.add(self)
             session.commit()
+
+
+    def pprint(self) -> None:
+        print(self.pretty())

@@ -120,7 +120,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
     
     fig.suptitle(f"Spendings registered on {ctx.month_es[period.month]}, {period.year}")
 
-    fig.canvas.mpl_con=ctx.engineect('button_press_event', on_click)
+    fig.canvas.mpl_connect('button_press_event', on_click)
     plt.show()
 
 

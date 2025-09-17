@@ -1,0 +1,20 @@
+# ------------------------------------
+# File template for records
+# ------------------------------------
+# Current metadata: {% if date %} 
+    date: {{ date }} {% endif %} {% if amount %}
+    amount: {{ amount }} {% endif %} {% if currency %}
+    currency: {{ currency }} {% endif %} {% if description %}
+    description: {{ description }} {% endif %} {% if category %}
+    category: {{ category }} {% endif %}
+# ------------------------------------
+# Follow the example below:
+# ------------------------------------
+# amount,description
+# 1.25,apples            <-- typed!
+# 2.40,bananas           <-- typed!
+# 10.00,weekly groceries <-- typed!
+# ------------------------------------
+
+# Now add your records in CSV format:
+{{ cols }}

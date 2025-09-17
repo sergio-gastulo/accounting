@@ -2,7 +2,6 @@ from datetime import date
 from pandas import Period
 import traceback
 from json import dumps
-
 from sqlalchemy.engine import Engine
 
 from .core_parser import *
@@ -134,7 +133,7 @@ def prompt_category(
 ) -> str:
     while True:
         if category_input is None:
-            print(dumps(category_dictionary))
+            print(dumps(category_dictionary, indent=4))
             category_input = input("Type category (leave empty for random choice): ")
         try: 
             category = parse_category(category_dictionary, category_input)
@@ -189,7 +188,102 @@ def prompt_record_by_id(engine : Engine, id_ : int | None = None) -> Record:
             print(f"Current id '{id_}' doesn't exist in the db.")
             id_ = None
         else:
-            print(f"Sucess: {record}")
+            print(
+                f"Sucess:"
+                f"{record.pretty()}"
+            )
             return record
 
 
+# ------------------------------------------------------
+# The following function aims to cover the following
+# possibilities
+# string_of_ints (e.g. "1 2 3 4 5" -> column[1], column[2], ...)
+# [categories] (e.g. ['amount', 'description']) // prolly never gonna happen
+# string_with_spaces_initial_of_categories
+#    e.g. "am des cu" -> [amount, description, currency]
+# string_with_spaces_full_column
+#    e.g. "amount description" -> [amount, description]
+# ------------------------------------------------------
+def prompt_list_of_fields(
+        user_input : str | None = None,
+        explain : bool = True
+) -> List[str]:
+    
+    list_to_validate = ['date', 'amount', 'currency', 'description', 'category']
+    keybind_dict = dict(zip(['d', 'a', 'c', 'desc', 'cat'], list_to_validate))
+
+    if explain:
+        print(
+            f"Given the following list: \n"
+            f"{list_to_validate}\n"
+            f"You can whether type an elemnt or a corresponding keybind:\n"
+            f"{dumps(keybind_dict, indent=4)}\n"
+            f"e.g. 'd a' will be parsed to ['date', 'amount']"
+        )
+
+    # tries to convert to int
+    # if it fails, returns str
+    def mapper(i : str) -> int | str:
+        try:
+            return int(i)
+        except ValueError:
+            return i
+
+    while True:
+        if user_input is None:
+            user_input = input("Write valid elements from list: ")
+        try:
+            return [
+                parse_valid_element_list(
+                    column_input=mapper(column), 
+                    list_to_validate=list_to_validate, 
+                    keybinds=keybind_dict
+                ) 
+                for column in user_input.split()
+            ]
+            
+        except:
+            print(f"'{user_input}' could not be parsed: {traceback.format_exc()}")
+            user_input = None
+
+
+
+# ------------------------------------------------
+# This function aims to return a dictionary:
+# {
+#     field1: value1,
+#     field2: value2,
+#     ...
+# }
+# That will be later converted into a valid Record
+# e.g.
+# [fields] = prompt_list_of_fields()
+# dict = {}
+# for field in fields: 
+#     dict.update( { field : validate(field) } )
+# ------------------------------------------------
+
+def prompt_column_value(
+        category_dictionary : dict[str, str],
+        fields_str : str | None = None
+) -> dict[str, str | int]:
+    
+    field_func : dict[str, callable] = {
+        "date" : prompt_date_operation,
+        "amount" : prompt_arithmetic_operation,
+        "currency": prompt_currency,
+        "description": lambda : input("Type your new description: "),
+        "category": lambda : prompt_category(category_dictionary=category_dictionary)
+    }
+
+    list_fields = prompt_list_of_fields(fields_str)
+    
+    res : dict[str, str | int] = {}
+
+    for field in list_fields:
+        print(f"\nValidating: {field}\n")
+        val = field_func[field]()
+        res.update( { field : val } )
+    
+    return res

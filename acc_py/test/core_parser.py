@@ -10,10 +10,5 @@ from acc_py.db.model import Record
 
 
 if __name__ == "__main__":
-    engine = create_engine(f"sqlite:///{Path(sys.argv[1]).resolve()}")
-    print(engine)
-    context_main()
-    stmt = select(Record).where(Record.description.regexp_match("tty"))
-    with Session(engine) as session:
-        res = session.execute(stmt)
-        print(res.fetchone())
+    df = parse_csv_record(Path(sys.argv[1]))
+    print(df.head())

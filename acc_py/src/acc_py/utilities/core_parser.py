@@ -3,6 +3,10 @@ from datetime import date, timedelta
 from datetime import datetime as dt
 from pandas import Period
 from random import choice
+from typing import List
+from pathlib import Path
+import pandas as pd 
+from io import StringIO
 
 from sqlalchemy.sql import selectable
 from sqlalchemy import select
@@ -110,7 +114,6 @@ def parse_category(category_dict : dict[str, str], category_str : str | None) ->
 #    - 'description like "wildcard"'
 #    - 'id = 123'
 # ---------------------------------------------------
-
 def parse_semantic_filter(
         semantic_filter : str
 ) -> selectable.Select:
@@ -120,7 +123,7 @@ def parse_semantic_filter(
         # amount filters
         case [("amount" | "am"), ("between" | "b"), lower_bound, upper_bound]:
             print("Amount between a, b.")
-            lower_bound, upper_bound = map(float, lower_bound, upper_bound)
+            lower_bound, upper_bound = map(float, [lower_bound, upper_bound])
             return select(Record).where(Record.amount.between(lower_bound, upper_bound))
 
         # dates filters
@@ -151,8 +154,50 @@ def parse_semantic_filter(
             return select(Record).where(Record.description == description_str)
         
         # empty semantic_filter
+        # no filter attributed to semantic_filter
         case [  ]:
             return select(Record)
         
         case _:
             raise SyntaxError(f"Invalid Syntax. Could not parse '{semantic_filter}' as a valid semantic filter.")
+
+
+# -------------------------------------------------
+# this function aims to take a single number | str
+# and transforms input into an element of the list
+# -------------------------------------------------
+def parse_valid_element_list(
+        column_input : str | int,
+        list_to_validate : List[str],
+        keybinds : dict[str, str]
+) -> str:
+
+    # using keybinds or actual column
+    if isinstance(column_input, str):
+        if column_input in keybinds:
+            return keybinds[column_input]
+        if column_input in list_to_validate:
+            return column_input
+        else:
+            raise KeyError(f"Could not parse '{column_input}' as a valid column.")
+    
+    # using index position
+    elif isinstance(column_input, int):
+        if 0 <= column_input < len(list_to_validate):
+            return list_to_validate[column_input]
+        else:
+            raise ValueError(f"'{column_input}' can't be that large.")
+
+    raise SyntaxError(f"Could not parse '{column_input}' as a valid column.")
+
+
+
+def parse_csv_record(
+        path : Path
+):
+    with open(path, 'r') as file:
+        text = file.read()
+    
+    _, csv_content = text.split("# Now add your records in CSV format:", 1)
+    
+    return pd.read_csv(StringIO(csv_content))

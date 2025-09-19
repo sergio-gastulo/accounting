@@ -7,12 +7,20 @@ from src.acc_py.context.context import ctx # custom context
 import src.acc_py.plot.validate as val # custom validation
 import src.acc_py.plot.plot as plot # custom plotting functions
 import src.acc_py.utilities.get as get
+import src.acc_py.interface.interface as interface
+
 
 # Alias for plotting functions for improved navigation
-p1 = lambda period=None: plot.categories_per_period(period=period)
-p2 = lambda period=None: plot.expenses_time_series(period=period)
-p3 = lambda category=None, period=None: plot.category_time_series(period=period, category=category)
-p4 = lambda currency, period=None: plot.monthly_time_series(currency=currency, period=period)
+p1  =   lambda period=None: plot.categories_per_period(period=period)
+p2  =   lambda period=None: plot.expenses_time_series(period=period)
+p3  =   lambda category=None, period=None: plot.category_time_series(period=period, category=category)
+p4  =   lambda currency, period=None: plot.monthly_time_series(currency=currency, period=period)
+w   =   lambda : interface.write
+e   =   lambda id : interface.edit(id=id)
+wl  =   lambda : interface.write_list
+d   =   lambda : interface.delete
+r   =   lambda number_lines : interface.read(n_lines=number_lines) 
+
 
 def h(f : callable = None) -> None:
     
@@ -24,24 +32,33 @@ Available functions:
     - p2(period=None) -> plot.expenses_time_series
     - p3(category=None, period=None) -> plot.category_time_series
     - p4(currency, period=None) -> plot.monthly_time_series
+    - w -> interface.write
+    - e(id) -> interface.edit
+    - wl -> interface.write_list
+    - d -> interface.delete
+    - r(n_lines) -> interface.read
 
 Context variables (available under ctx):
-    - db_path
+    - engine
+    - json_path
     - period
+    - month_es
     - categories_dict
     - selected_category
     - colors
+    - keybinds
 
-Other:
+Help:
     - h(function) -> show function docstring (use full name, e.g. h(plot.categories_per_period))
 
 Tip: Reprint this message with h()
     """
-    
+
     if f is None:
         print(help_message)
     else:
         val._doc_printer(func=f)
+
 
 
 def main(db_path : Path, json_path : Path) -> None:
@@ -74,6 +91,7 @@ def main(db_path : Path, json_path : Path) -> None:
             [(128, 128, 255), (26, 255, 163), (255, 255, 255)] # https://www.w3schools.com/colors/colors_picker.asp
             )
         }
+
 
 if __name__ == "__main__":
     main(db_path=sys.argv[1], json_path=sys.argv[2])

@@ -129,9 +129,13 @@ def parse_semantic_filter(
             return select(Record).where(Record.amount.between(lower_bound, upper_bound))
 
         # dates filters
-        case ["date", date_wildcard]:
+        case ["date", "like", date_wildcard] | ["date", date_wildcard]:
             print("Date wildcard.")
             return select(Record).where(Record.date.like(date_wildcard))
+        
+        case ["date", "=", date_]:
+            print("Date wildcard.")
+            return select(Record).where(Record.date == date_)
         
         case ["date", date_regex, ("r" | "regex" | "regexp")]:
             print("Date regex match.")

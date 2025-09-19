@@ -7,7 +7,6 @@ from pathlib import Path
 from tempfile import gettempdir
 import subprocess
 
-
 from ..utilities.core_parser import (
     parse_semantic_filter,
     parse_csv_record
@@ -159,7 +158,9 @@ def edit(
     confirm : str = input("Confirm your commit [y/N]: ")
 
     if confirm.lower() in ('y', 'yes'):
-        record.write()
+        with Session(ctx.engine) as session:
+            session.add(record)
+            session.commit()
         print("Record commited.")
     elif not confirm or confirm.lower() in ('n', 'no'):
         print("Change uncomitted.")

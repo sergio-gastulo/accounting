@@ -104,6 +104,8 @@ def parse_category(category_dict : dict[str, str], category_str : str | None) ->
     elif category_str.upper() in category_dict:
         return category_str.upper()
 
+    raise KeyError(f"'{category_str}' is not part of 'category_dictionary'.")
+
 
 # ---------------------------------------------------
 # cases this should handle
@@ -137,10 +139,10 @@ def parse_semantic_filter(
 
         # category filters
         case [("category" | "cat"), category_]:
-            return select(Record).where(Record.category == category_)
+            return select(Record).where(Record.category == category_.upper())
         
         case [("category" | "cat"), category_, ("r" | "regex" | "regexp") ]:
-            return select(Record).where(Record.category.regexp_match(category_))
+            return select(Record).where(Record.category.regexp_match(category_.upper()))
         
         # currency match
         case [("currency" | "cur"), currency_]:
@@ -163,7 +165,7 @@ def parse_semantic_filter(
 
 
 # -------------------------------------------------
-# this function aims to take a single number | str
+# this function aims to take a single int | str
 # and transforms input into an element of the list
 # -------------------------------------------------
 def parse_valid_element_list(
@@ -194,10 +196,26 @@ def parse_valid_element_list(
 
 def parse_csv_record(
         path : Path
-):
+) -> pd.DataFrame:
+    
     with open(path, 'r') as file:
         text = file.read()
-    
     _, csv_content = text.split("# Now add your records in CSV format:", 1)
     
-    return pd.read_csv(StringIO(csv_content))
+    df = pd.read_csv(StringIO(csv_content))
+    df.columns = df.columns.str.strip()
+
+    type_map = {
+        "date" : "datetime64[ns]",
+        "amount" : "float",
+        "currency" : "str",
+        "description" : "str",
+        "category" : "str"
+    }
+
+    type_dict = {key : val for key, val in type_map.items() if key in df.columns}
+    df = df.astype(type_dict)
+    if "date" in df.columns:
+        df["date"] = df["date"].dt.date
+
+    return df

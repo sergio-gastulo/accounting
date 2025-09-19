@@ -34,16 +34,23 @@ def write(
 
     if not date:
         date = prompt.prompt_date_operation()
-    if operation_str:
+    if not operation_str:
         amount, currency = prompt.prompt_double_currency()
     if not description:
         description = input("Type your description: ")
     if not category:
         category = prompt.prompt_category(ctx.categories_dict)
 
-    record = Record(date, amount, currency, description, category)
-    record.write()
-    print(f"Written:\n{record}")
+    with Session(ctx.engine) as session:
+        record = Record(
+            date=date, amount=amount, 
+            currency=currency, description=description, 
+            category=category
+        )
+        session.add(record)
+        print("Record written to database: ")
+        session.commit()
+        record.pprint()
 
 
 # ------------------------------------------------------
@@ -71,7 +78,7 @@ def write_list(
         fixed_fields = prompt.prompt_column_value(ctx.categories_dict)
 
     # sorry for this, ik it's painful to read
-    template_str = (Path(__file__) / ".." / ".." / Path(r".\templates\csv_metadata.j2")).resolve().read_text()
+    template_str = (Path(__file__).parent / ".." / Path(r".\templates\csv_metadata.j2")).resolve().read_text()
     csv_columns = ", ".join({'date', 'amount', 'currency', 'description', 'category'} - set(fixed_fields.keys()))
     text_template = Template(template_str).render(**fixed_fields, cols=csv_columns)
 
@@ -94,7 +101,7 @@ def write_list(
             df.to_dict(orient='records') # has nothing to do with Record
         )
         print(
-            f"Current records being inserted to database:"
+            f"Current records being inserted to database:\n"
             f"{df.to_markdown(index=False)}"
         )
 
@@ -183,12 +190,16 @@ def delete(
         confirm : str = input("Confirm your commit [y/N]: ")
 
         if confirm.lower() in ('y', 'yes'):
-            record.write()
+            with Session(ctx.engine) as session:
+                session.delete(record)
+                session.commit()
             print("Record commited.")
-            return
+            return 
+        
         elif not confirm or confirm.lower() in ('n', 'no'):
             print("Change uncomitted.")
-            return
+            return 
+        
         else:
             print("Could not parse your query, please try again.")
 
@@ -214,7 +225,8 @@ def delete(
 
 def read(
         n_lines : int,
-        semantic_filter : str | None = None
+        semantic_filter : str | None = None,
+        filter_today : bool = True
 ) -> None:
     
     today = datetime.date.today()
@@ -224,9 +236,12 @@ def read(
         semantic_filter = input("Type your semantic filter: ")
 
     stmt = parse_semantic_filter(semantic_filter)
+
+    if filter_today:
+        stmt = stmt.where(Record.date <= today)
+
     query = (
         stmt
-        .where(Record.date <= today)
         .order_by(desc(Record.date))
         .limit(n_lines)
     )

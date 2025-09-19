@@ -141,6 +141,7 @@ def prompt_category(
             return category
         except Exception:
             print(f"Something went wrong: \n{traceback.format_exc()}")
+            category_input = None
 
 
 # as this asks for double input depending on the context, 
@@ -189,7 +190,7 @@ def prompt_record_by_id(engine : Engine, id_ : int | None = None) -> Record:
             id_ = None
         else:
             print(
-                f"Sucess:"
+                f"Record available:\n"
                 f"{record.pretty()}"
             )
             return record

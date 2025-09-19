@@ -18,6 +18,7 @@ class Record(Base):
     description: Mapped[str] = mapped_column(String,nullable=False)
     category: Mapped[str] = mapped_column(nullable=False)
 
+
     def __repr__(self) -> str:
         return (
             f"Record(id={self.id!r}, date={self.date!r}, "
@@ -36,12 +37,6 @@ class Record(Base):
             f"\tdescription={self.description!r},\n"
             f"\tcategory={self.category!r}\n)"
         )
-
-
-    def write(self) -> None:
-        with Session(ctx.engine) as session:
-            session.add(self)
-            session.commit()
 
 
     def pprint(self) -> None:

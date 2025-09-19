@@ -24,14 +24,11 @@ function AccountingCommandLineInterface {
     :mainLoop while ($true) {
         [ordered] @{
             b       =   "backup $($CSV.DBPATH)"
-            c       =   "clear console"
-	        e 	    =   "edit record" 
+            cls     =   "clear console"
+            db      =   "DB management CLI: opens a python session with pre-loaded functions for db management"
             h       =   "help"
-            p       =   "opens a python session with pre-loaded functions to plot"
-            r       =   "read last 'n' lines"
+            p       =   "Plot CLI: opens a python session with pre-loaded functions for plotting"
             sql     =   "opens 'db' in sqlite3"
-            w       =   "write"
-            wl      =   "write a list"
         } | Format-Table
         Write-Host "Press 'q' to (q)uit."
         $action = Read-Host "Please select which action you would like to perform"
@@ -43,7 +40,7 @@ function AccountingCommandLineInterface {
             }
             'p' { # python
                 Write-Host "`nRuning python for plotting." -ForegroundColor Blue
-                python -i $CSV.PYTHONSCRIPTPATH $CSV.DBPATH $CSV.JSONPATH
+                python -i $CSV.PYTHONSCRIPTPATH $CSV.DBPATH $CSV.JSONPATH 'plot'
             }
             'q' {
                 Write-Host "`nBreaking Loop. Bye!`n" -ForegroundColor Blue
@@ -70,8 +67,10 @@ function AccountingCommandLineInterface {
                 $db_name = Join-Path (Split-Path $CSV.DBPATH) -ChildPath "db-backup-$date.sqlite"
                 ".backup $db_name" | sqlite3.exe $CSV.DBPATH 
             }
-
-            'c' { Clear-Host }
+            'db'{
+                python -i $CSV.PYTHONSCRIPTPATH $CSV.DBPATH $CSV.JSONPATH 'db'
+            }
+            'cls' { Clear-Host }
             'h' { $CSV.Help() } # python
             'sql' { sqlite3.exe $CSV.DBPATH }
 

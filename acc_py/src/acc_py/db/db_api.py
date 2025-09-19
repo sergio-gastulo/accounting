@@ -175,7 +175,7 @@ def edit(
 # - prompts for id -
 # pprints record
 # you sure? y/N
-# commit / rollsback
+# commit / rollback
 # delete(id)
 # ------------------------------------------------
 def delete(

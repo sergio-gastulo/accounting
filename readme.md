@@ -66,6 +66,8 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Re-structure in Python: instead of writing infinite loops, let program fail.
 - Important TODO: Support for reading from a text editor. (partially implemented: notepad++)
 - Plots should sum the expenses in their respective default currency.
+- Provide toy db as an example.
+- Change str queries on plot.py: migrate to SQLAlchemy
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.

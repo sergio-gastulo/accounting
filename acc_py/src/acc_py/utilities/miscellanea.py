@@ -1,4 +1,5 @@
 import inspect
+from pandas import DataFrame
 
 
 def print_func_doc(func: callable) -> None:
@@ -13,3 +14,22 @@ def print_func_doc(func: callable) -> None:
     doc = func.__doc__
     print(f'{cyan_str}Documentation:{end_str}\n{doc}')
 
+
+
+def pprint_df(
+        df : DataFrame,
+        header : str
+):
+    print_df : str = df.to_markdown(
+        index='id',
+        tablefmt="outline"
+        )
+    
+    n : int = len(print_df.partition('\n')[0])
+    separator : str = "-" * n
+
+    print(
+        f"\n{separator}\n"
+        f"{header}\n"
+        f"{print_df}\n"
+    )

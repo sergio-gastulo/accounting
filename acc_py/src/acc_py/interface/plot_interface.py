@@ -27,5 +27,5 @@ For further help, you can do:
 
 def run(db_path : Path, json_path : Path) -> None:
     darkmode()
-    set_context(db_path=db_path, json_path=json_path)
+    set_context(db_path=db_path, json_path=json_path, plot=True)
     h()

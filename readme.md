@@ -68,6 +68,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Plots should sum the expenses in their respective default currency.
 - Provide toy db as an example.
 - Change str queries on plot.py: migrate to SQLAlchemy
+- To be able to edit an entire list of Records in Editor. 
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.

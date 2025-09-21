@@ -3,8 +3,55 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from numpy import atleast_1d
 import re
+from typing import List
+
+from ..db.model import Record
+from sqlalchemy import select, not_
+from sqlalchemy.sql import functions, func
 
 from ..context.context import ctx # custom context
+from ..utilities.miscellanea import pprint_df
+
+
+INCOMES_CATEGORIES = ['INGRESO', 'BLIND']
+INCLUDING_INCOMES = Record.category.in_(INCOMES_CATEGORIES)
+PERIOD_COL = func.strftime('%Y-%m', Record.date).label("period")
+TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
+CURRENCY_LIST = select(Record.currency.distinct())
+
+
+def get_currency_list_by_period(
+        period : str
+) -> List[str]: 
+    
+    query_currencies = select(
+        Record.currency.distinct()
+        ).where(
+            Record.date.like(period + "%"),
+            not_(INCLUDING_INCOMES)
+        )
+    
+    return pd.read_sql(query_currencies, con=ctx.engine)["currency"].to_list()
+
+
+def on_click_printable(
+        period : str,
+        category : str,
+        currency : str
+) -> pd.DataFrame:
+
+    query_printable =  select(
+            Record.id, 
+            Record.date, 
+            Record.amount, 
+            Record.description
+        ).where(
+            Record.date.like(period + "%"),
+            Record.category == category,
+            Record.currency == currency
+        )
+
+    return pd.read_sql(query_printable, con=ctx.engine)
 
 
 def darkmode() -> None:
@@ -23,31 +70,29 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
         - Prints the related records (date, description, amount).
     """
 
-    if period is None:
-        period = ctx.period
-    else:
+    if period:
         period = pd.Period(period, 'M')
+    else:
+        period = ctx.period
 
-    query_totals = """
-        SELECT 
-            currency, category, SUM(amount) AS total_amount
-        FROM cuentas 
-        WHERE 
-            date LIKE :period || '%' 
-            AND category NOT IN ('INGRESO', 'BLIND') 
-        GROUP BY 
-            currency, category;
-    """
-    query_currencies = """
-            SELECT DISTINCT currency 
-            FROM cuentas 
-            WHERE 
-                date LIKE :period || '%'
-                AND category NOT IN ('INGRESO', 'BLIND');
-        """
+    period_str = str(period)
 
-    df = pd.read_sql(query_totals, con=ctx.engine, params={"period": str(period)})
-    currency_list = pd.read_sql(query_currencies, con=ctx.engine, params={"period": str(period)})["currency"].to_list()
+    query_totals = (
+        select(
+            Record.currency, 
+            Record.category, 
+            TOTAL_AMOUNT_COL
+        ).where(
+            Record.date.like(period_str + "%"),
+            not_(INCLUDING_INCOMES)
+        ).group_by(
+            Record.currency, 
+            Record.category
+        )
+    )
+    
+    df = pd.read_sql(query_totals, con=ctx.engine)
+    currency_list = get_currency_list_by_period(period_str)
 
     bars_per_ax = []
 
@@ -74,6 +119,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
         ax.text(0.90, 0.95, f'{currency} {values.sum():.2f}', transform=ax.transAxes, ha="left", va="top", fontsize=12)
         fig.subplots_adjust(left=0.25, right=0.95)
 
+
     def on_click(event):
         for ax, bars, labels, currency in bars_per_ax:
             if event.inaxes == ax:
@@ -81,32 +127,20 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
                     contains, _ = bar.contains(event)
                     if contains:
                         bar.set_color('red')
-                        query = """
-                            SELECT id, date, amount, description 
-                            FROM cuentas 
-                            WHERE 
-                                date LIKE :period || '%'
-                                AND category = :category
-                                AND currency = :currency;                               
-                        """
-                        df_category = pd.read_sql(query, con=ctx.engine, 
-                            params={
-                                "period": str(period), 
-                                "category": label, 
-                                "currency": currency
-                                })
-                        df_print_str = df_category.sort_values(by=['amount', 'date'], ascending=False).to_markdown(index=False)
-                        separator = "-" * len(df_print_str.partition('\n')[0]) # printing "----" nicely aligned with markdown df
-                        print(
-                            f"\n{separator}\n"
-                            f"Category: {label}, Currency: {currency}, Total: {df_category.amount.sum()}\n"
-                            f"{separator}\n"
-                            f"{df_print_str}\n"
-                            f"{separator}\n"
+                        df_category = (
+                            on_click_printable(
+                                period=period, 
+                                category=label, 
+                                currency=currency
+                            )
+                            .sort_values(by=['amount', 'date'], ascending=False)
                         )
+                        header = f"Category: {label}, Currency: {currency}, Total: {df_category.amount.sum()}"
+                        pprint_df(df_category, header=header)
 
                         ax.figure.canvas.draw()
                         return
+
 
     heights = [
         len(df.loc[df.currency == currency, 'category'].unique())
@@ -135,34 +169,29 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
     - If the period is outside the data, nothing is highlighted.
     """
 
-    if period is None:
-        period = ctx.period
-    else: 
+    if period:
         period = pd.Period(period, 'M')
+    else: 
+        period = ctx.period
 
-    
-    query = """
-        SELECT 
-            currency,
-            strftime('%Y-%m', date) AS period,
-            SUM(amount) AS total_amount
-        FROM cuentas
-        WHERE NOT (category IN ('INGRESO', 'BLIND')) 
-        GROUP BY currency, strftime('%Y-%m',date);
-    """
-    df = pd.read_sql(query, con=ctx.engine, parse_dates={"period": {"format": "%Y-%m"}})
+    query = (
+        select(
+            Record.currency,
+            PERIOD_COL,
+            TOTAL_AMOUNT_COL,
+        )
+        .where(
+            not_(INCLUDING_INCOMES)
+        )
+        .group_by(
+            Record.currency,
+            PERIOD_COL,
+        )
+    )
+
+    df = pd.read_sql(query, con=ctx.engine)
     df.period = df.period.dt.to_period('M')
-
-    query_currencies = """
-        SELECT DISTINCT currency 
-        FROM cuentas 
-        WHERE 
-            date LIKE :period || '%'
-            AND category NOT IN ('INGRESO', 'BLIND');
-    """
-    currency_list_in_period = pd.read_sql(query_currencies, con=ctx.engine, params={"period": str(period)})["currency"].to_list()
-    currency_list = pd.read_sql("SELECT DISTINCT currency FROM cuentas", con=ctx.engine)["currency"].to_list()
-
+    currency_list_in_period = get_currency_list_by_period(period=period)
 
     def core_plot_logic(df: pd.DataFrame, currency: str, color: str, ax = None, fig = None) -> None:
         ax.plot(df.index.to_timestamp(), df.values, marker='o', color=color, label=currency)
@@ -183,7 +212,7 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
 
     fig, ax = plt.subplots()
 
-    for currency in currency_list:
+    for currency in CURRENCY_LIST:
         color = ctx.colors[currency]
         df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
         core_plot_logic(df_currency, currency, ax=ax, fig=fig, color=color)
@@ -217,19 +246,22 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
     timestamp_period = period.to_timestamp()
     period_str = str(period)
 
-    query_total = """
-        SELECT 
-            currency,
-            strftime('%Y-%m', date) AS period,
-            SUM(amount) as total_amount
-        FROM cuentas 
-        WHERE category = :category
-        GROUP BY currency, period;
-    """
+    query_total = (
+        select(
+            Record.currency,
+            PERIOD_COL,
+            TOTAL_AMOUNT_COL
+        ).where(
+            Record.category == "category_placeholder"
+        ).group_by(
+            Record.currency,
+            PERIOD_COL
+        )
+    )
+
     df = pd.read_sql(
         query_total,
         con=ctx.engine,
-        params={"category": category},
         parse_dates={"period": {"format": "%Y-%m"}}
     )
     df.period = df.period.dt.to_period('M')
@@ -242,28 +274,18 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
     for currency in currency_list:
         # https://stackoverflow.com/questions/43206554/typeerror-float-argument-must-be-a-string-or-a-number-not-period
         df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-        query_get_description = """
-            SELECT id, date, description, amount 
-            FROM cuentas
-            WHERE
-                category = :category
-                AND currency = :currency
-                AND date LIKE :period || '%'
-        """
-        print_df = pd.read_sql(query_get_description, con=ctx.engine, params={
-            "category": category,
-            "currency": currency,
-            "period": period_str
-        }).sort_values('amount').to_markdown(index=False)
-        separator = "-" * len(print_df.partition('\n')[0])
-        print(
-            f"\n{separator}\n"
-            f"Category: {category}, Currency: {currency}\n"
-            f"{separator}\n"
-            f"{print_df}\n"
-            f"{separator}\n"
+
+        print_df = (
+            on_click_printable(
+                period=period_str, 
+                category=category, 
+                currency=currency
+            )
+            .sort_values('amount')    
         )
-        
+        header = f"Category: {category}, Currency: {currency}\n"
+        pprint_df(df=print_df, header=header)
+
         ax.plot(df_currency.index.to_timestamp() , df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
 
     ax.set_title(f"{category} Time Series Plot")
@@ -314,27 +336,29 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
     - Excludes categories: BLIND, INGRESO.
     """
 
-    if period is None:
-        period = ctx.period
-    else: 
+    if period:
         period = pd.Period(period, 'M')
+    else: 
+        period = ctx.period
+
     if not re.match('^[a-zA-Z]{3}$', currency):
         raise Exception(f"'{currency}' not a valid currency")
     else: 
         currency = currency.upper()
 
     # it's the exact df as in expenses_time_series, worth executing it only once?
-    query = """
-        SELECT 
-            currency,
-            strftime('%Y-%m-%d', date) AS period,
-            SUM(amount) AS total_amount
-        FROM cuentas
-        WHERE NOT (category IN ('INGRESO', 'BLIND')) 
-        GROUP BY 
-            currency, 
-            strftime('%Y-%m-%d', date);
-    """
+    query = (
+        select(
+            Record.currency,
+            func.strftime('%Y-%m-%d', Record.date).label("period"),
+            TOTAL_AMOUNT_COL
+        ).where(
+            not_(INCLUDING_INCOMES)
+        ).group_by(
+            Record.currency,
+            "period"
+        )
+    )
     df = pd.read_sql(
         query,
         con=ctx.engine,
@@ -344,7 +368,7 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
 
     def core_plot_logic(df: pd.DataFrame) -> None:
         
-        dfs = [df.loc[str(ctx.period + i)] for i in range (-1,2)] # collects the three consecutive-monthly periods: [-1,0,1]
+        dfs = [df.loc[str(period + i)] for i in range (-1,2)] # collects the three consecutive-monthly periods: [-1,0,1]
         fig, ax = plt.subplots(1,2, figsize=(12,5))
 
         for i, dframes in enumerate(dfs):
@@ -353,9 +377,9 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
             ax[1].plot(dframes.index.to_timestamp(), dframes.values.cumsum(), color=color, marker='o')
 
         for axes in ax:
-            axes.axvline(mdates.date2num(ctx.period.asfreq('D', how='start') + pd.Timestamp.today().day), color=(1,0,0))
+            axes.axvline(mdates.date2num(period.asfreq('D', how='start') + pd.Timestamp.today().day), color=(1,0,0))
 
-        fig.suptitle(f'Monthly spendings centered at {ctx.month_es[ctx.period.month]}, {ctx.period.year} in {currency}')
+        fig.suptitle(f'Monthly spendings centered at {ctx.month_es[period.month]}, {period.year} in {currency}')
         fig.supxlabel('Periods', y=-0.1)
         fig.supylabel(f"Spendings in {currency}", x=0.05)
         fig.autofmt_xdate()

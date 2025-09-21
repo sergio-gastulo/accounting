@@ -247,4 +247,11 @@ def read(
         .limit(n_lines)
     )
 
-    print(pd.read_sql(query, ctx.engine, index_col='id').to_markdown())
+    print(
+        "\n",
+        pd.read_sql(
+            query, 
+            ctx.engine, 
+            index_col='id')
+            .to_markdown(tablefmt="outline")
+    )

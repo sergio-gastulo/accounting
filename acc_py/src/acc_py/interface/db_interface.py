@@ -4,6 +4,7 @@ from ..utilities.miscellanea import print_func_doc
 from pathlib import Path
 from typing import Callable
 
+
 def h(function : Callable | None = None) -> None:
     help_message = """
 Interactive DB management via SQLAlchemy.

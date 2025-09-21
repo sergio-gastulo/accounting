@@ -41,6 +41,7 @@ def parse_currency(currency : str) -> str:
         raise ValueError(f"'{currency}' is not a valid currency.")
     
 
+# TODO: change this to match / cases 
 def parse_date(date_str : str) -> date:
     today = date.today()
     date_str = date_str.strip()

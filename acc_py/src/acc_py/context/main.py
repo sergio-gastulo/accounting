@@ -31,11 +31,12 @@ def set_context(db_path : Path, json_path : Path, plot : bool = False) -> None:
             11: "Noviembre",
             12: "Diciembre"
         }
+        ctx.currency_list = ['EUR', 'USD', 'PEN']
         ctx.selected_category = prompt_category(category_dictionary=ctx.categories_dict)
         ctx.colors = {
             currency: (r / 255, g / 255, b / 255) 
             for currency, (r, g, b) in zip(
-                ['EUR', 'USD', 'PEN'],
+                ctx.currency_list,
                 [(128, 128, 255), (26, 255, 163), (255, 255, 255)] # https://www.w3schools.com/colors/colors_picker.asp
                 )
             }

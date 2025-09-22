@@ -69,6 +69,9 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Provide toy db as an example.
 - Change str queries on plot.py: migrate to SQLAlchemy
 - To be able to edit an entire list of Records in Editor. 
+- category_time_series should dash the horizontal line.
+- monthly_time_series could fail better.
+- parse_csv should provide validation support.
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.

@@ -1,20 +1,29 @@
-import datetime
-from sqlalchemy import desc
+from sqlalchemy import (
+    desc, 
+    inspect, 
+    select
+)
 from sqlalchemy.orm import Session
+import datetime
 import pandas as pd
 from jinja2 import Template
 from pathlib import Path
 from tempfile import gettempdir
 import subprocess
+from typing import List
+
 
 from ..utilities.core_parser import (
     parse_semantic_filter,
-    parse_csv_record
+    parse_csv_record,
+    parse_arithmetic_operation
 )
 from ..utilities import prompt
 from ..context.context import ctx
 from ..db.model import Record
 
+
+TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
 
 
 # ----------------------------------------------------
@@ -77,8 +86,8 @@ def write_list(
         fixed_fields = prompt.prompt_column_value(ctx.categories_dict)
 
     # sorry for this, ik it's painful to read
-    template_str = (Path(__file__).parent / ".." / Path(r".\templates\csv_metadata.j2")).resolve().read_text()
-    csv_columns = ", ".join({'date', 'amount', 'currency', 'description', 'category'} - set(fixed_fields.keys()))
+    template_str = ((Path(__file__).parent / ".." / "templates" / "csv_metadata.j2")).resolve().read_text()
+    csv_columns = ", ".join(set(TABLE_COLUMNS) - set(fixed_fields.keys()))
     text_template = Template(template_str).render(**fixed_fields, cols=csv_columns)
 
     today = datetime.date.today().strftime("%Y-%m-%d")
@@ -232,7 +241,7 @@ def read(
     
     today = datetime.date.today()
 
-    # TODO : develop prompt_semantic_filter 
+    # TODO : develop prompt_semantic_filter to allow "and"
     if not semantic_filter:
         semantic_filter = input("Type your semantic filter: ")
 
@@ -248,10 +257,94 @@ def read(
     )
 
     print(
-        "\n",
         pd.read_sql(
             query, 
             ctx.engine, 
             index_col='id')
             .to_markdown(tablefmt="outline")
     )
+
+
+# ---------------------------------------------------
+# This function aims to provide the following syntax:
+# edit_list([int1, int2]):
+# opens csv with records ranging from int1 to \
+# int2 *inclusive*
+# problem: how does user know what id to chose? 
+# he can use r()
+# this reduces the amount of records to be able to 
+# edit but provides secure parsing
+# ---------------------------------------------------
+
+def edit_list(
+        first_id : int,
+        second_id : int
+) -> None:
+    
+    # file control
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    editor = "notepad++.exe"
+    temp_file = Path(gettempdir()) / f"csv_{today}.csv"
+    header = (
+        f"# -----------------------------------------------------------------\n"
+        f"# Do not modify id! \n"
+        f"# However, for performance, you can delete the line you won't edit.\n"
+        f"# -----------------------------------------------------------------\n"
+        f"{", ".join(TABLE_COLUMNS)}\n"
+    )
+
+    with open(temp_file, 'w') as file:
+        file.write(header)
+
+    # retrieve records and save to csv
+    stmt = select(Record).where(Record.id.between(first_id, second_id))
+    (
+        pd
+        .read_sql(sql=stmt, con=ctx.engine, index_col='id')
+        .to_csv(temp_file, mode='a', header=False)
+    )
+
+    # open editor
+    subprocess.call([editor, temp_file])
+    
+    # retrieve from file
+    df = pd.read_csv(temp_file, skiprows=5, names=TABLE_COLUMNS)
+    df = df.astype({
+        "id" : "int",
+        "date" : "datetime64[ns]",
+        "amount" : "str",
+        "currency" : "str",
+        "description" : "str",
+        "category" : "str"
+    })
+
+    def cleaner(string : str) -> float | int:
+        op = "=" + string if "=" not in string else string 
+        return parse_arithmetic_operation(op, quiet=True)
+
+    df.amount = df.amount.map(cleaner)
+
+    # replace data
+    with Session(ctx.engine) as session:
+        session.bulk_update_mappings(
+            Record,
+            df.to_dict(orient='records')
+        )
+
+        print(
+            f"Current records being updated to database:\n"
+            f"{df.to_markdown(index=False)}"
+        )   
+
+        confirm : str = input("Confirm your commit [y/N]: ")
+
+        if confirm.lower() in ('y', 'yes'):
+            session.commit()
+            print("Record commited.")
+        elif not confirm or confirm.lower() in ('n', 'no'):
+            print("Change uncomitted.")
+        else:
+            print("Could not parse your query. Uncomitting.")
+
+    # removing file after execution
+    temp_file.unlink(missing_ok=True)

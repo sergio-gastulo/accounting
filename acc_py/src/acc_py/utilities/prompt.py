@@ -69,7 +69,7 @@ def prompt_date_operation(
         )
 
     while True:
-        if date_str_input is None:
+        if not date_str_input:
             date_str_input = input("Insert period or day arithmetic: ")
         try: 
             return_date = parse_date(date_str=date_str_input)
@@ -232,7 +232,7 @@ def prompt_list_of_fields(
             return i
 
     while True:
-        if user_input is None:
+        if not user_input:
             user_input = input("Write valid elements from list: ")
         try:
             return [

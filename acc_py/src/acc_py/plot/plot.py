@@ -8,6 +8,7 @@ from typing import List
 from ..db.model import Record
 from sqlalchemy import select, not_
 from sqlalchemy.sql import functions, func
+from sqlalchemy.orm import Session
 
 from ..context.context import ctx # custom context
 from ..utilities.miscellanea import pprint_df
@@ -17,7 +18,6 @@ INCOMES_CATEGORIES = ['INGRESO', 'BLIND']
 INCLUDING_INCOMES = Record.category.in_(INCOMES_CATEGORIES)
 PERIOD_COL = func.strftime('%Y-%m', Record.date).label("period")
 TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
-CURRENCY_LIST = select(Record.currency.distinct())
 
 
 def get_currency_list_by_period(
@@ -31,7 +31,8 @@ def get_currency_list_by_period(
             not_(INCLUDING_INCOMES)
         )
     
-    return pd.read_sql(query_currencies, con=ctx.engine)["currency"].to_list()
+    with Session(ctx.engine) as session:
+        return list(session.scalars(query_currencies))
 
 
 def on_click_printable(
@@ -129,7 +130,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
                         bar.set_color('red')
                         df_category = (
                             on_click_printable(
-                                period=period, 
+                                period=period_str, 
                                 category=label, 
                                 currency=currency
                             )
@@ -189,9 +190,9 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
         )
     )
 
-    df = pd.read_sql(query, con=ctx.engine)
+    df = pd.read_sql(query, con=ctx.engine, parse_dates={"period": {"format" : "%Y-%m"}})
     df.period = df.period.dt.to_period('M')
-    currency_list_in_period = get_currency_list_by_period(period=period)
+    currency_list_in_period = get_currency_list_by_period(period=str(period))
 
     def core_plot_logic(df: pd.DataFrame, currency: str, color: str, ax = None, fig = None) -> None:
         ax.plot(df.index.to_timestamp(), df.values, marker='o', color=color, label=currency)
@@ -212,7 +213,7 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
 
     fig, ax = plt.subplots()
 
-    for currency in CURRENCY_LIST:
+    for currency in ctx.currency_list:
         color = ctx.colors[currency]
         df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
         core_plot_logic(df_currency, currency, ax=ax, fig=fig, color=color)
@@ -252,7 +253,7 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
             PERIOD_COL,
             TOTAL_AMOUNT_COL
         ).where(
-            Record.category == "category_placeholder"
+            Record.category == category
         ).group_by(
             Record.currency,
             PERIOD_COL

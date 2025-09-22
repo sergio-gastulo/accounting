@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import pandas as pd
 from typing import Tuple
 from sqlalchemy.engine import Engine
-from typing import Optional
+from typing import Optional, List
 
 
 @dataclass
@@ -12,10 +12,11 @@ class AccountingContext:
     categories_dict: dict[str, str]
     keybinds : dict[str, str | dict[str, str]]
     # only necessary for plotting: 
-    colors: Optional[dict[str, Tuple[float, float, float]]] = None
+    month_es: Optional[dict[int, str]] = None
     selected_category: Optional[str] = None
     period: Optional[pd.Period] = None
-    month_es: Optional[dict[int, str]] = None
+    currency_list : Optional[List] = None
+    colors: Optional[dict[str, Tuple[float, float, float]]] = None
 
 
 ctx = AccountingContext

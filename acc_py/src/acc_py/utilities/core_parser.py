@@ -17,9 +17,15 @@ from ..db.model import Record
 # convention: parse_usage (obj : str) -> obj
 # should only contain raises and returns
 
-def parse_arithmetic_operation (expr : str | None = None, lower_bound: float = 0.0) -> float:
+def parse_arithmetic_operation (
+        expr : str | None = None, 
+        lower_bound: float = 0.0,
+        quiet : bool = False
+) -> float | int:
+
     if expr[0] in ['+', '=']:
-        print("Parsing double operation.")
+        if not quiet:
+            print("Parsing double operation.")
         if re.match(r'\w', expr):
             raise SyntaxError(f"Input can't contain words. Got: '{expr}'")
         else:
@@ -41,22 +47,26 @@ def parse_currency(currency : str) -> str:
         raise ValueError(f"'{currency}' is not a valid currency.")
     
 
-# TODO: change this to match / cases 
 def parse_date(date_str : str) -> date:
     today = date.today()
     date_str = date_str.strip()
 
-    if date_str == '0':
+    if date_str == '0' or not date_str:
         return today
     
+    # +5, -8, ...
     elif re.match(r'^[+-]\d{1,}$', date_str):
         print("Basic day-arithmetic chosen.")
         return today + timedelta(days=int(date_str))
     
+    # 10, 99, ... 
+    # this will fail when match > 31, 30, ... 
+    # depending on the month
     elif re.match(r'^\d{1,2}$', date_str):
         print("current year - current month - day")
         return today.replace(day=int(date_str)) 
     
+    # 10 8, 12 31, ...
     elif re.match(r'^\d{1,2} \d{1,2}$', date_str):
         print("current year - month - day")
         day, month = map(int, date_str.split())
@@ -81,9 +91,9 @@ def parse_double_currency(double_currency_str : str, lower_bound : float = 0.0) 
         raise SyntaxError(f"'{double_currency_str}' could not be parsed as a valid operation, currency pair.")
     
 
-def parse_period(period_str : str, default_period : Period) -> Period:
+def parse_period(period_str : str | None, default_period : Period) -> Period:
 
-    if period_str == '0':
+    if period_str == '0' or not period_str:
         return default_period
 
     elif re.match(r'^\d{1,}$',period_str):
@@ -212,7 +222,7 @@ def parse_csv_record(
 
     type_map = {
         "date" : "datetime64[ns]",
-        "amount" : "float",
+        "amount" : "str",
         "currency" : "str",
         "description" : "str",
         "category" : "str"
@@ -223,4 +233,9 @@ def parse_csv_record(
     if "date" in df.columns:
         df["date"] = df["date"].dt.date
 
+    def cleaner(string : str) -> float | int:
+        op = "=" + string if "=" not in string else string 
+        return parse_arithmetic_operation(op, quiet=True)
+    df.amount = df.amount.map(cleaner)
+    
     return df

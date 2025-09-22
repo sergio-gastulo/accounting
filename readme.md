@@ -10,7 +10,7 @@ A *really simple* CLI tool to help you track accounting information from the ter
 2. Run the following commands in PowerShell:
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
-   vim accounting.psm1 # edit [CSV]::new() entries
+   vim accounting.psm1 # edit accounting.psm1
    Import-Module accounting
    AccountingCommandLineInterface # or 'acccli'
    ```
@@ -57,21 +57,13 @@ It defines a list of categories. Each category contains basic metadata, and opti
 
 ## TODO:
 - Provide support for passing arguments to main function: `acccli -arg value`. 
-- Rename modules: as we migrated from CSV records to SQLite, we must re-name modules and stuff -- `$CSV`, `$CSVRow` seems pretty useless now. 
 - Categories should be sorted when printed in accounting.psm1.
-- Reading from CSV (or allow manipulative user input) to DB should be supported.
 - One could improve how to track installments (some unique UUID?)
 - Implement support for transactions (from currency CU1 to CU2)
-- Provide support for second plot interactivity: when selecting a point, print the associated records.
-- Re-structure in Python: instead of writing infinite loops, let program fail.
-- Important TODO: Support for reading from a text editor. (partially implemented: notepad++)
 - Plots should sum the expenses in their respective default currency.
 - Provide toy db as an example.
-- Change str queries on plot.py: migrate to SQLAlchemy
-- To be able to edit an entire list of Records in Editor. 
 - category_time_series should dash the horizontal line.
 - monthly_time_series could fail better.
-- parse_csv should provide validation support.
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.

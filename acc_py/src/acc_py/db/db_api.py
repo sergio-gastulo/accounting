@@ -1,5 +1,4 @@
 from sqlalchemy import (
-    desc, 
     inspect, 
     select
 )
@@ -39,11 +38,46 @@ def write(
         description : str | None = None,
         category : str | None = None
 ) -> None:
+    # yes, comments from ChatGPT because I'm lazy
+    """
+    Create a new Record.
+
+    This function writes a Record to the database. Any field not provided
+    as an argument is be interactively prompted from the user.
+
+    Parameters
+    ----------
+    date : datetime.date | None, optional
+        The date of the operation. If omitted -> prompted.
+    amount : float | None, optional
+        The amount of the operation. If omitted and `operation_str` = False
+        -> prompted.
+    currency : str | None, optional
+        The currency code (e.g., "USD", "EUR"). If omitted and `operation_str`
+        = False -> prompted
+    operation_str : str | None, optional
+        Shortcut to provide both `amount` and `currency` simultaneously. 
+    description : str | None, optional
+        Brief description of the record. omited? -> prompted
+    category : str | None, optional
+        The category of the record. omited? -> prompted.
+
+    Notes
+    -----
+    - Prompts are delegated to functions in the `prompt` module.
+    - The new `Record` is created, added to the current session, committed,
+    and then printed via `Record.pprint()`.
+    """
 
     if not date:
         date = prompt.prompt_date_operation()
     if not operation_str:
-        amount, currency = prompt.prompt_double_currency()
+        if amount:
+            currency = prompt.prompt_currency()
+        if currency:
+            amount = prompt.prompt_arithmetic_operation()
+        if not amount and not currency:
+            amount, currency = prompt.prompt_double_currency()
     if not description:
         description = input("Type your description: ")
     if not category:
@@ -56,8 +90,8 @@ def write(
             category=category
         )
         session.add(record)
-        print("Record written to database: ")
         session.commit()
+        print("Record written to database: ")
         record.pprint()
 
 
@@ -81,7 +115,29 @@ def write(
 def write_list(
         fixed_fields : dict[str, str | int] | None = None 
 ) -> None:
-    
+    """
+    Create multiple Records and write to db.
+
+    This function generates a temporary CSV template file containing both fixed
+    and non-fixed fields. The user fills in the missing values using a text
+    editor. After editing, the CSV is parsed into a DataFrame, converted to
+    records, and inserted into the database in bulk.
+
+    Parameters
+    ----------
+    fixed_fields : dict[str, str | int] | None, optional
+        A dictionary mapping column names to fixed values (e.g., {"category": "Food"}).
+        These fields will be pre-populated and applied to all records. If not
+        provided, the user is prompted interactively to supply them.
+
+    Notes
+    -----
+    - The CSV template is expected at `templates/csv_metadata.j2`.
+    - Temporary files are cleaned up after execution.
+    - Commit confirmation is explicit: only "y" or "yes" will commit.
+    - All other responses default to *not committing*.
+    """
+
     if not fixed_fields:
         fixed_fields = prompt.prompt_column_value(ctx.categories_dict)
 
@@ -149,13 +205,39 @@ def edit(
         record : Record | None = None,
         fields : str | None = None
 ) -> None:
-    
+    """
+    Edit a Record interactively.
+
+    This function loads a record (either from its ID or directly via a
+    `Record` object), prompts the user to modify selected fields, and then
+    commits or rolls back the changes based on confirmation.
+
+    Parameters
+    ----------
+    id : int | None, optional
+        The ID of the record to edit. Ignored if `record` is provided.
+    record : Record | None, optional
+        An existing record object to edit directly. If not provided,
+        the record is retrieved by ID via user prompt.
+    fields : str | None, optional
+        A space-separated list of fields to edit. If not provided, the
+        user is prompted to choose fields.
+
+    Notes
+    -----
+    - Field values are collected interactively using functions from the
+    `prompt` module.
+    - The modified record is displayed for confirmation before committing.
+    - Only "y" or "yes" confirms the commit. Any other response cancels it.
+    """
+
     if not record:
         record = prompt.prompt_record_by_id(ctx.engine, id)
     
     edit_dictionary = prompt.prompt_column_value(
         ctx.categories_dict, 
-        fields_str=fields)
+        fields_str=fields
+    )
     
     for column, new_attribute in edit_dictionary.items():
         setattr(record, column, new_attribute)
@@ -191,7 +273,32 @@ def delete(
         id : int | None = None, 
         record : Record | None = None
 ) -> None:
-    
+    """
+    Delete a Record interactively.
+
+    This function removes a Record from db, either by ID or by
+    passing an existing `Record` object. The user is prompted for confirmation
+    before the deletion is committed.
+
+    Parameters
+    ----------
+    id : int | None, optional
+        The ID of the record to delete. Ignored if `record` is provided.
+    record : Record | None, optional
+        An existing record object to delete directly. If not provided,
+        the record is retrieved by ID via user prompt.
+
+    Notes
+    -----
+    - A warning message is shown before deletion to highlight that the
+    operation is irreversible.
+    - The record is committed only if the user explicitly confirms with
+    "y" or "yes".
+    - If the user responds with "n", "no", or presses Enter, the deletion
+    is rolled back.
+    - Any unrecognized input repeats the confirmation prompt.
+    """
+
     print("\nWarning. You can lose data permanently.\n")
     if not record:
         record = prompt.prompt_record_by_id(ctx.engine, id)
@@ -238,7 +345,40 @@ def read(
         semantic_filter : str | None = None,
         filter_today : bool = True
 ) -> None:
-    
+    """
+    Query and display records from db with optional filtering.
+
+    This function retrieves records from the database, applies an optional
+    semantic filter, and prints the results as a Markdown-formatted table.
+    By default, results are restricted to records dated up to today.
+
+    Parameters
+    ----------
+    n_lines : int
+        The maximum number of records to display.
+    semantic_filter : str | None, optional
+        A textual filter expression. If not provided, the user is prompted
+        interactively. Supported examples include:
+        
+        - "amount between 10, 25"
+        - "date between 2025-01-01, 2025-06-30"
+        - "category 'Food'"
+        - "currency eur"
+        - "description like 'wildcard'"
+        - "id = 123"
+    filter_today : bool, default=True
+        Whether to restrict results to records dated on or before today.
+
+    Notes
+    -----
+    - Filtering expressions are parsed by `parse_semantic_filter`.
+    - When `semantic_filter` is omitted, the user can specify one or more
+    columns to filter interactively.
+    - The query is ordered by `Record.id` and limited to `n_lines`.
+    - Results are rendered using `pandas.read_sql` and displayed in Markdown
+    table format.
+    """
+
     today = datetime.date.today()
 
     # TODO : develop prompt_semantic_filter to allow "and"
@@ -252,7 +392,7 @@ def read(
 
     query = (
         stmt
-        .order_by(desc(Record.date))
+        .order_by(Record.id)
         .limit(n_lines)
     )
 
@@ -277,10 +417,45 @@ def read(
 # ---------------------------------------------------
 
 def edit_list(
-        first_id : int,
-        second_id : int
+        *ids : int,
+        as_range : bool = False
 ) -> None:
-    
+    """
+    Edit multiple Records interactively via a 'CSV' file.
+
+    This function allows the user to edit one or more records by ID, or a
+    contiguous range of IDs, by exporting them to a temporary CSV file,
+    opening it in a text editor, and then re-importing the changes.
+
+    Parameters
+    ----------
+    *ids : int
+        One or more record IDs to edit. If `as_range` is True and exactly
+        two IDs are provided, they are treated as a 'between' query.
+    as_range : bool, default=False
+        Whether to treat two IDs as the start and end of a range of records
+        to edit. Ignored if more or fewer than two IDs are provided.
+
+    Notes
+    -----
+    - The CSV file includes a header listing all columns; the `id` column
+    should not be modified.
+    - Users can delete lines from the CSV to skip editing certain records.
+    - After editing, the CSV is parsed and changes are applied to the database.
+    - Amount fields can include arithmetic expressions (e.g., "+10", "*2")
+    which will be parsed automatically.
+    - A temporary CSV file is created and opened with the default editor
+    (`notepad++.exe` by default) and removed after processing.
+    - Use this function in combination with `r()` or other listing functions
+    to identify record IDs before editing.
+    """
+
+    # unclear if user wants to edit as_range 
+    if len(ids) == 2 and as_range:
+        stmt = select(Record).where(Record.id.between(ids[0], ids[1]))
+    else:
+        stmt = select(Record).where(Record.id.in_(list(ids)))
+
     # file control
     today = datetime.date.today().strftime("%Y-%m-%d")
     editor = "notepad++.exe"
@@ -292,12 +467,12 @@ def edit_list(
         f"# -----------------------------------------------------------------\n"
         f"{", ".join(TABLE_COLUMNS)}\n"
     )
+    n_skip_rows_ = len(header.split('\n')) 
 
     with open(temp_file, 'w') as file:
         file.write(header)
 
     # retrieve records and save to csv
-    stmt = select(Record).where(Record.id.between(first_id, second_id))
     (
         pd
         .read_sql(sql=stmt, con=ctx.engine, index_col='id')
@@ -308,7 +483,7 @@ def edit_list(
     subprocess.call([editor, temp_file])
     
     # retrieve from file
-    df = pd.read_csv(temp_file, skiprows=5, names=TABLE_COLUMNS)
+    df = pd.read_csv(temp_file, skiprows=n_skip_rows_, names=TABLE_COLUMNS)
     df = df.astype({
         "id" : "int",
         "date" : "datetime64[ns]",

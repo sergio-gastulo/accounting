@@ -37,7 +37,8 @@ def set_context(db_path : Path, json_path : Path, plot : bool = False) -> None:
             currency: (r / 255, g / 255, b / 255) 
             for currency, (r, g, b) in zip(
                 ctx.currency_list,
-                [(128, 128, 255), (26, 255, 163), (255, 255, 255)] # https://www.w3schools.com/colors/colors_picker.asp
-                )
-            }
+                # https://www.w3schools.com/colors/colors_picker.asp
+                [(128, 128, 255), (26, 255, 163), (255, 255, 255)] 
+            )
+        }
     

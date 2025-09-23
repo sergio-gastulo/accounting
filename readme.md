@@ -64,6 +64,11 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Provide toy db as an example.
 - category_time_series should dash the horizontal line.
 - monthly_time_series could fail better.
+- Modifications to `db` could provide a before and after when comitting. 
+- `pprint` could do a better job.
+- `parse_semantic_filter` could do better for dates: provide support for `today`, `yesterday`, `+/-int`, etc.
+- `parse_semantic_filter` should allow "and".
+- Provide editor support.
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.

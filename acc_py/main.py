@@ -20,8 +20,9 @@ def main(db_path : Path, json_path : Path, flag : str) -> None:
         globals()["d"]  = dbi.delete
         globals()["w"]  = dbi.write
         globals()["wl"] = dbi.write_list
-        globals()["r"]  = lambda n_lines, **kwargs : dbi.read(n_lines=n_lines, **kwargs)
+        globals()["r"]  = lambda *n_lines, **kwargs : dbi.read(*n_lines, **kwargs)
         globals()["h"]  = dbi.h
+        globals()["el"]  = dbi.edit_list
         dbi.run(db_path=db_path, json_path=json_path)
 
     else:

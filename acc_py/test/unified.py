@@ -2,10 +2,15 @@ from acc_py.context import ctx
 from acc_py.context.main import set_context
 import dotenv   
 from pprint import pprint
+import os
+
+
+c = lambda : os.system('cls')
 
 
 # module to test
 from acc_py.db.db_api import *
+from acc_py.utilities.miscellanea import print_func_doc
 # from acc_py.plot.plot import *
 
 TEST_PLOT = False

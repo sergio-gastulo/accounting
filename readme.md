@@ -55,20 +55,24 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ]
 ```
 
-## TODO:
-- Provide support for passing arguments to main function: `acccli -arg value`. 
-- Categories should be sorted when printed in accounting.psm1.
-- One could improve how to track installments (some unique UUID?)
+## TODO
+
+### Urgent
+- Plots should sum the expenses for each currency.
+- Fix documentation problem on globals()[""].
+- Document [plot.py](acc_py/src/acc_py/plot/plot.py) properly.
+
+### Suggestions
 - Implement support for transactions (from currency CU1 to CU2)
-- Plots should sum the expenses in their respective default currency.
-- Provide toy db as an example.
-- category_time_series should dash the horizontal line.
-- monthly_time_series could fail better.
-- Modifications to `db` could provide a before and after when comitting. 
-- `pprint` could do a better job.
+- Provide WhatsApp message parsing.
+- `category_time_series` should dash the horizontal line.
+- `monthly_time_series` could fail better (if one plot fails, then all the plot fails, this should not happen).
 - `parse_semantic_filter` could do better for dates: provide support for `today`, `yesterday`, `+/-int`, etc.
-- `parse_semantic_filter` should allow "and".
-- Provide editor support.
+- Modifications to `db` could provide a before and after when comitting. 
+- Provide support for changing fields.json
+- Provide support for configuring paths from Command Line (probably openning File Browser?).
+- Provide support for non-recognizable binaries (e.g. python doesn't exist, sqlite3 doesn't exist, etc.).
+- Provide toy files as examples.
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.
@@ -87,6 +91,3 @@ Major  Minor  Build  Revision
 sqlite> SELECT sqlite_version();
 3.50.2
 ```
-
-## Recomendations
-- In many cases, you spend money in a given currency CU1 but it is discounted from your card in another currency: CU2. I strongly believe one should always use static values when writing to 'db'. For that reason, you can set `$tasa = CU2/CU1` in your global session and it will automatically convert your spendings being writen in CU1 as in CU2. (Unfortunately, you must manually specify `currency = CU2`)`.

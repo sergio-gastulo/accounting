@@ -146,7 +146,7 @@ def prompt_category(
 
 # as this asks for double input depending on the context, 
 # there is no call fromkeybind core_parser.py
-def prompt_keybind(
+def prompt_category_from_keybinds(
         keybind_dict : dict[str, str | dict[str, str]],
         category_input : str | None = None
 ) -> str:
@@ -266,7 +266,7 @@ def prompt_list_of_fields(
 # ------------------------------------------------
 
 def prompt_column_value(
-        category_dictionary : dict[str, str],
+        keybind_dict : dict[str, str],
         fields_str : str | None = None
 ) -> dict[str, str | int]:
     
@@ -275,7 +275,7 @@ def prompt_column_value(
         "amount" : prompt_arithmetic_operation,
         "currency": prompt_currency,
         "description": lambda : input("Type your new description: "),
-        "category": lambda : prompt_category(category_dictionary=category_dictionary)
+        "category": lambda : prompt_category_from_keybinds(keybind_dict)
     }
 
     list_fields = prompt_list_of_fields(fields_str)

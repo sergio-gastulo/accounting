@@ -9,7 +9,8 @@ import pandas as pd
 from io import StringIO
 
 from sqlalchemy.sql import selectable
-from sqlalchemy import select
+from sqlalchemy import select, true, text
+from sqlalchemy.sql.elements import BinaryExpression, TextClause
 
 from ..db.model import Record
 
@@ -127,9 +128,9 @@ def parse_category(category_dict : dict[str, str], category_str : str | None) ->
 #    - 'description like "wildcard"'
 #    - 'id = 123'
 # ---------------------------------------------------
-def parse_semantic_filter(
+def core_semantic_filter_parse(
         semantic_filter : str
-) -> selectable.Select:
+) -> BinaryExpression[bool]:
     
     match semantic_filter.split():
 
@@ -137,46 +138,68 @@ def parse_semantic_filter(
         case [("amount" | "am"), ("between" | "b"), lower_bound, upper_bound]:
             print("Amount between a, b.")
             lower_bound, upper_bound = map(float, [lower_bound, upper_bound])
-            return select(Record).where(Record.amount.between(lower_bound, upper_bound))
+            return Record.amount.between(lower_bound, upper_bound)
 
         # dates filters
         case ["date", "like", date_wildcard] | ["date", date_wildcard]:
             print("Date wildcard.")
-            return select(Record).where(Record.date.like(date_wildcard))
+            return Record.date.like(date_wildcard)
         
         case ["date", "=", date_]:
             print("Date wildcard.")
-            return select(Record).where(Record.date == date_)
+            return Record.date == date_
         
         case ["date", date_regex, ("r" | "regex" | "regexp")]:
             print("Date regex match.")
-            return select(Record).where(Record.date.regexp_match(date_regex))
+            return Record.date.regexp_match(date_regex)
 
         # category filters
         case [("category" | "cat"), category_]:
-            return select(Record).where(Record.category == category_.upper())
+            return Record.category == category_.upper()
+        
+        case [("category" | "cat"), "like", category_wildcard]:
+            return Record.category == category_wildcard.upper()
         
         case [("category" | "cat"), category_, ("r" | "regex" | "regexp") ]:
-            return select(Record).where(Record.category.regexp_match(category_.upper()))
+            return Record.category.regexp_match(category_.upper())
         
         # currency match
         case [("currency" | "cur"), currency_]:
-            return select(Record).where(Record.currency == currency_.upper())
+            return Record.currency == currency_.upper()
 
         # description match
         case [("description" | "desc"), "like", wildcard]:
-            return select(Record).where(Record.description.like(wildcard))
+            return Record.description.like(wildcard)
         
         case [("description" | "desc"), "=", description_str]:
-            return select(Record).where(Record.description == description_str)
+            return Record.description == description_str
         
         # empty semantic_filter
         # no filter attributed to semantic_filter
         case [  ]:
-            return select(Record)
+            return true()
         
         case _:
             raise SyntaxError(f"Invalid Syntax. Could not parse '{semantic_filter}' as a valid semantic filter.")
+
+
+def parse_semantic_filter(
+        general_filter : str
+)-> selectable.Select | TextClause:
+    
+    if re.match('^sql: SELECT', general_filter):
+        print(
+        f"Warning: this is being parsed as a raw SQL statement.\n"
+        f"For safety, only the 'sql: SELECT ...' pattern is allowed."
+        )
+        return text(general_filter.replace("sql: ", "")) 
+    
+    else:
+        binary_sql_expr = [
+            core_semantic_filter_parse(stmt) 
+            for stmt in general_filter.lower().split('and')
+        ]
+        return select(Record).where(*binary_sql_expr)
 
 
 # -------------------------------------------------

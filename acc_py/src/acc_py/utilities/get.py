@@ -25,17 +25,20 @@ def fetch_keybind_dict(json_path : Path) -> dict[str, str | dict[str, str]]:
     
     keybind_dict = {}
 
+    def sort_dict(d : dict[str, str]) -> dict[str, str]:
+        return { key : d[key] for key in sorted(d) }
+
     with open(json_path, 'r') as file:
         for item_dict in json.load(file):
             subcategories = item_dict.get("subcategories")
             if subcategories:
                 keybind_dict.update({
-                    item_dict["key"] : {
+                    item_dict["key"] : sort_dict({
                         item["key"] : item["shortname"] 
                         for item in subcategories
-                    }
+                    })
                 })
             else: 
                 keybind_dict.update({item_dict["key"]: item_dict["shortname"]})
     
-    return keybind_dict
+    return sort_dict(keybind_dict)

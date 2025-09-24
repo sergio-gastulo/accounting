@@ -1,8 +1,11 @@
 from sqlalchemy import (
     inspect, 
-    select
+    select,
+    desc
 )
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import TextClause
+
 import datetime
 import pandas as pd
 from jinja2 import Template
@@ -38,7 +41,7 @@ def write(
         description : str | None = None,
         category : str | None = None
 ) -> None:
-    # yes, comments from ChatGPT because I'm lazy
+    # yes, documentation from ChatGPT because I'm lazy
     """
     Create a new Record.
 
@@ -81,7 +84,7 @@ def write(
     if not description:
         description = input("Type your description: ")
     if not category:
-        category = prompt.prompt_category(ctx.categories_dict)
+        category = prompt.prompt_category_from_keybinds(ctx.keybinds)
 
     with Session(ctx.engine) as session:
         record = Record(
@@ -139,11 +142,11 @@ def write_list(
     """
 
     if not fixed_fields:
-        fixed_fields = prompt.prompt_column_value(ctx.categories_dict)
+        fixed_fields = prompt.prompt_column_value(ctx.keybinds)
 
     # sorry for this, ik it's painful to read
     template_str = ((Path(__file__).parent / ".." / "templates" / "csv_metadata.j2")).resolve().read_text()
-    csv_columns = ", ".join(set(TABLE_COLUMNS) - set(fixed_fields.keys()))
+    csv_columns = ", ".join(set(TABLE_COLUMNS) - set(fixed_fields.keys()).union(["id"]))
     text_template = Template(template_str).render(**fixed_fields, cols=csv_columns)
 
     today = datetime.date.today().strftime("%Y-%m-%d")
@@ -235,7 +238,7 @@ def edit(
         record = prompt.prompt_record_by_id(ctx.engine, id)
     
     edit_dictionary = prompt.prompt_column_value(
-        ctx.categories_dict, 
+        ctx.keybinds, 
         fields_str=fields
     )
     
@@ -341,10 +344,11 @@ def delete(
 # ---------------------------------------------------
 
 def read(
-        n_lines : int,
+        n_lines : int | None = None,
         semantic_filter : str | None = None,
-        filter_today : bool = True
-) -> None:
+        filter_today : bool = True,
+        print_flag : bool = True
+) -> pd.DataFrame | None:
     """
     Query and display records from db with optional filtering.
 
@@ -387,22 +391,19 @@ def read(
 
     stmt = parse_semantic_filter(semantic_filter)
 
-    if filter_today:
-        stmt = stmt.where(Record.date <= today)
+    if not isinstance(stmt, TextClause):
+        if filter_today:
+            stmt = stmt.where(Record.date <= today)
+        if n_lines:
+            stmt = stmt.limit(n_lines)
+        stmt = stmt.order_by(desc(Record.id))
+    
+    df = pd.read_sql(stmt, ctx.engine, index_col='id')
 
-    query = (
-        stmt
-        .order_by(Record.id)
-        .limit(n_lines)
-    )
-
-    print(
-        pd.read_sql(
-            query, 
-            ctx.engine, 
-            index_col='id')
-            .to_markdown(tablefmt="outline")
-    )
+    if print_flag:
+        print(df.to_markdown(tablefmt="outline"))
+    else:
+        return df
 
 
 # ---------------------------------------------------
@@ -418,7 +419,7 @@ def read(
 
 def edit_list(
         *ids : int,
-        as_range : bool = False
+        as_range : bool = True
 ) -> None:
     """
     Edit multiple Records interactively via a 'CSV' file.
@@ -467,7 +468,7 @@ def edit_list(
         f"# -----------------------------------------------------------------\n"
         f"{", ".join(TABLE_COLUMNS)}\n"
     )
-    n_skip_rows_ = len(header.split('\n')) 
+    n_skip_rows_ = len(header.split('\n')) - 1
 
     with open(temp_file, 'w') as file:
         file.write(header)
@@ -492,7 +493,9 @@ def edit_list(
         "description" : "str",
         "category" : "str"
     })
-
+	
+    df["date"] = df["date"].dt.date
+	
     def cleaner(string : str) -> float | int:
         op = "=" + string if "=" not in string else string 
         return parse_arithmetic_operation(op, quiet=True)

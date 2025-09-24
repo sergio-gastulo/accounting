@@ -5,12 +5,12 @@ from pprint import pprint
 import os
 
 
-c = lambda : os.system('cls')
 
 
 # module to test
-from acc_py.db.db_api import *
-from acc_py.utilities.miscellanea import print_func_doc
+# from acc_py.db.db_api import *
+from acc_py.utilities.core_parser import parse_semantic_filter
+# from acc_py.utilities.miscellanea import print_func_doc
 # from acc_py.plot.plot import *
 
 TEST_PLOT = False
@@ -31,4 +31,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    c = lambda : os.system('cls')
     main()

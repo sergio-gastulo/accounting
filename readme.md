@@ -10,9 +10,9 @@ A *really simple* CLI tool to help you track accounting information from the ter
 2. Run the following commands in PowerShell:
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
-   vim accounting.psm1 # edit accounting.psm1
+   vim accounting.psm1 # edit head of file
    Import-Module accounting
-   AccountingCommandLineInterface # or 'acccli'
+   AccountingCommandLineInterface <action> # or acccli <action>
    ```
 
 3. If you have python-dependencies issues, don't worry! You can:
@@ -27,7 +27,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 * key (string) – Unique identifier for the category.
 * shortname (string) – A brief display name.
 * description (string) – A longer label or description for the category.
-* help (string) – Full explanation or tooltip-style guidance for users.
+* help (string) – Full explanation or tooltip-style guidance.
 * subcategories (array of json's, optional) – Nested categories that follow the same structure.
 ```js
 [

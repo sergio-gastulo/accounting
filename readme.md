@@ -58,9 +58,6 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ## TODO
 
 ### Urgent
-- Plots should sum the expenses for each currency.
-- Fix documentation problem on globals()[""].
-- Document [plot.py](acc_py/src/acc_py/plot/plot.py) properly.
 
 ### Suggestions
 - Implement support for transactions (from currency CU1 to CU2)
@@ -71,7 +68,8 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Modifications to `db` could provide a before and after when comitting. 
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
-- Provide support for non-recognizable binaries (e.g. python doesn't exist, sqlite3 doesn't exist, etc.).
+- [context.py](/acc_py/src/acc_py/context/context.py) should load from such config file.
+- Provide support for non-recognizable binaries (e.g. python doesn't exist, sqlite3 doesn't exist, etc.)
 - Provide toy files as examples.
 
 ## Requirements:
@@ -91,3 +89,6 @@ Major  Minor  Build  Revision
 sqlite> SELECT sqlite_version();
 3.50.2
 ```
+
+## Credits
+- Thanks to [@fawazahmed0](https://github.com/fawazahmed0) for providing such an amazing API: [https://github.com/fawazahmed0/exchange-api]

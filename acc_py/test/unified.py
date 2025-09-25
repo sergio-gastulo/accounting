@@ -3,33 +3,32 @@ from acc_py.context.main import set_context
 import dotenv   
 from pprint import pprint
 import os
+from acc_py.plot.plot import darkmode
 
+from acc_py.plot.plot import sum_currencies
 
-
-
-# module to test
-# from acc_py.db.db_api import *
-from acc_py.utilities.core_parser import parse_semantic_filter
-# from acc_py.utilities.miscellanea import print_func_doc
-# from acc_py.plot.plot import *
-
-TEST_PLOT = False
+TESTING_PLOT = True
+NEED_CONTEXT = True
 
 
 def main() -> None:
-    config = dotenv.dotenv_values(".env")
-    set_context(
-        db_path=config["DB_PATH"], 
-        json_path=config["JSON_PATH"],
-        plot=TEST_PLOT
-    )
+    if NEED_CONTEXT:
+        config = dotenv.dotenv_values(".env")
+        set_context(
+            db_path=config["DB_PATH"], 
+            json_path=config["JSON_PATH"],
+            plot=TESTING_PLOT
+        )
+        if TESTING_PLOT:
+            darkmode()
 
-    if TEST_PLOT:
-        # darkmode()
-        pass
-
+    else:
+        print("Context has been imported but not set.")
 
 
 if __name__ == "__main__":
-    c = lambda : os.system('cls')
     main()
+    c = lambda : os.system('cls')
+    import numpy as np
+    test = {'pen': np.float64(52.43), 'usd': np.float64(264.63), 'eur': np.float64(168.13000000000002)}
+    sum_currencies(test)

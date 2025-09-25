@@ -192,7 +192,7 @@ def parse_semantic_filter(
         f"Warning: this is being parsed as a raw SQL statement.\n"
         f"For safety, only the 'sql: SELECT ...' pattern is allowed."
         )
-        return text(general_filter.replace("sql: ", "")) 
+        return text(general_filter.replace("sql: ", ""))
     
     else:
         binary_sql_expr = [
@@ -223,10 +223,11 @@ def parse_valid_element_list(
     
     # using index position
     elif isinstance(column_input, int):
-        if 0 <= column_input < len(list_to_validate):
+        bound = len(list_to_validate)
+        if 0 <= column_input < bound:
             return list_to_validate[column_input]
         else:
-            raise ValueError(f"'{column_input}' can't be that large.")
+            raise ValueError(f"'{column_input}' is greater than {bound}.")
 
     raise SyntaxError(f"Could not parse '{column_input}' as a valid column.")
 

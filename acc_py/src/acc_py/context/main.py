@@ -7,6 +7,9 @@ from ..utilities.prompt import (
     prompt_period,
     prompt_category
 )
+from ..utilities.get import (
+    fetch_keybind_dict
+)
 
 
 def set_context(db_path : Path, json_path : Path, plot : bool = False) -> None:
@@ -41,4 +44,5 @@ def set_context(db_path : Path, json_path : Path, plot : bool = False) -> None:
                 [(128, 128, 255), (26, 255, 163), (255, 255, 255)] 
             )
         }
+        ctx.exchange_dictionary = fetch_exchange_dict([curr.lower() for curr in ctx.currency_list])
     

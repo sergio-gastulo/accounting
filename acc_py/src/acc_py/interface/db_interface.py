@@ -10,15 +10,16 @@ def h(function : Callable | None = None) -> None:
 Interactive DB management via SQLAlchemy.
 
 Available functions:
-    - w()        -> db_api.write
-    - e()        -> db_api.edit
-    - wl()       -> db_api.write_list
-    - d()        -> db_api.delete
-    - r(n_lines) -> db_api.read
+    - w()       -> db_api.write
+    - e()       -> db_api.edit
+    - wl()      -> db_api.write_list
+    - d()       -> db_api.delete
+    - r()       -> db_api.read
+    - el()      -> db_api.read
 
 For further help, you can do: 
-    h(f) -> prints documentation of f
-    h() -> prints this message
+    - h(f)      -> prints documentation of f
+    - h()       -> prints this message
 """
     if function:
         print_func_doc(func=function)

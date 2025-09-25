@@ -39,25 +39,20 @@ function AccountingCommandLineInterface
         [ValidateSet("backup", "db", "help", "plot", "sql")]
         [string]$action
     )
-
-    while ($true) 
+    
+    switch ($action) 
     {
-        switch ($action) 
+        'plot'      { python -i $PYTHONSCRIPTPATH $DBPATH $JSONPATH 'plot' }
+        'db'        { python -i $PYTHONSCRIPTPATH $DBPATH $JSONPATH 'db' }
+        'help'      { Get-Help AccountingCommandLineInterface }
+        'sql'       { sqlite3.exe $DBPATH }
+        'backup' 
         {
-            'plot'      { python -i $PYTHONSCRIPTPATH $DBPATH $JSONPATH 'plot' }
-            'db'        { python -i $PYTHONSCRIPTPATH $DBPATH $JSONPATH 'db' }
-            'help'      { Get-Help AccountingCommandLineInterface }
-            'sql'       { sqlite3.exe $DBPATH }
-            'backup' 
-            {
-                $date = (get-date).ToString("yyyy-MM-dd")
-                $db_name = Join-Path (Split-Path $DBPATH) -ChildPath "db-backup-$date.sqlite"
-                ".backup $db_name" | sqlite3.exe $DBPATH
-                Write-Host "Database properly backed up: $db_name" -ForegroundColor Blue
-            }
-            default { throw "Unknown action: $action" }
+            $date = (get-date).ToString("yyyy-MM-dd")
+            $db_name = Join-Path (Split-Path $DBPATH) -ChildPath "db-backup-$date.sqlite"
+            ".backup $db_name" | sqlite3.exe $DBPATH
+            Write-Host "Database properly backed up: $db_name" -ForegroundColor Blue
         }
-        
+        default { throw "Unknown action: $action" }
     }
-
 }

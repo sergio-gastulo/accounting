@@ -10,15 +10,23 @@ from sqlalchemy import select, not_
 from sqlalchemy.sql import functions, func
 from sqlalchemy.orm import Session
 
-from ..context.context import ctx # custom context
+from ..context.context import ctx
 from ..utilities.miscellanea import pprint_df
 
+
+# ======================================
+#   Global constants
+# ======================================
 
 INCOMES_CATEGORIES = ['INGRESO', 'BLIND']
 INCLUDING_INCOMES = Record.category.in_(INCOMES_CATEGORIES)
 PERIOD_COL = func.strftime('%Y-%m', Record.date).label("period")
 TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
 
+
+# ======================================
+#   Helper functions
+# ======================================
 
 def get_currency_list_by_period(
         period : str
@@ -61,7 +69,49 @@ def darkmode() -> None:
     plt.rcParams['font.size'] = 12
 
 
-# p1
+# ---------------------------------
+# this function aims to provide support for:
+#   args:
+#   {
+#       "eur" : x,
+#       "usd" : y,
+#       "pen" : z,
+#       ...
+#   }
+#   |->
+#   (
+#       "eur" : x * fetch_currency(eur, eur) +
+#               y * fetch_currency(usd, eur) +
+#               z * fetch_currency(pen, eur),
+#       "usd" : x * fetch_currency(eur, usd) +
+#               y * fetch_currency(usd, usd) +
+#               z * fetch_currency(pen, usd),
+#       ...
+#   )
+# ---------------------------------
+def sum_currencies(
+        curr_amount_dict : dict[str, float | int]
+) -> dict[str, str]:
+
+    res_dict = {}
+    curr_list = list(curr_amount_dict) 
+    for curr in curr_list:
+        res_sum = sum([
+                curr_amount_dict[key] * ctx.exchange_dictionary[key][curr] for key in curr_list
+            ])
+        res_dict.update({
+            curr : f"{res_sum:.2f}"
+        })
+
+    return res_dict
+
+
+# ======================================
+#   Plotting functions
+# ======================================
+
+
+# alias: p1
 def categories_per_period(period: str | pd.Period | None = None) -> None:
     """
     Plot database records grouped by category and currency for the given period.
@@ -75,7 +125,6 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
         period = pd.Period(period, 'M')
     else:
         period = ctx.period
-
     period_str = str(period)
 
     query_totals = (
@@ -96,7 +145,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
     currency_list = get_currency_list_by_period(period_str)
 
     bars_per_ax = []
-
+    store_totals = {}
     def core_plot_logic(df: pd.DataFrame, currency: str, ax=None, fig=None) -> None:            
         values = df.total_amount
         max_value = max(values)
@@ -116,8 +165,9 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
             ax.text(xpos, ypos, f'{width:.2f} {currency}', 
                 va='center', ha='left', fontsize=10, color=color
             )
-
-        ax.text(0.90, 0.95, f'{currency} {values.sum():.2f}', transform=ax.transAxes, ha="left", va="top", fontsize=12)
+        vals = values.sum()
+        store_totals.update({currency.lower() : vals})
+        ax.text(0.90, 0.95, f'{currency} {vals:.2f}', transform=ax.transAxes, ha="left", va="top", fontsize=12)
         fig.subplots_adjust(left=0.25, right=0.95)
 
 
@@ -153,14 +203,19 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
     for i, currency in enumerate(currency_list):
         df_currency = df.loc[df.currency == currency, ['category', 'total_amount']].sort_values('total_amount', ascending=False)
         core_plot_logic(df_currency, currency, ax=axs[i], fig=fig)
-    
-    fig.suptitle(f"Spendings registered on {ctx.month_es[period.month]}, {period.year}")
+
+    currency_totals = sum_currencies(store_totals)
+
+    fig.suptitle(
+        f"Spendings registered on {ctx.month_es[period.month]}, {period.year}\n"
+        f"Total accumulated on it's own currency: {currency_totals}"
+    )
 
     fig.canvas.mpl_connect('button_press_event', on_click)
     plt.show()
 
 
-# p2
+# alias: p2
 def expenses_time_series(period: str | pd.Period | None = None) -> None:
     """
     Plot spendings as a time series grouped by period.
@@ -222,7 +277,7 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
     plt.show()
 
 
-# p3
+# alias: p3
 def category_time_series(category: str = None, period: str | pd.Period | None = None) -> None:
     """
     Plot a time series for the given category.
@@ -325,7 +380,7 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
     plt.show()
 
 
-# p4
+# alias: p4
 def monthly_time_series(currency: str, period: str | pd.Period | None = None) -> None:
     """
     Plot daily expenses for three months: previous, current, and next.

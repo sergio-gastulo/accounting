@@ -53,6 +53,6 @@ function AccountingCommandLineInterface
             ".backup $db_name" | sqlite3.exe $DBPATH
             Write-Host "Database properly backed up: $db_name" -ForegroundColor Blue
         }
-        default { throw "Unknown action: $action" }
+        default { throw "Unknown action: '$action'" }
     }
 }

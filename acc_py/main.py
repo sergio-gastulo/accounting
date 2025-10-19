@@ -1,9 +1,11 @@
 import sys
 from pathlib import Path
 from src.acc_py.context.context import ctx
-
+from os import system
 
 def main(db_path : Path, json_path : Path, flag : str) -> None:
+	
+    globals()["c"] = system('cls')
 
     if flag == 'plot':
         import src.acc_py.interface.plot_interface as pi
@@ -20,7 +22,7 @@ def main(db_path : Path, json_path : Path, flag : str) -> None:
         globals()["d"]  = dbi.delete
         globals()["w"]  = dbi.write
         globals()["wl"] = dbi.write_list
-        globals()["r"]  = lambda *n_lines, **kwargs : dbi.read(*n_lines, **kwargs)
+        globals()["r"]  = dbi.read
         globals()["h"]  = dbi.h
         globals()["el"]  = dbi.edit_list
         dbi.run(db_path=db_path, json_path=json_path)

@@ -11,11 +11,11 @@ Interactive DB management via SQLAlchemy.
 
 Available functions:
     - w()       -> db_api.write
-    - e()       -> db_api.edit
     - wl()      -> db_api.write_list
     - d()       -> db_api.delete
     - r()       -> db_api.read
-    - el()      -> db_api.read
+    - e()       -> db_api.edit
+    - el()      -> db_api.edit_list
 
 For further help, you can do: 
     - h(f)      -> prints documentation of f

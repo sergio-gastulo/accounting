@@ -183,6 +183,7 @@ def write_list(
             print("Could not parse your query. Uncomitting.")
 
     # removing file after execution
+	# if an error is raised, it won't be removed!
     temp_file.unlink(missing_ok=True)
 
 

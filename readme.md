@@ -71,6 +71,17 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - [context.py](/acc_py/src/acc_py/context/context.py) should load from such config file.
 - Provide support for non-recognizable binaries (e.g. python doesn't exist, sqlite3 doesn't exist, etc.)
 - Provide toy files as examples.
+- `write_list` should show id upon correct parsing, so it can be quickly edited.
+- "description" could be bound to some characters when printing. 
+- parse_semantic_filter should be able to provide help menu.
+- It should be possible to import `plot` functionality when dealing with db (or viceversa)
+- Provide offline support.
+- Help for `r` is broken.
+- Help for `r` should print the parser help message as well.
+- Provide support for semantic filter: given a single id x, return records such that id in [x-r, x + r].
+- When priting SQL records, description should have a limit. 
+
+
 
 ## Requirements:
 This project was built with `powershell`, `python`, and `sqlite`.

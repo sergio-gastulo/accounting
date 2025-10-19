@@ -354,7 +354,7 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
             color = ctx.colors[currency]
             category_amount_period = df.loc[period, "total_amount"]
             ax.scatter(timestamp_period, category_amount_period, color='red', zorder=5)
-            ax.axhline(category_amount_period, color=color)
+            ax.axhline(category_amount_period, color=color, linestyle='dashed')
             ax.text(
                 timestamp_period,
                 category_amount_period,

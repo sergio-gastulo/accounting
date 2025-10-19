@@ -52,7 +52,7 @@ def parse_date(date_str : str) -> date:
     today = date.today()
     date_str = date_str.strip()
 
-    if date_str == '0' or not date_str:
+    if date_str in ['0', 'today', '']:
         return today
     
     # +5, -8, ...
@@ -134,6 +134,12 @@ def core_semantic_filter_parse(
     
     match semantic_filter.split():
 
+        # id filter
+        case ["id", "range", id_, bounds]:
+            id_, bounds = map(int, [id_, bounds])
+            print(f"id in [{id_ - bounds}, {id_ + bounds}]")
+            return Record.id.between(id_ - bounds, id_ + bounds)
+
         # amount filters
         case [("amount" | "am"), ("between" | "b"), lower_bound, upper_bound]:
             print("Amount between a, b.")
@@ -146,7 +152,7 @@ def core_semantic_filter_parse(
             return Record.date.like(date_wildcard)
         
         case ["date", "=", date_]:
-            print("Date wildcard.")
+            print("Exact date match.")
             return Record.date == date_
         
         case ["date", date_regex, ("r" | "regex" | "regexp")]:

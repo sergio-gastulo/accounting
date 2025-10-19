@@ -62,10 +62,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ### Suggestions
 - Implement support for transactions (from currency CU1 to CU2)
 - Provide WhatsApp message parsing.
-- `category_time_series` should dash the horizontal line.
 - `monthly_time_series` could fail better (if one plot fails, then all the plot fails, this should not happen).
-- `parse_semantic_filter` could do better for dates: provide support for `today`, `yesterday`, `+/-int`, etc.
-- Modifications to `db` could provide a before and after when comitting. 
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 - [context.py](/acc_py/src/acc_py/context/context.py) should load from such config file.
@@ -76,9 +73,6 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - parse_semantic_filter should be able to provide help menu.
 - It should be possible to import `plot` functionality when dealing with db (or viceversa)
 - Provide offline support.
-- Help for `r` is broken.
-- Help for `r` should print the parser help message as well.
-- Provide support for semantic filter: given a single id x, return records such that id in [x-r, x + r].
 - When priting SQL records, description should have a limit. 
 
 

@@ -23,7 +23,7 @@ from ..utilities.core_parser import (
 from ..utilities import prompt
 from ..context.context import ctx
 from ..db.model import Record
-
+from ..utilities.miscellanea import pprint_df
 
 TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
 
@@ -160,16 +160,19 @@ def write_list(
     df = parse_csv_record(path=temp_file)
     for column, value in fixed_fields.items():
         df[column] = value
-
+    
+    # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_dict.html 
+    records = df.to_dict(orient='records') # has nothing to do with Record
     with Session(ctx.engine) as session:
         session.bulk_insert_mappings(
             Record,
-            # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_dict.html 
-            df.to_dict(orient='records') # has nothing to do with Record
+            records,
+            return_defaults=True
         )
+        df.insert(0, 'id', [record['id'] for record in records])
         print(
             f"Current records being inserted to database:\n"
-            f"{df.to_markdown(index=False)}"
+            f"{pprint_df(df, return_flag=True)}"
         )
 
         confirm : str = input("Confirm your commit [y/N]: ")
@@ -402,7 +405,7 @@ def read(
     df = pd.read_sql(stmt, ctx.engine, index_col='id')
 
     if print_flag:
-        print(df.to_markdown(tablefmt="outline"))
+        pprint_df(df)
     else:
         return df
 
@@ -417,7 +420,6 @@ def read(
 # this reduces the amount of records to be able to 
 # edit but provides secure parsing
 # ---------------------------------------------------
-
 def edit_list(
         *ids : int,
         as_range : bool = True

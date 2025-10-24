@@ -18,18 +18,28 @@ def print_func_doc(func: callable) -> None:
 
 def pprint_df(
         df : DataFrame,
-        header : str
-):
+        header : str | None = None,
+        return_flag : bool = False
+) -> None | str:
+    
+    df.description = df.description.str[:100]
     print_df : str = df.to_markdown(
         index='id',
         tablefmt="outline"
-        )
-    
+        )    
     n : int = len(print_df.partition('\n')[0])
     separator : str = "-" * n
-
-    print(
-        f"\n{separator}\n"
-        f"{header}\n"
-        f"{print_df}\n"
-    )
+    
+    if not header:
+        print_str = print_df
+    else:
+        print_str = (
+            f"\n{separator}\n"
+            f"{header}\n"
+            f"{print_df}\n"
+        )
+        
+    if return_flag:
+        return print_str
+    else:
+        print(print_str)

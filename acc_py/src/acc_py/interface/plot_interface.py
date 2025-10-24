@@ -14,7 +14,8 @@ Available functions:
     - p2    -> plot.expenses_time_series
     - p3    -> plot.category_time_series
     - p4    -> plot.monthly_time_series
-
+    - db    -> import db_api
+    
 For further help, you can do: 
     - h(f)  -> prints documentation of f
     - h()   -> prints this message
@@ -25,7 +26,7 @@ For further help, you can do:
         print(help_message)
 
 
-def run(db_path : Path, json_path : Path) -> None:
+def run(config_path : Path, field_json_path : Path) -> None:
     darkmode()
-    set_context(db_path=db_path, json_path=json_path, plot=True)
+    set_context(config_path, field_json_path, plot=True)
     h()

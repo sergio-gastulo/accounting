@@ -1,0 +1,120 @@
+[
+	{
+		"key":"cas",
+		"shortname":"CASA",
+		"description":"Gastos en la casa",
+		"help":"Contiene las categorías CASA-GASTO y CASA-GIFT",
+		"subcategories":[
+			{
+				"key":"ga",
+				"shortname":"CASA-GASTO",
+				"description":"Gastos de o para la casa",
+				"help":""
+			},
+			{
+				"key":"al",
+				"shortname":"CASA-ALQUILER",
+				"description":"Gastos realizados en alquiler y unicamente alquiler",
+				"help":""
+			}
+		]
+	},
+	{
+		"key":"cel",
+		"shortname":"CELULAR",
+		"description":"Gastos relacionados a celular",
+		"help":"Gastos realizados a celular, incluye recargas y mantenimiento."
+	},
+	{
+		"key":"com",
+		"shortname":"COMIDA",
+		"description":"Gastos en comidas y bebidas",
+		"help":"",
+		"subcategories":[
+					{
+						"key":"sa",
+						"shortname":"COMIDA-SALIR",
+						"description":"Restaurantes",
+						"help":"También incluye 'invitar'."
+					},
+					{
+						"key":"sn",
+						"shortname":"COMIDA-SNACK",
+						"description":"Tambo, Oxxo, tiendas",
+						"help":""
+					},
+					{
+						"key":"gr",
+						"shortname":"COMIDA-GROCERIES",
+						"description":"Abarrotes, Tottus/AhorraMas",
+						"help":"Comida que se guarda en almacenes para ser preparada después."
+					}
+		]
+	},
+	{
+		"key":"ed",
+		"shortname":"EDUCATION",
+		"description":"Educacion",
+		"help":"Gastos realizados en educación, incluye idiomas."
+	},
+	{
+		"key":"h",
+		"shortname":"HEALTH-CARE",
+		"description":"Salud/Cuidado",
+		"help":"Relacionado a la salud y cuidado de uno mismo: cortes de cabello, cremas rejuvenecedoras, etc."	
+	},
+	{
+		"key":"im",
+		"shortname":"IMPUESTOS",
+		"description":"Impuestos bancos",
+		"help":"Dinero descontado por los bancos, incluye membresías, pagos no esperados, etc."
+	},
+	{
+		"key":"int",
+		"shortname":"INTERESES",
+		"description":"Intereses bancos",
+		"help":"Dinero ganado en los bancos, por el momento solo interses (incluye a plazo fijo también)."
+	},
+	{
+		"key":"pas",
+		"shortname":"TRANSPORTE",
+		"description":"Pasajes, incluye taxis",
+		"help":"Cualquier tipo de pasaje: taxis, motos, chanchas para el taxi, custers, etc."
+	},
+	{
+		"key":"pet",
+		"shortname":"PETS",
+		"description":"Mascotas",
+		"help":"Veterinarios, comida, baño -- todo lo relacionado a mascotas."
+	},
+	{
+		"key":"rop",
+		"shortname":"ROPA",
+		"description":"Ropa",
+		"help":"Ropa, solo para mi persona, no incluye regalos!!!"
+	},
+	{
+		"key":"sal",
+		"shortname":"SALIDA",
+		"description":"Recreaciones/eventos",
+		"help":"Bares, discotecas, museos -- eventos en general."
+	},
+	{
+		"key":"sub",
+		"shortname":"SUBSCRIPTIONS",
+		"description":"Suscripciones",
+		"help":"Spotify, Crunchy -- cualquier suscribción que se esté pagando actualmente."
+	},
+	{
+		"key":"tram",
+		"shortname":"TRAMITES",
+		"description":"Tramites",
+		"help":"Documentos, impresión de los mismos, etc."
+	},
+	{
+		"key":"var",
+		"shortname":"VARIOS",
+		"description":"Incategorizables",
+		"help":"No presentan categoría"
+	}
+]

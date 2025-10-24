@@ -3,18 +3,18 @@ from pathlib import Path
 from src.acc_py.context.context import ctx
 from os import system
 
-
-def plot(db_path : Path, json_path : Path) -> None:
+# populate globals accordingly
+def plot(config_path : Path, field_json_path : Path) -> None:
     import src.acc_py.interface.plot_interface as pi
     globals()["p1"]  = pi.categories_per_period
     globals()["p2"]  = pi.expenses_time_series
     globals()["p3"]  = pi.category_time_series
     globals()["p4"]  = pi.monthly_time_series
     globals()["h"]   = pi.h
-    pi.run(db_path=db_path, json_path=json_path) 
+    pi.run(config_path=config_path, field_json_path=field_json_path) 
 
-
-def db(db_path : Path, json_path : Path) -> None:
+# populate globals accordingly
+def db(config_path : Path, field_json_path : Path) -> None:
     import src.acc_py.interface.db_interface as dbi
     globals()["e"]  = dbi.edit
     globals()["d"]  = dbi.delete
@@ -22,21 +22,21 @@ def db(db_path : Path, json_path : Path) -> None:
     globals()["wl"] = dbi.write_list
     globals()["r"]  = dbi.read
     globals()["h"]  = dbi.h
-    globals()["el"]  = dbi.edit_list
-    dbi.run(db_path=db_path, json_path=json_path)
+    globals()["el"] = dbi.edit_list
+    dbi.run(config_path=config_path, field_json_path=field_json_path)
 
 
-def main(db_path : Path, json_path : Path, flag : str) -> None:
+def main(config_path : Path, field_json_path : Path, flag : str) -> None:
 	
     globals()["c"] = system('cls')
 
     if flag == 'plot':
-        plot(db_path, json_path)
-        globals()["db"] = lambda : db(db_path, json_path)
+        plot(config_path, field_json_path)
+        globals()["db"] = lambda : db(config_path, field_json_path)
 
     elif flag == 'db':
-        db(db_path, json_path)
-        globals()["plot"] = lambda : plot(db_path, json_path)
+        db(config_path, field_json_path)
+        globals()["plot"] = lambda : plot(config_path, field_json_path)
 
     else:
         print(f"'{flag}' is not a valid interface flag.")
@@ -45,7 +45,7 @@ def main(db_path : Path, json_path : Path, flag : str) -> None:
 if __name__ == "__main__":
     
     main(
-        db_path=sys.argv[1],
-        json_path=sys.argv[2],
+        config_path=sys.argv[1],
+        field_json_path=sys.argv[2],
         flag=sys.argv[3]
     )

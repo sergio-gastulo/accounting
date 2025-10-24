@@ -10,7 +10,8 @@ A *really simple* CLI tool to help you track accounting information from the ter
 2. Run the following commands in PowerShell:
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
-   vim accounting.psm1 # edit head of file
+   vim config-example.json # edit head of file
+   Rename-Item config-example.json config.json
    Import-Module accounting
    AccountingCommandLineInterface <action> # or acccli <action>
    ```
@@ -56,25 +57,15 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## TODO
-
-### Urgent
-
-### Suggestions
-- Implement support for transactions (from currency CU1 to CU2)
+- Implement support for exchange currency (from currency CU1 to CU2).
 - Provide WhatsApp message parsing.
 - `monthly_time_series` could fail better (if one plot fails, then all the plot fails, this should not happen).
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
-- [context.py](/acc_py/src/acc_py/context/context.py) should load from such config file.
-- Provide support for non-recognizable binaries (e.g. python doesn't exist, sqlite3 doesn't exist, etc.)
+- [context.py](/acc_py/src/acc_py/context/context.py) should load from a config file.
 - Provide toy files as examples.
-- `write_list` should show id upon correct parsing, so it can be quickly edited.
-- "description" could be bound to some characters when printing. 
-- parse_semantic_filter should be able to provide help menu.
-- It should be possible to import `plot` functionality when dealing with db (or viceversa)
 - Provide offline support.
-- When priting SQL records, description should have a limit. 
-
+- Provide color pretty-printing.
 
 
 ## Requirements:
@@ -91,8 +82,8 @@ Major  Minor  Build  Revision
 
 3. `sqlite`:
 ```
-sqlite> SELECT sqlite_version();
-3.50.2
+PS C:\> sqlite3.exe --version
+3.50.2 2025-06-28 14:00:48 2af157d77fb1304a74176eaee7fbc7c7e932d946bf25325e9c26c91db19e3079 (64-bit)
 ```
 
 ## Credits

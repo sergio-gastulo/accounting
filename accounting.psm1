@@ -1,8 +1,3 @@
-
-$DBPATH             =   "$($env:USERPROFILE)\dbs\cuentas"
-$JSONPATH           =   "$PSScriptRoot\files\fields.json"
-$PYTHONSCRIPTPATH   =   "$PSScriptRoot\acc_py\main.py"
-
 function Install-Python 
 {
     param
@@ -25,7 +20,7 @@ function Install-Python
         -Category InvalidArgument
     }
 
-    # ensure version
+    # ensure version and architecture
     $version = if ( -not $version ) { '3.13.5' } else { $version }
     $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') { 'x64' } else { $env:PROCESSOR_ARCHITECTURE.ToLower() }
     $pyInstallationURL = "https://www.python.org/ftp/python/$version/python-$version-$arch.exe" 
@@ -79,21 +74,18 @@ function Install-SQLite3
 
 function Test-AccountingHealth 
 {
-    [alias("acc-health")]
+    [alias("test-acc-health")]
     param
     (
 
     )
     
-    # check python
-    $res = where.exe python > $null 2>&1
-    try { 
-        # if res arises an error, then python is non-existent
-        $res
-
+    try {
+        $python = Get-Command python.exe -All
         # this path is just a path to the Microsoft Store. 
         # Should not be a valid python path. 
-        if ( $res[0] -eq "C:\Users\sgast\AppData\Local\Microsoft\WindowsApps\python.exe" )
+        $invalidPythonPath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "Microsoft\WindowsApp\python.exe"
+        if ( $python[0].Source -eq $invalidPythonPath)
         {
             throw
         }
@@ -162,18 +154,24 @@ function AccountingCommandLineInterface
         [ValidateSet("backup", "db", "help", "plot", "sql")]
         [string]$action
     )
-    
+
+    # configuration and paths update
+    $configPath = Join-Path -Path $PSScriptRoot -ChildPath ".\config.json"
+    $databasePath = (Get-Content $configPath -Raw | ConvertFrom-Json).db_path
+    $pythonPath = Join-Path -Path $PSScriptRoot -ChildPath ".\acc_py\main.py"
+    $fieldsJSONPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
+
     switch ($action) 
     {
-        'plot'      { python -i $PYTHONSCRIPTPATH $DBPATH $JSONPATH 'plot' }
-        'db'        { python -i $PYTHONSCRIPTPATH $DBPATH $JSONPATH 'db' }
+        'plot'      { python -i $pythonPath $configPath $fieldsJSONPath 'plot' }
+        'db'        { python -i $pythonPath $configPath $fieldsJSONPath 'db' }
         'help'      { Get-Help AccountingCommandLineInterface }
-        'sql'       { sqlite3.exe $DBPATH }
+        'sql'       { sqlite3.exe $databasePath }
         'backup' 
         {
             $date = (get-date).ToString("yyyy-MM-dd")
-            $db_name = Join-Path (Split-Path $DBPATH) -ChildPath "db-backup-$date.sqlite"
-            ".backup $db_name" | sqlite3.exe $DBPATH
+            $db_name = Join-Path (Split-Path $databasePath) -ChildPath "db-backup-$date.sqlite"
+            ".backup $db_name" | sqlite3.exe $databasePath
             Write-Host "Database properly backed up: $db_name" -ForegroundColor Blue
         }
         default { throw "Unknown action: '$action'" }

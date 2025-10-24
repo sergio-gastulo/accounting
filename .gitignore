@@ -1,8 +1,12 @@
-test/
-!acc_py/test
-acc_py/test/context.py
+# old repo files
 files/
+
+#regular py-vscode trash
 **/env/
 **/.env
 **/__pycache__
 .vscode/
+
+# configurations files
+config.json
+fields.json

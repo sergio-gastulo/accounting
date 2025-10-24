@@ -16,7 +16,8 @@ Available functions:
     - r()       -> db_api.read
     - e()       -> db_api.edit
     - el()      -> db_api.edit_list
-
+    - plot()    -> import plot
+    
 For further help, you can do: 
     - h(f)      -> prints documentation of f
     - h()       -> prints this message
@@ -27,6 +28,6 @@ For further help, you can do:
         print(help_message)
 
 
-def run(db_path : Path, json_path : Path) -> None:
-    set_context(db_path, json_path)
+def run(config_path : Path, field_json_path : Path) -> None:
+    set_context(config_path, field_json_path)
     h()

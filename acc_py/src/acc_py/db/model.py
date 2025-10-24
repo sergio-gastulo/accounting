@@ -1,7 +1,6 @@
 import datetime
 from sqlalchemy import String, Date, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
-from ..context.context import ctx
 
 
 Base = declarative_base()

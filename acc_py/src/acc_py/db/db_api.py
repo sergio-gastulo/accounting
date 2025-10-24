@@ -14,7 +14,6 @@ from tempfile import gettempdir
 import subprocess
 from typing import List
 
-
 from ..utilities.core_parser import (
     parse_semantic_filter,
     parse_csv_record,
@@ -22,8 +21,12 @@ from ..utilities.core_parser import (
 )
 from ..utilities import prompt
 from ..context.context import ctx
-from ..db.model import Record
+from ..db.model import (
+    Record,
+    Conversion    
+)
 from ..utilities.miscellanea import pprint_df
+
 
 TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
 
@@ -35,8 +38,6 @@ TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
 # ----------------------------------------------------
 def write(
         date : datetime.date | None = None,
-        amount : float | None = None,
-        currency : str | None = None,
         operation_str : str | None = None,
         description : str | None = None,
         category : str | None = None
@@ -72,19 +73,11 @@ def write(
     and then printed via `Record.pprint()`.
     """
 
-    if not date:
-        date = prompt.prompt_date_operation()
-    if not operation_str:
-        if amount:
-            currency = prompt.prompt_currency()
-        if currency:
-            amount = prompt.prompt_arithmetic_operation()
-        if not amount and not currency:
-            amount, currency = prompt.prompt_double_currency()
+    date = prompt.prompt_date_operation(date)
+    amount, currency = prompt.prompt_double_currency(operation_str)
     if not description:
         description = input("Type your description: ")
-    if not category:
-        category = prompt.prompt_category_from_keybinds(ctx.keybinds)
+    category = prompt.prompt_category_from_keybinds(ctx.keybinds, category)
 
     with Session(ctx.engine) as session:
         record = Record(
@@ -141,8 +134,7 @@ def write_list(
     - All other responses default to *not committing*.
     """
 
-    if not fixed_fields:
-        fixed_fields = prompt.prompt_column_value(ctx.keybinds)
+    fixed_fields = prompt.prompt_column_value(ctx.keybinds, fixed_fields)
 
     # sorry for this, ik it's painful to read
     template_str = ((Path(__file__).parent / ".." / "templates" / "csv_metadata.j2")).resolve().read_text()
@@ -189,6 +181,49 @@ def write_list(
 	# if an error is raised, it won't be removed!
     temp_file.unlink(missing_ok=True)
 
+
+def write_conversion(
+        date : datetime.date | None = None,
+        base_operation_str : str | None = None,
+        target_operation_str : str | None = None,
+        description : str | None = None
+) -> None:
+    """
+    Prompt the user for a currency conversion and save it to the database.
+
+    Interactively collects base and target currency amounts (and optionally a
+    description) from the user, creates a Conversion record, and commits it
+    to the database using the current SQLAlchemy session.
+
+    Args:
+        date (datetime.date | None): The date of the conversion. If None, the user is prompted.
+        base_operation_str (str | None): Optional preset string for the base operation.
+        target_operation_str (str | None): Optional preset string for the target operation.
+        description (str | None): Description of the conversion. If None, the user is prompted.
+
+    Returns:
+        None
+    """
+    date = prompt.prompt_date_operation(date)
+    print("Prompting base.\n")
+    base_amount, base_currency = prompt.prompt_double_currency(base_operation_str, explain=False)
+    
+    print("Prompting target.\n")
+    target_amount, target_currency = prompt.prompt_double_currency(target_operation_str, explain=False)
+    
+    if not description:
+        description = input("Type your description: ")
+    
+    with Session(ctx.engine) as session:
+        conv = Conversion(
+            date=date, base_currency=base_currency,
+            base_amount=base_amount,target_currency=target_currency,
+            target_amount=target_amount,description=description
+        )
+        session.add(conv)
+        session.commit()
+        print("Conversion written to database: ")
+        conv.pprint()
 
 
 # ------------------------------------------------------
@@ -307,8 +342,7 @@ def delete(
     """
 
     print("\nWarning. You can lose data permanently.\n")
-    if not record:
-        record = prompt.prompt_record_by_id(ctx.engine, id)
+    record = prompt.prompt_record_by_id(ctx.engine, id)
 
     while True:
         confirm : str = input("Confirm your commit [y/N]: ")
@@ -388,8 +422,6 @@ def read(
     """
 
     today = datetime.date.today()
-
-    # TODO : develop prompt_semantic_filter to allow "and"
     if not semantic_filter:
         semantic_filter = input("Type your semantic filter: ")
 
@@ -402,6 +434,19 @@ def read(
             stmt = stmt.limit(n_lines)
         stmt = stmt.order_by(desc(Record.id))
     
+    df = pd.read_sql(stmt, ctx.engine, index_col='id')
+
+    if print_flag:
+        pprint_df(df)
+    else:
+        return df
+
+
+def read_conversion(
+    print_flag : bool = True
+) -> pd.DataFrame | None:
+    
+    stmt = select(Conversion)
     df = pd.read_sql(stmt, ctx.engine, index_col='id')
 
     if print_flag:

@@ -1,4 +1,5 @@
 from ..db.db_api import *
+from ..db.model import create_tables
 from ..context.main import set_context
 from ..utilities.miscellanea import print_func_doc
 from pathlib import Path
@@ -12,11 +13,13 @@ Interactive DB management via SQLAlchemy.
 Available functions:
     - w()       -> db_api.write
     - wl()      -> db_api.write_list
+    - wc()      -> db_api.write_conversion
     - d()       -> db_api.delete
     - r()       -> db_api.read
+    - rc()      -> db_api.read_conversion
     - e()       -> db_api.edit
     - el()      -> db_api.edit_list
-    - plot()    -> import plot
+    - plot()    -> import plot // might shadow original h
     
 For further help, you can do: 
     - h(f)      -> prints documentation of f
@@ -30,4 +33,5 @@ For further help, you can do:
 
 def run(config_path : Path, field_json_path : Path) -> None:
     set_context(config_path, field_json_path)
+    create_tables()
     h()

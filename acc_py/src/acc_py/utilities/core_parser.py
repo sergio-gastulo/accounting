@@ -195,8 +195,8 @@ def parse_semantic_filter(
     
     if re.match('^sql: SELECT', general_filter):
         print(
-        f"Warning: this is being parsed as a raw SQL statement.\n"
-        f"For safety, only the 'sql: SELECT ...' pattern is allowed."
+            f"Warning: this is being parsed as a raw SQL statement.\n"
+            f"For safety, only the 'sql: SELECT ...' pattern is allowed."
         )
         return text(general_filter.replace("sql: ", ""))
     

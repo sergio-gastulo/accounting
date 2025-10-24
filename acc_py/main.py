@@ -15,11 +15,14 @@ def plot(config_path : Path, field_json_path : Path) -> None:
 
 # populate globals accordingly
 def db(config_path : Path, field_json_path : Path) -> None:
+    
     import src.acc_py.interface.db_interface as dbi
     globals()["e"]  = dbi.edit
     globals()["d"]  = dbi.delete
     globals()["w"]  = dbi.write
     globals()["wl"] = dbi.write_list
+    globals()["wc"] = dbi.write_conversion
+    globals()["rc"] = dbi.read_conversion
     globals()["r"]  = dbi.read
     globals()["h"]  = dbi.h
     globals()["el"] = dbi.edit_list
@@ -28,7 +31,7 @@ def db(config_path : Path, field_json_path : Path) -> None:
 
 def main(config_path : Path, field_json_path : Path, flag : str) -> None:
 	
-    globals()["c"] = system('cls')
+    globals()["c"] = lambda : system('cls')
 
     if flag == 'plot':
         plot(config_path, field_json_path)

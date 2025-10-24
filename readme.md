@@ -57,15 +57,14 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## TODO
-- Implement support for exchange currency (from currency CU1 to CU2).
 - Provide WhatsApp message parsing.
 - `monthly_time_series` could fail better (if one plot fails, then all the plot fails, this should not happen).
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
-- [context.py](/acc_py/src/acc_py/context/context.py) should load from a config file.
 - Provide toy files as examples.
-- Provide offline support.
+- Provide offline support (to eliminate exchange-currency features).
 - Provide color pretty-printing.
+- Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py)
 
 
 ## Requirements:

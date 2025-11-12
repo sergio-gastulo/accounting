@@ -3,6 +3,7 @@ from pathlib import Path
 from src.acc_py.context.context import ctx
 from os import system
 
+
 # populate globals accordingly
 def plot(config_path : Path, field_json_path : Path) -> None:
     import src.acc_py.interface.plot_interface as pi
@@ -12,6 +13,7 @@ def plot(config_path : Path, field_json_path : Path) -> None:
     globals()["p4"]  = pi.monthly_time_series
     globals()["h"]   = pi.h
     pi.run(config_path=config_path, field_json_path=field_json_path) 
+
 
 # populate globals accordingly
 def db(config_path : Path, field_json_path : Path) -> None:
@@ -35,11 +37,13 @@ def main(config_path : Path, field_json_path : Path, flag : str) -> None:
 
     if flag == 'plot':
         plot(config_path, field_json_path)
-        globals()["db"] = lambda : db(config_path, field_json_path)
+        globals()["h_plot"] = globals()["h"]
+        globals()["load_db"] = lambda : db(config_path, field_json_path)
 
     elif flag == 'db':
         db(config_path, field_json_path)
-        globals()["plot"] = lambda : plot(config_path, field_json_path)
+        globals()["h_db"] = globals()["h"]
+        globals()["load_plot"] = lambda : plot(config_path, field_json_path)
 
     else:
         print(f"'{flag}' is not a valid interface flag.")

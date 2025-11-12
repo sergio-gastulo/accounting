@@ -65,6 +65,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Provide offline support (to eliminate exchange-currency features).
 - Provide color pretty-printing.
 - Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py)
+- Print exchange rates nicely.
 
 
 ## Requirements:
@@ -86,4 +87,4 @@ PS C:\> sqlite3.exe --version
 ```
 
 ## Credits
-- Thanks to [@fawazahmed0](https://github.com/fawazahmed0) for providing such an amazing API: [https://github.com/fawazahmed0/exchange-api]
+- Thanks to [@fawazahmed0](https://github.com/fawazahmed0) for providing such an [open-source amazing API](https://github.com/fawazahmed0/exchange-api).

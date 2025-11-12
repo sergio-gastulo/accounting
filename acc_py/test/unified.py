@@ -2,9 +2,9 @@ from acc_py.context import ctx
 from acc_py.context.main import set_context
 import dotenv
 from acc_py.plot.plot import darkmode
-from acc_py.db.db_api import read
 
-TESTING_PLOT = False
+
+TESTING_PLOT = True
 NEED_CONTEXT = True
 
 
@@ -13,8 +13,8 @@ def main() -> None:
         config = dotenv.dotenv_values(".env")
         set_context(
             # db_path=config["DB_TEST_PATH"], 
-            db_path=config["DB_PATH"], 
-            json_path=config["JSON_PATH"],
+            config_path=config["CONFIG_PATH"], 
+            fields_json_path=config["FIELDS_JSON_PATH"],
             plot=TESTING_PLOT
         )
         if TESTING_PLOT:
@@ -26,4 +26,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    read()
+    from acc_py.plot.plot import pprint_df
+    import pandas as pd
+    df = pd.DataFrame({"description": list("jksla")}, index=list("abcde"))
+    pprint_df(df)

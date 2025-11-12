@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine
 from pathlib import Path
 import json
+from pandas import Period
+from datetime import date
+from random import choice
 
 from .context import ctx
 from ..utilities.get import *
@@ -22,10 +25,16 @@ def set_context(config_path : Path, fields_json_path : Path, plot : bool = False
     ctx.keybinds = fetch_keybind_dict(json_path=fields_json_path)
 
     if plot:
-        ctx.period = prompt_period()
+        if config["context"]["ask_period"]:
+            ctx.period = prompt_period()
+        else:
+            ctx.period = Period(date.today(), 'M')
         ctx.month_es = config['context']['month_es']
         ctx.currency_list = config['context']['currency_list']
-        ctx.selected_category = prompt_category(category_dictionary=ctx.categories_dict)
+        if config["context"]["ask_category"]:
+            ctx.selected_category = prompt_category(category_dictionary=ctx.categories_dict)
+        else:
+            ctx.selected_category = choice(tuple(ctx.categories_dict))
         ctx.colors = {
             currency: (r / 255, g / 255, b / 255) 
             for currency, (r, g, b) in zip(

@@ -19,7 +19,7 @@ Available functions:
     - rc()      -> db_api.read_conversion
     - e()       -> db_api.edit
     - el()      -> db_api.edit_list
-    - plot()    -> import plot // might shadow original h
+    - load_plot()    -> import plot // might shadow original h
     
 For further help, you can do: 
     - h(f)      -> prints documentation of f

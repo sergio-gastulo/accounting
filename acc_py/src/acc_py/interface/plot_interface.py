@@ -14,7 +14,7 @@ Available functions:
     - p2    -> plot.expenses_time_series
     - p3    -> plot.category_time_series
     - p4    -> plot.monthly_time_series
-    - db    -> import db_api
+    - load_db    -> import db_api
     
 For further help, you can do: 
     - h(f)  -> prints documentation of f

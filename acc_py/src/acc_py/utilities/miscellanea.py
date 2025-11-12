@@ -24,9 +24,9 @@ def pprint_df(
     
     df.description = df.description.str[:100]
     print_df : str = df.to_markdown(
-        index='id',
+        index=True,
         tablefmt="outline"
-        )    
+    )
     n : int = len(print_df.partition('\n')[0])
     separator : str = "-" * n
     

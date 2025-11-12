@@ -60,7 +60,7 @@ def on_click_printable(
             Record.currency == currency
         )
 
-    return pd.read_sql(query_printable, con=ctx.engine)
+    return pd.read_sql(query_printable, con=ctx.engine, index_col='id')
 
 
 def darkmode() -> None:
@@ -207,7 +207,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
     currency_totals = sum_currencies(store_totals)
 
     fig.suptitle(
-        f"Spendings registered on {ctx.month_es[period.month + 1]}, {period.year}\n"
+        f"Spendings registered on {ctx.month_es[period.month - 1]}, {period.year}\n"
         f"Total accumulated on it's own currency: {currency_totals}"
     )
 
@@ -435,7 +435,7 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
         for axes in ax:
             axes.axvline(mdates.date2num(period.asfreq('D', how='start') + pd.Timestamp.today().day), color=(1,0,0))
 
-        fig.suptitle(f'Monthly spendings centered at {ctx.month_es[period.month + 1]}, {period.year} in {currency}')
+        fig.suptitle(f'Monthly spendings centered at {ctx.month_es[period.month - 1]}, {period.year} in {currency}')
         fig.supxlabel('Periods', y=-0.1)
         fig.supylabel(f"Spendings in {currency}", x=0.05)
         fig.autofmt_xdate()

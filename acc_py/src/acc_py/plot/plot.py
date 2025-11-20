@@ -330,18 +330,6 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
     for currency in currency_list:
         # https://stackoverflow.com/questions/43206554/typeerror-float-argument-must-be-a-string-or-a-number-not-period
         df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-
-        print_df = (
-            on_click_printable(
-                period=period_str, 
-                category=category, 
-                currency=currency
-            )
-            .sort_values('amount')    
-        )
-        header = f"Category: {category}, Currency: {currency}\n"
-        pprint_df(df=print_df, header=header)
-
         ax.plot(df_currency.index.to_timestamp() , df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
 
     ax.set_title(f"{category} Time Series Plot")
@@ -364,12 +352,25 @@ def category_time_series(category: str = None, period: str | pd.Period | None = 
                 horizontalalignment = 'left' if mdates.date2num(timestamp_period) < ax.get_xlim()[1] / 2 else 'right',
                 verticalalignment = 'bottom' if df["total_amount"].get(period - 1, 0) <= category_amount_period else 'top'
             )
+
+            print_df = (
+                on_click_printable(
+                    period=period_str, 
+                    category=category, 
+                    currency=currency
+                )
+                .sort_values('amount')    
+            )
+            header = f"Category: {category}, Currency: {currency}\n"
+            pprint_df(df=print_df, header=header)
+
         except KeyError:
             print(f"{currency}: Period '{period_str}' is not available for scattering in the current plot")
             return
 
     if len(currency_list_period) == 0:
         print(f"Period '{period_str}' does not have any records associated to {category}.")
+
     else:
         for currency in currency_list_period:
             df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
@@ -402,35 +403,34 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
     else: 
         currency = currency.upper()
 
-    # it's the exact df as in expenses_time_series, worth executing it only once?
+    # prev month, this month, next month
+    period_list = [str(period + i) for i in range(-1, 2)]
     query = (
         select(
-            Record.currency,
-            func.strftime('%Y-%m-%d', Record.date).label("period"),
+            Record.date,
             TOTAL_AMOUNT_COL
         ).where(
-            not_(INCLUDING_INCOMES)
-        ).group_by(
-            Record.currency,
-            "period"
-        )
+            not_(INCLUDING_INCOMES),
+            Record.currency == currency,
+            PERIOD_COL.in_(period_list)
+        ).group_by(Record.date)
     )
     df = pd.read_sql(
         query,
         con=ctx.engine,
-        parse_dates={"period": {"format": "%Y-%m-%d"}}
+        parse_dates={"date": {"format": "%Y-%m-%d"}}
     )
-    df.period = df.period.dt.to_period('D')
 
     def core_plot_logic(df: pd.DataFrame) -> None:
         
-        dfs = [df.loc[str(period + i)] for i in range (-1,2)] # collects the three consecutive-monthly periods: [-1,0,1]
-        fig, ax = plt.subplots(1,2, figsize=(12,5))
+        fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
-        for i, dframes in enumerate(dfs):
+        for i, iter_period in enumerate(period_list):
+
+            dframe = df.loc[df.date.dt.strftime('%Y-%m') == iter_period]
             color = (1,1,1) if i != 1 else (0,1,0)
-            ax[0].plot(dframes.index.to_timestamp(), dframes.values, marker='o', color=color)
-            ax[1].plot(dframes.index.to_timestamp(), dframes.values.cumsum(), color=color, marker='o')
+            ax[0].plot(dframe.date, dframe.total_amount, marker='o', color=color)
+            ax[1].plot(dframe.date, dframe.total_amount.cumsum(), color=color, marker='o')
 
         for axes in ax:
             axes.axvline(mdates.date2num(period.asfreq('D', how='start') + pd.Timestamp.today().day), color=(1,0,0))
@@ -441,9 +441,6 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
         fig.autofmt_xdate()
         plt.show()
 
-    df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-    try: 
-        core_plot_logic(df_currency)
-    except KeyError:
-        print(f"{currency} not plotted: few records available.")
+
+    core_plot_logic(df)
 

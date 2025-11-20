@@ -127,6 +127,10 @@ def parse_category(category_dict : dict[str, str], category_str : str | None) ->
 #    - 'currency eur'
 #    - 'description like "wildcard"'
 #    - 'id = 123'
+# ideally:
+#     str : exact match | like wildcard | regex
+#     int : exact match | range
+#     float: range only
 # ---------------------------------------------------
 def core_semantic_filter_parse(
         semantic_filter : str
@@ -141,13 +145,13 @@ def core_semantic_filter_parse(
             return Record.id.between(id_ - bounds, id_ + bounds)
 
         # amount filters
-        case [("amount" | "am"), ("between" | "b"), lower_bound, upper_bound]:
-            print("Amount between a, b.")
+        case [("amount" | "am"), ("between" | "b"), lower_bound, "and", upper_bound]:
+            print("Amount between a and b.")
             lower_bound, upper_bound = map(float, [lower_bound, upper_bound])
             return Record.amount.between(lower_bound, upper_bound)
 
         # dates filters
-        case ["date", "like", date_wildcard] | ["date", date_wildcard]:
+        case ["date", "like", date_wildcard]:
             print("Date wildcard.")
             return Record.date.like(date_wildcard)
         
@@ -155,7 +159,7 @@ def core_semantic_filter_parse(
             print("Exact date match.")
             return Record.date == date_
         
-        case ["date", date_regex, ("r" | "regex" | "regexp")]:
+        case ["date", ("r" | "regex" | "regexp"), date_regex]:
             print("Date regex match.")
             return Record.date.regexp_match(date_regex)
 
@@ -164,13 +168,13 @@ def core_semantic_filter_parse(
             return Record.category == category_.upper()
         
         case [("category" | "cat"), "like", category_wildcard]:
-            return Record.category == category_wildcard.upper()
+            return Record.category.like(category_wildcard.upper())
         
-        case [("category" | "cat"), category_, ("r" | "regex" | "regexp") ]:
+        case [("category" | "cat"), ("r" | "regex" | "regexp"), category_]:
             return Record.category.regexp_match(category_.upper())
         
         # currency match
-        case [("currency" | "cur"), currency_]:
+        case [("currency" | "cur"), "=", currency_]:
             return Record.currency == currency_.upper()
 
         # description match
@@ -179,6 +183,9 @@ def core_semantic_filter_parse(
         
         case [("description" | "desc"), "=", description_str]:
             return Record.description == description_str
+        
+        case [("description" | "desc"), ('r' | 'regex' | 'regexp'), description_regex]:
+            return Record.description.regexp_match(description_regex)
         
         # empty semantic_filter
         # no filter attributed to semantic_filter

@@ -4,6 +4,9 @@ import urllib
 import requests
 import json
 from typing import List
+from ..utilities.miscellanea import has_internet
+from tempfile import gettempdir
+
 
 def fetch_category_dictionary(json_path: Path) -> dict[str, str]:
     """
@@ -77,21 +80,39 @@ def fetch_currency_exchange_rate(
 def fetch_exchange_dict(
         curr_list : List[str]
 ):
+    
+    CACHED_FILE = Path(gettempdir()) / "acccli" / "cached" / "exchange-cached.json"
+    CACHED_FILE.parent.mkdir(parents=True, exist_ok=True)
+
     n = len(curr_list)
     curr_exchange_dict = {}
     
-    # { "eur" : { "usd" : xx,  "pen" : yy, "eur" : 1}, ... }
-    for i in range(n):
-        curr_exchange_dict[curr_list[i]] = {}
-        for j in range(n):
-            if j < i:
-                res = 1 / curr_exchange_dict[curr_list[j]][curr_list[i]]
-            elif j == i :
-                res = 1
-            else:
-                res = fetch_currency_exchange_rate(curr_list[i], curr_list[j])
-            curr_exchange_dict[curr_list[i]].update(
-                { curr_list[j] : res }
-            )
+    if has_internet():
+        # { "eur" : { "usd" : xx,  "pen" : yy, "eur" : 1}, ... }
+        for i in range(n):
+            curr_exchange_dict[curr_list[i]] = {}
+            for j in range(n):
+                if j < i:
+                    res = 1 / curr_exchange_dict[curr_list[j]][curr_list[i]]
+                elif j == i :
+                    res = 1
+                else:
+                    res = fetch_currency_exchange_rate(curr_list[i], curr_list[j])
+                curr_exchange_dict[curr_list[i]].update(
+                    { curr_list[j] : res }
+                )
+
+        with open(CACHED_FILE, 'w') as file:
+            json.dump(curr_exchange_dict, file)
+
+    else:
+        print("Loading from cache since there is no Internet connection available.")
+        with open(CACHED_FILE, 'r') as file:
+            curr_exchange_dict = json.load(file)
+
+    print(
+        f"Current exchange dictionary loaded:\n"
+        f"{json.dumps(curr_exchange_dict, indent=4)}"
+    )
     
     return curr_exchange_dict

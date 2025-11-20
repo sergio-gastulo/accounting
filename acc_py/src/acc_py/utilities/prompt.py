@@ -220,7 +220,7 @@ def prompt_list_of_fields(
             f"{list_to_validate}\n"
             f"You can whether type an elemnt or a corresponding keybind:\n"
             f"{dumps(keybind_dict, indent=4)}\n"
-            f"e.g. 'd a' will be parsed to ['date', 'amount']"
+            f"e.g. 'd c cat' will be parsed to ['date', 'currency', 'category']"
         )
 
     # tries to convert to int

@@ -1,5 +1,6 @@
 import inspect
 from pandas import DataFrame
+import socket
 
 
 def print_func_doc(func: callable) -> None:
@@ -43,3 +44,15 @@ def pprint_df(
         return print_str
     else:
         print(print_str)
+
+
+# https://stackoverflow.com/a/33117579/29272030
+def has_internet(host="8.8.8.8", port=443, timeout=3):
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error as ex:
+        print(ex)
+        return False
+

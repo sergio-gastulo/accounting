@@ -11,6 +11,7 @@ class AccountingContext:
     engine: Engine | None
     categories_dict: dict[str, str]
     keybinds : dict[str, str | dict[str, str]]
+    
     # only necessary for plotting: 
     month_es: Optional[dict[int, str]] = None
     selected_category: Optional[str] = None

@@ -26,7 +26,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    from acc_py.plot.plot import pprint_df
-    import pandas as pd
-    df = pd.DataFrame({"description": list("jksla")}, index=list("abcde"))
-    pprint_df(df)
+    from acc_py.plot.plot import monthly_time_series
+    monthly_time_series("EUR")

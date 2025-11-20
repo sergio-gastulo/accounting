@@ -382,43 +382,38 @@ def delete(
 # ---------------------------------------------------
 
 def read(
-        n_lines : int | None = None,
+        n_lines : int | None = 20,
         semantic_filter : str | None = None,
         filter_today : bool = True,
         print_flag : bool = True
 ) -> pd.DataFrame | None:
     """
-    Query and display records from db with optional filtering.
+    Query and optionally display records from the database.
 
-    This function retrieves records from the database, applies an optional
-    semantic filter, and prints the results as a Markdown-formatted table.
-    By default, results are restricted to records dated up to today.
+    Retrieves records from the database, applies an optional semantic filter,
+    and prints the result as a Markdown table. By default, results are limited
+    to entries dated on or before today.
 
     Parameters
     ----------
-    n_lines : int
-        The maximum number of records to display.
+    n_lines : int | None, optional
+        Maximum number of records to return.
     semantic_filter : str | None, optional
-        A textual filter expression. If not provided, the user is prompted
-        interactively. Supported examples include:
+        A textual filter expression. Supported patterns:
         
-        - "amount between 10, 25"
-        - "date between 2025-01-01, 2025-06-30"
-        - "category 'Food'"
-        - "currency eur"
-        - "description like 'wildcard'"
-        - "id = 123"
+        - **str columns**: exact match, `LIKE` wildcard, or regex  
+        - **int columns**: exact match or numeric range  
+        - **float columns**: numeric range only
     filter_today : bool, default=True
-        Whether to restrict results to records dated on or before today.
+        If True, restricts results to records dated up to today.
+    print_flag : bool, default=True
+        If True, prints the resulting table in Markdown format.
 
     Notes
     -----
-    - Filtering expressions are parsed by `parse_semantic_filter`.
-    - When `semantic_filter` is omitted, the user can specify one or more
-    columns to filter interactively.
-    - The query is ordered by `Record.id` and limited to `n_lines`.
-    - Results are rendered using `pandas.read_sql` and displayed in Markdown
-    table format.
+    - Filter expressions are parsed by `parse_semantic_filter`.
+    - When `semantic_filter` is omitted, the user may be prompted interactively.
+    - Results are ordered by `Record.id` and limited by `n_lines`.
     """
 
     today = datetime.date.today()

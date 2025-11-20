@@ -10,8 +10,10 @@ A *really simple* CLI tool to help you track accounting information from the ter
 2. Run the following commands in PowerShell:
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
-   vim config-example.json # edit head of file
+   vim config-example.json # edit file
    Rename-Item config-example.json config.json
+   vim fields-example.json # edit file
+   Rename-Item fields-example.json fields.json
    Import-Module accounting
    AccountingCommandLineInterface <action> # or acccli <action>
    ```
@@ -57,15 +59,13 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## TODO
-- Provide WhatsApp message parsing.
-- `monthly_time_series` could fail better (if one plot fails, then all the plot fails, this should not happen).
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 - Provide toy files as examples.
-- Provide offline support (to eliminate exchange-currency features).
 - Provide color pretty-printing.
-- Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py)
-- Print exchange rates nicely.
+- We should allow weekly plots as well.
+- Provide WhatsApp message parsing // need to elaborate.
+- Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py) // need to elaborate.
 
 
 ## Requirements:

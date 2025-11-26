@@ -85,22 +85,26 @@ def prompt_date_operation(
 
 
 def prompt_double_currency(
+        default_currency : str,
         double_curr_input : str | None = None, 
         lower_bound : float = 0.0, 
         explain : bool = True
     ) -> tuple[float, str]:
     
-    if explain and double_curr_input is None:
+    if explain and not double_curr_input:
         print(
             f"To use this parser, you can do [+|=]operation [usd|eur|pen|...] (empty for default)."
             f"e.g. =9+9 usd -> (18, 'USD')"
         )
 
     while True: 
-        if double_curr_input is None:
+        if not double_curr_input:
             double_curr_input = input("Type your currency operation: ")
         try:
-            amount, currency = parse_double_currency(double_currency_str=double_curr_input, lower_bound=lower_bound)
+            amount, currency = parse_double_currency(
+                default_currency, 
+                double_curr_input, 
+                lower_bound)
             print(f"Sucess: amount={amount} currency={currency}")
             return amount, currency
         except Exception as e:

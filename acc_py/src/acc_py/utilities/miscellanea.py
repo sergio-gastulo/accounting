@@ -2,7 +2,7 @@ import inspect
 from pandas import DataFrame
 import socket
 import json
-from ..context.context import ctx
+from pathlib import Path
 
 
 def print_func_doc(func: callable) -> None:
@@ -61,14 +61,16 @@ def has_internet(host="8.8.8.8", port=443, timeout=3):
 # function that prints the entire categories_dict nicely
 # if help specified, it should print help for all available 
 def pprint_categories(
+        categories_dict : dict[str, str],
+        field_json_path : Path,
         help : bool = False
 ) -> None:
 
     if not help:
-        print(json.dumps(ctx.categories_dict, indent=4))
+        print(json.dumps(categories_dict, indent=4))
         return
 
-    with open(ctx.field_json_path, 'r') as file:
+    with open(field_json_path, 'r') as file:
         full_category_list = json.load(file)
     
     print_dict = {}

@@ -10,9 +10,11 @@ from sqlalchemy import select, not_
 from sqlalchemy.sql import functions, func
 from sqlalchemy.orm import Session
 
-from ..context.context import ctx
 from ..utilities.miscellanea import pprint_df
 from ..utilities.prompt import prompt_category_from_keybinds
+
+# fine to have ctx tbh, loades lots of configs
+from ..context.context import ctx
 
 
 # ======================================

@@ -9,6 +9,7 @@ from .utils import *
 
 from ..utilities.prompt import prompt_period
 from ..utilities.prompt import prompt_currency
+from ..db.db_api import get_full_currencies_list
 
 
 def set_context(
@@ -24,26 +25,26 @@ def set_context(
     ctx.field_json_path = fields_json_path
     ctx.categories_dict = fetch_category_dictionary(json_path=fields_json_path)
     ctx.keybinds = fetch_keybind_dict(json_path=fields_json_path)
-    ctx.default_currency = prompt_currency(config['context'].get('default_currency'))
-    ctx.editor = check_editor(config['context'].get("editor"))
+    ctx.default_currency = prompt_currency(config['context'].get('default_currency'), silent=True)
+    ctx.editor = check_editor(Path(config['context'].get("editor_path")))
 
     if plot:
         if config["context"].get("ask_period"):
             ctx.period = prompt_period()
         else:
             ctx.period = Period(date.today(), 'M')
-        ctx.month_es = config['context']['month_es']
-        ctx.currency_list = config['context']['currency_list']
-        ctx.colors = {
-            currency: (r / 255, g / 255, b / 255) 
-            for currency, (r, g, b) in zip(
-                ctx.currency_list,
-                # https://www.w3schools.com/colors/colors_picker.asp
-                config['context']['rgb_colors'] 
-            )
-        }
+        
+        currency_list = config['context'].get('currency_list')
+        if currency_list:
+            ctx.currency_list = check_currency_list(currency_list) 
+        else:
+            ctx.currency_list = get_full_currencies_list()
+
+        ctx.colors = check_colors(
+            color_list=config['context'].get('rgb_colors'),
+            currency_list=ctx.currency_list
+        )
         ctx.exchange_dictionary = fetch_exchange_dict(
             curr_list=[curr.lower() for curr in ctx.currency_list],
             cached_file=config['context'].get('cached_file')
-            )
-    
+        )

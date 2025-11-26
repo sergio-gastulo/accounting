@@ -569,3 +569,12 @@ def edit_list(
 
     # removing file after execution
     temp_file.unlink(missing_ok=True)
+
+
+def get_full_currencies_list() -> List[str]:
+
+    query_currencies = select(Record.currency.distinct())    
+    with Session(ctx.engine) as session:
+        return list(session.scalars(query_currencies))
+    
+    

@@ -42,6 +42,14 @@ def parse_arithmetic_operation (
 
 
 def parse_currency(currency : str) -> str:
+    """
+    Accepts str and returns 3 digit upper case str. 
+    
+    :param currency: Description
+    :type currency: str
+    :return: Description
+    :rtype: str
+    """
     if re.match(r'^[a-zA-Z]{3}$', string=currency):
         return currency.upper()
     else:

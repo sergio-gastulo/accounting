@@ -41,7 +41,10 @@ def prompt_arithmetic_operation(
             user_input = None
 
 
-def prompt_currency(currency_input : str | None = None) -> str:
+def prompt_currency(
+        currency_input : str | None = None,
+        silent : bool = True
+) -> str:
     
     while True: 
         if currency_input is None:
@@ -49,7 +52,8 @@ def prompt_currency(currency_input : str | None = None) -> str:
 
         try:
             currency = parse_currency(currency=currency_input)
-            print(f"Success: '{currency}'")
+            if not silent:
+                print(f"Success: '{currency}'")
             return currency
         except Exception as e: 
             print(f"'{currency_input}' could not be parsed: {e}")

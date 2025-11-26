@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import pandas as pd
-from typing import Tuple
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine.base import Engine
 from typing import Optional, List
 from pathlib import Path
 
@@ -21,7 +20,7 @@ class AccountingContext:
     month_es: Optional[dict[int, str]] = None
     period: Optional[pd.Period] = None
     currency_list : Optional[List] = None
-    colors: Optional[dict[str, Tuple[float, float, float]]] = None
+    colors: Optional[dict[str, tuple[float, float, float]]] = None
     exchange_dictionary : Optional[dict[str, dict[str, float | int]]] = None
 
 

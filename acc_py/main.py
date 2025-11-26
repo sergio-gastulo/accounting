@@ -13,7 +13,7 @@ def plot(config_path : Path, field_json_path : Path) -> None:
     globals()["p3"]  = pi.category_time_series
     globals()["p4"]  = pi.monthly_time_series
     globals()["h"]   = pi.h
-    pi.run(config_path=config_path, field_json_path=field_json_path) 
+    pi.run(config_path=config_path, field_json_path=field_json_path)
 
 
 # populate globals accordingly

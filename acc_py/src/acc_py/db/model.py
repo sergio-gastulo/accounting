@@ -1,8 +1,8 @@
 import datetime
+from pathlib import Path
 from sqlalchemy import String, Date, Numeric, MetaData
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
-from ..context.context import ctx
-
+from sqlalchemy.engine.base import Engine
 
 Base = declarative_base()
 
@@ -77,5 +77,5 @@ class Conversion(Base):
 
 
 
-def create_tables() -> None:
-    Base.metadata.create_all(ctx.engine, checkfirst=True)
+def create_tables(engine: Engine) -> None:
+    Base.metadata.create_all(engine, checkfirst=True)

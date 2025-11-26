@@ -33,5 +33,5 @@ For further help, you can do:
 
 def run(config_path : Path, field_json_path : Path) -> None:
     set_context(config_path, field_json_path)
-    create_tables()
+    create_tables(engine=ctx.engine)
     h()

@@ -2,6 +2,7 @@ from acc_py.context.context import ctx
 from acc_py.context.main import set_context
 import dotenv
 from acc_py.plot.plot import darkmode
+from pprint import pprint
 
 
 TESTING_PLOT = False
@@ -25,7 +26,8 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    from acc_py.utilities.prompt import prompt_double_currency
-    res = prompt_double_currency()
-    print("success: ")
-    print(res)
+    from acc_py.context.utils import check_colors
+    colors = []
+    curr_list = ["eur", "usd", "pen"]
+    c = check_colors(color_list=colors,  currency_list=curr_list)
+    pprint(c)

@@ -3,13 +3,17 @@ import json
 import urllib
 import requests
 import json
-from typing import List
+from typing import List, Tuple, Iterable
 from ..utilities.miscellanea import has_internet
 from tempfile import gettempdir
 from tkinter.filedialog import askopenfile
 from os import environ
 from ..utilities.core_parser import parse_currency
+import tkinter as tk
+from tkinter.colorchooser import askcolor
 
+
+RGB = Tuple[int, int, int]
 
 def fetch_category_dictionary(json_path: Path) -> dict[str, str]:
     """
@@ -152,6 +156,26 @@ def check_editor(editor_file : Path | None) -> Path:
     return editor_file
 
 
-def check_month_es():
-    pass
+def check_currency_list(currency_list : List[str]) -> List[str]:
+    return [parse_currency(currency=curr) for curr in currency_list]
 
+
+def check_colors(
+        color_list : Iterable[RGB] | None,
+        currency_list : List[str]
+) -> dict[str, RGB | str]:
+
+    if color_list:
+        dict_res = {
+            currency : [spec / 255 for spec in color if spec > 1] 
+            for currency, color in zip(currency_list, color_list)
+        }
+        return dict_res
+
+    root = tk.Tk()
+    root.withdraw()
+    dict_res = {
+        curr : askcolor(title=f"Pick color for {curr}:")[1] 
+        for curr in currency_list
+    }
+    return dict_res

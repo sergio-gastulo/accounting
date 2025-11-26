@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from src.acc_py.context.context import ctx
 from os import system
+from src.acc_py.utilities.miscellanea import pprint_categories as pc
 
 
 # populate globals accordingly

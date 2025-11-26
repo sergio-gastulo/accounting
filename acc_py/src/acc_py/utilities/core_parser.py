@@ -130,7 +130,7 @@ def parse_category(category_dict : dict[str, str], category_str : str | None) ->
 # ideally:
 #     str : exact match | like wildcard | regex
 #     int : exact match | range
-#     float: range only
+#     float: range only (continuum)
 # ---------------------------------------------------
 def core_semantic_filter_parse(
         semantic_filter : str

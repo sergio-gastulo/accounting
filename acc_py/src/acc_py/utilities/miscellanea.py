@@ -1,6 +1,9 @@
 import inspect
 from pandas import DataFrame
 import socket
+import json
+from pathlib import Path
+from ..context.context import ctx
 
 
 def print_func_doc(func: callable) -> None:
@@ -14,7 +17,6 @@ def print_func_doc(func: callable) -> None:
 
     doc = func.__doc__
     print(f'{cyan_str}Documentation:{end_str}\n{doc}')
-
 
 
 def pprint_df(
@@ -56,3 +58,31 @@ def has_internet(host="8.8.8.8", port=443, timeout=3):
         print(ex)
         return False
 
+
+# function that prints the entire categories_dict nicely
+# if help specified, it should print help for all available 
+def pprint_categories(
+        help : bool = False
+) -> None:
+
+    if not help:
+        print(json.dumps(ctx.categories_dict, indent=4))
+        return
+
+    with open(ctx.field_json_path, 'r') as file:
+        full_category_list = json.load(file)
+    
+    print_dict = {}
+
+    for category_item in full_category_list:
+        subcategory_item = category_item.get('subcategories')
+        if not subcategory_item:
+            print_dict.update(
+                { category_item['shortname'] : category_item['help']}
+            )
+        else:
+            for item in subcategory_item:
+                print_dict.update(
+                    { item['shortname'] : item['help']}
+                )
+    print(json.dumps(print_dict, indent=4))

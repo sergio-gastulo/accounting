@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from ..context.context import ctx
 from ..utilities.miscellanea import pprint_df
+from ..utilities.prompt import prompt_category_from_keybinds
 
 
 # ======================================
@@ -278,22 +279,19 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
 
 
 # alias: p3
-def category_time_series(category: str = None, period: str | pd.Period | None = None) -> None:
+def category_time_series(category: str | None, period: str | pd.Period | None = None) -> None:
     """
     Plot a time series for the given category.
 
     - The given period is highlighted if present.
-    - If no period is provided, defaults to the current period.
-    - If the period is outside the data, a warning is printed.
+    - If the period lies out of the date range, a warning is printed.
 
     Useful for categories that should stay around an average (e.g. INGRESOS, CASA-ALQUILER).
     """
 
-    if category is None:
-        category = ctx.selected_category
-    if category not in ctx.categories_dict:
-        print(f"Category '{category}' is not a valid category.")
-        return
+    # ensuring a valid category
+    category = prompt_category_from_keybinds(ctx.keybinds, category)
+
     if period is None:
         period = ctx.period
     else: 

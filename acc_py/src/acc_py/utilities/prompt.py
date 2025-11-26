@@ -127,23 +127,6 @@ def prompt_period(period_input : str | None = None) -> Period:
             period_input = None
 
 
-def prompt_category(
-        category_dictionary : dict[str, str],
-        category_input : str | None = None
-) -> str:
-    while True:
-        if category_input is None:
-            print(dumps(category_dictionary, indent=4))
-            category_input = input("Type category (leave empty for random choice): ")
-        try: 
-            category = parse_category(category_dictionary, category_input)
-            print(f"Sucess: {category}")
-            return category
-        except Exception:
-            print(f"Something went wrong: \n{traceback.format_exc()}")
-            category_input = None
-
-
 # as this asks for double input depending on the context, 
 # there is no call fromkeybind core_parser.py
 def prompt_category_from_keybinds(

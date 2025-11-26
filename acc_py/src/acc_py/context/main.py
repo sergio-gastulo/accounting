@@ -5,9 +5,10 @@ from pandas import Period
 from datetime import date
 
 from .context import ctx
-from ..utilities.get import *
+from .utils import *
+
 from ..utilities.prompt import prompt_period
-from ..utilities.get import fetch_keybind_dict
+from ..utilities.prompt import prompt_currency
 
 
 def set_context(
@@ -23,10 +24,11 @@ def set_context(
     ctx.field_json_path = fields_json_path
     ctx.categories_dict = fetch_category_dictionary(json_path=fields_json_path)
     ctx.keybinds = fetch_keybind_dict(json_path=fields_json_path)
-
+    ctx.default_currency = prompt_currency(config['context'].get('default_currency'))
+    ctx.editor = check_editor(config['context'].get("editor"))
 
     if plot:
-        if config["context"]["ask_period"]:
+        if config["context"].get("ask_period"):
             ctx.period = prompt_period()
         else:
             ctx.period = Period(date.today(), 'M')
@@ -40,5 +42,8 @@ def set_context(
                 config['context']['rgb_colors'] 
             )
         }
-        ctx.exchange_dictionary = fetch_exchange_dict([curr.lower() for curr in ctx.currency_list])
+        ctx.exchange_dictionary = fetch_exchange_dict(
+            curr_list=[curr.lower() for curr in ctx.currency_list],
+            cached_file=config['context'].get('cached_file')
+            )
     

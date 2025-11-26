@@ -6,6 +6,9 @@ import json
 from typing import List
 from ..utilities.miscellanea import has_internet
 from tempfile import gettempdir
+from tkinter.filedialog import askopenfile
+from os import environ
+from ..utilities.core_parser import parse_currency
 
 
 def fetch_category_dictionary(json_path: Path) -> dict[str, str]:
@@ -26,9 +29,16 @@ def fetch_category_dictionary(json_path: Path) -> dict[str, str]:
     return shortname_descript_dict
 
 
-
 def fetch_keybind_dict(json_path : Path) -> dict[str, str | dict[str, str]]:
+    """
+    Retrieves a keybind dict for fast category-writing from json_path.
     
+    :param json_path: Description
+    :type json_path: Path
+    :return: Description
+    :rtype: dict[str, str | dict[str, str]]
+    """
+
     keybind_dict = {}
 
     def sort_dict(d : dict[str, str]) -> dict[str, str]:
@@ -78,11 +88,14 @@ def fetch_currency_exchange_rate(
 
 
 def fetch_exchange_dict(
-        curr_list : List[str]
+        curr_list : List[str],
+        cached_file : Path | None = None
 ):
-    
-    CACHED_FILE = Path(gettempdir()) / "acccli" / "cached" / "exchange-cached.json"
-    CACHED_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    if not cached_file:
+        cached_file = Path(gettempdir()) / "acccli" / "cached" / "exchange-cached.json"
+
+    cached_file.parent.mkdir(parents=True, exist_ok=True)
 
     n = len(curr_list)
     curr_exchange_dict = {}
@@ -102,12 +115,12 @@ def fetch_exchange_dict(
                     { curr_list[j] : res }
                 )
 
-        with open(CACHED_FILE, 'w') as file:
+        with open(cached_file, 'w') as file:
             json.dump(curr_exchange_dict, file)
 
     else:
         print("Loading from cache since there is no Internet connection available.")
-        with open(CACHED_FILE, 'r') as file:
+        with open(cached_file, 'r') as file:
             curr_exchange_dict = json.load(file)
 
     print(
@@ -116,3 +129,29 @@ def fetch_exchange_dict(
     )
     
     return curr_exchange_dict
+
+
+
+def check_editor(editor_file : Path | None) -> Path:
+    
+    if editor_file.exists() and editor_file.suffix == ".exe":
+        return editor_file
+    
+    program_files = environ['ProgramFiles']
+    title = "Select your preferred text editor."
+    allowed = [("Exe", "*.exe")]
+    
+    while not editor_file:
+        print("An editor file is mandatory for editing, please pick one.")
+        editor_file = askopenfile(
+            initialdir=program_files, 
+            title=title,
+            filetypes=allowed
+        )
+
+    return editor_file
+
+
+def check_month_es():
+    pass
+

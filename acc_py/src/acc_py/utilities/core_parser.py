@@ -13,7 +13,7 @@ from sqlalchemy import select, true, text
 from sqlalchemy.sql.elements import BinaryExpression, TextClause
 
 from ..db.model import Record
-
+from ..context.context import ctx
 
 # convention: parse_usage (obj : str) -> obj
 # should only contain raises and returns
@@ -84,9 +84,12 @@ def parse_date(date_str : str) -> date:
 
 def parse_double_currency(double_currency_str : str, lower_bound : float = 0.0) -> tuple[float, str]:
     try:
-        operation_str, currency_str = re.match(r'(.*)(\w{3})$', double_currency_str).groups()
+        operation_str, currency_str = re.match(r'^([\d\+\-\=\*\/\s]+)(\s[a-zA-Z]{3})?$', double_currency_str).groups()
         operation = parse_arithmetic_operation(operation_str, lower_bound)
-        currency = parse_currency(currency_str)
+        if currency_str:
+            currency = parse_currency(currency_str.strip())
+        else: 
+            currency = parse_currency(ctx.default_currency)
         return operation, currency
     except:
         raise SyntaxError(f"'{double_currency_str}' could not be parsed as a valid operation, currency pair.")

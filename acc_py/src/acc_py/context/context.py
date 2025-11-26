@@ -13,7 +13,10 @@ class AccountingContext:
     categories_dict: dict[str, str]
     keybinds : dict[str, str | dict[str, str]]
     field_json_path : Path
-    
+    default_currency : str
+    # https://stackoverflow.com/questions/3579568/choosing-a-file-in-python-with-simple-dialog
+    editor : Path
+
     # only necessary for plotting: 
     month_es: Optional[dict[int, str]] = None
     period: Optional[pd.Period] = None

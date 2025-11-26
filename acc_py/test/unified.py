@@ -1,4 +1,4 @@
-from acc_py.context import ctx, AccountingContext
+from acc_py.context.context import ctx
 from acc_py.context.main import set_context
 import dotenv
 from acc_py.plot.plot import darkmode
@@ -25,7 +25,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    from acc_py.utilities.miscellanea import pprint_categories
-    pprint_categories(
-        help=True
-    )
+    from acc_py.utilities.prompt import prompt_double_currency
+    res = prompt_double_currency()
+    print("success: ")
+    print(res)

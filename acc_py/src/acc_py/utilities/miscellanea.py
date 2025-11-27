@@ -48,7 +48,23 @@ def pprint_df(
 
 
 # https://stackoverflow.com/a/33117579/29272030
-def has_internet(host="8.8.8.8", port=443, timeout=3):
+def has_internet(
+        host : str = "8.8.8.8", 
+        port : int = 443, 
+        timeout : int = 3
+) -> bool:
+    """
+    Function that checks if there is internet.
+    
+    :param host:
+    :type host: str
+    :param port:
+    :type port: int
+    :param timeout:
+    :type timeout: int
+    :return:
+    :rtype: bool
+    """
     try:
         socket.setdefaulttimeout(timeout)
         socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))

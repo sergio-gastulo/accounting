@@ -67,9 +67,11 @@ def on_click_printable(
 
 
 def darkmode() -> None:
-    plt.style.use('dark_background')
-    plt.rcParams['font.family'] = 'monospace'
-    plt.rcParams['font.size'] = 12
+    if ctx.darkmode:
+        plt.style.use('dark_background')
+        plt.rcParams['font.family'] = 'monospace'
+        plt.rcParams['font.size'] = 12
+        
 
 
 # ---------------------------------
@@ -153,7 +155,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
         values = df.total_amount
         max_value = max(values)
         labels = [ctx.categories_dict[key] for key in df.category]
-        bars = ax.barh(labels, values, height=0.8, color=(1,1,1), align='center')
+        bars = ax.barh(labels, values, height=0.8, color = (1,1,1), align='center')
         ax.tick_params(axis='y', labelsize=10.5)
 
         bars_per_ax.append((ax, bars, df.category.to_list(), currency))
@@ -180,7 +182,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
                 for bar, label in zip(bars, labels):
                     contains, _ = bar.contains(event)
                     if contains:
-                        bar.set_color('red')
+                        bar.set_color(ctx.bar_color)
                         df_category = (
                             on_click_printable(
                                 period=period_str, 

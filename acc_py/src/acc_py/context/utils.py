@@ -15,6 +15,7 @@ from tkinter.colorchooser import askcolor
 
 RGB = Tuple[int, int, int]
 
+
 def fetch_category_dictionary(json_path: Path) -> dict[str, str]:
     """
     Loads JSON from 'path' and flattens the fields.json in the key-value pair format: 'shortname': 'description'   

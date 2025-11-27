@@ -3,10 +3,8 @@ from sqlalchemy import (
     select,
     desc
 )
-
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import TextClause
-from sqlalchemy.engine.base import Engine
 
 import datetime
 import pandas as pd
@@ -22,9 +20,10 @@ from ..utilities.core_parser import (
     parse_arithmetic_operation
 )
 from ..utilities import prompt
+from ..context.context import ctx
 from ..db.model import (
     Record,
-    Conversion
+    Conversion    
 )
 from ..utilities.miscellanea import pprint_df
 
@@ -38,13 +37,10 @@ TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
 # write(field=value) -> specify some fields beforehand
 # ----------------------------------------------------
 def write(
-        engine : Engine,
-        keybinds : dict[str, str | dict[str, str]],
-        default_currency : str,
         date : datetime.date | None = None,
         operation_str : str | None = None,
         description : str | None = None,
-        category : str | None = None,
+        category : str | None = None
 ) -> None:
     # yes, documentation from ChatGPT because I'm lazy
     """
@@ -78,12 +74,12 @@ def write(
     """
 
     date = prompt.prompt_date_operation(date)
-    amount, currency = prompt.prompt_double_currency(default_currency, operation_str)
+    amount, currency = prompt.prompt_double_currency(ctx.default_currency, operation_str)
     if not description:
         description = input("Type your description: ")
-    category = prompt.prompt_category_from_keybinds(keybinds, category)
+    category = prompt.prompt_category_from_keybinds(ctx.keybinds, category)
 
-    with Session(engine) as session:
+    with Session(ctx.engine) as session:
         record = Record(
             date=date, amount=amount, 
             currency=currency, description=description, 
@@ -113,8 +109,6 @@ def write(
 # then parses a list of records and writes them all
 # ------------------------------------------------------
 def write_list(
-        engine : Engine,
-        keybinds : dict[str, str | dict[str, str]],
         fixed_fields : dict[str, str | int] | None = None 
 ) -> None:
     """
@@ -140,7 +134,7 @@ def write_list(
     - All other responses default to *not committing*.
     """
 
-    fixed_fields = prompt.prompt_column_value(keybinds, fixed_fields)
+    fixed_fields = prompt.prompt_column_value(ctx.keybinds, fixed_fields)
 
     # sorry for this, ik it's painful to read
     template_str = ((Path(__file__).parent / ".." / "templates" / "csv_metadata.j2")).resolve().read_text()
@@ -161,7 +155,7 @@ def write_list(
     
     # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_dict.html 
     records = df.to_dict(orient='records') # has nothing to do with Record
-    with Session(engine) as session:
+    with Session(ctx.engine) as session:
         session.bulk_insert_mappings(
             Record,
             records,
@@ -189,8 +183,6 @@ def write_list(
 
 
 def write_conversion(
-        engine : Engine,
-        default_currency: str,
         date : datetime.date | None = None,
         base_operation_str : str | None = None,
         target_operation_str : str | None = None,
@@ -214,15 +206,15 @@ def write_conversion(
     """
     date = prompt.prompt_date_operation(date)
     print("Prompting base.\n")
-    base_amount, base_currency = prompt.prompt_double_currency(default_currency, base_operation_str, explain=False)
+    base_amount, base_currency = prompt.prompt_double_currency(base_operation_str, explain=False)
     
     print("Prompting target.\n")
-    target_amount, target_currency = prompt.prompt_double_currency(default_currency, target_operation_str, explain=False)
+    target_amount, target_currency = prompt.prompt_double_currency(target_operation_str, explain=False)
     
     if not description:
         description = input("Type your description: ")
     
-    with Session(engine) as session:
+    with Session(ctx.engine) as session:
         conv = Conversion(
             date=date, base_currency=base_currency,
             base_amount=base_amount,target_currency=target_currency,
@@ -251,8 +243,6 @@ def write_conversion(
 # ------------------------------------------------------
 
 def edit(
-        engine : Engine,
-        keybinds : dict[str, str | dict[str, str]],
         id : int | None = None,
         record : Record | None = None,
         fields : str | None = None
@@ -284,10 +274,10 @@ def edit(
     """
 
     if not record:
-        record = prompt.prompt_record_by_id(engine, id)
+        record = prompt.prompt_record_by_id(ctx.engine, id)
     
     edit_dictionary = prompt.prompt_column_value(
-        keybinds, 
+        ctx.keybinds, 
         fields_str=fields
     )
     
@@ -301,7 +291,7 @@ def edit(
     confirm : str = input("Confirm your commit [y/N]: ")
 
     if confirm.lower() in ('y', 'yes'):
-        with Session(engine) as session:
+        with Session(ctx.engine) as session:
             session.add(record)
             session.commit()
         print("Record commited.")
@@ -322,7 +312,6 @@ def edit(
 # delete(id)
 # ------------------------------------------------
 def delete(
-        engine : Engine,
         id : int | None = None, 
         record : Record | None = None
 ) -> None:
@@ -353,13 +342,13 @@ def delete(
     """
 
     print("\nWarning. You can lose data permanently.\n")
-    record = prompt.prompt_record_by_id(engine, id)
+    record = prompt.prompt_record_by_id(ctx.engine, id)
 
     while True:
         confirm : str = input("Confirm your commit [y/N]: ")
 
         if confirm.lower() in ('y', 'yes'):
-            with Session(engine) as session:
+            with Session(ctx.engine) as session:
                 session.delete(record)
                 session.commit()
             print("Record commited.")
@@ -393,7 +382,6 @@ def delete(
 # ---------------------------------------------------
 
 def read(
-        engine : Engine,
         n_lines : int | None = 20,
         semantic_filter : str | None = None,
         filter_today : bool = True,
@@ -441,7 +429,7 @@ def read(
             stmt = stmt.limit(n_lines)
         stmt = stmt.order_by(desc(Record.id))
     
-    df = pd.read_sql(stmt, engine, index_col='id')
+    df = pd.read_sql(stmt, ctx.engine, index_col='id')
 
     if print_flag:
         pprint_df(df)
@@ -450,12 +438,11 @@ def read(
 
 
 def read_conversion(
-        engine : Engine,
-        print_flag : bool = True
+    print_flag : bool = True
 ) -> pd.DataFrame | None:
     
     stmt = select(Conversion)
-    df = pd.read_sql(stmt, engine, index_col='id')
+    df = pd.read_sql(stmt, ctx.engine, index_col='id')
 
     if print_flag:
         pprint_df(df)
@@ -474,7 +461,6 @@ def read_conversion(
 # edit but provides secure parsing
 # ---------------------------------------------------
 def edit_list(
-        engine : Engine,
         *ids : int,
         as_range : bool = True
 ) -> None:
@@ -533,7 +519,7 @@ def edit_list(
     # retrieve records and save to csv
     (
         pd
-        .read_sql(sql=stmt, con=engine, index_col='id')
+        .read_sql(sql=stmt, con=ctx.engine, index_col='id')
         .to_csv(temp_file, mode='a', header=False)
     )
 
@@ -560,7 +546,7 @@ def edit_list(
     df.amount = df.amount.map(cleaner)
 
     # replace data
-    with Session(engine) as session:
+    with Session(ctx.engine) as session:
         session.bulk_update_mappings(
             Record,
             df.to_dict(orient='records')
@@ -585,10 +571,8 @@ def edit_list(
     temp_file.unlink(missing_ok=True)
 
 
-def get_full_currencies_list(
-        engine : Engine
-) -> List[str]:
+def get_full_currencies_list() -> List[str]:
 
     query_currencies = select(Record.currency.distinct())    
-    with Session(engine) as session:
+    with Session(ctx.engine) as session:
         return list(session.scalars(query_currencies))

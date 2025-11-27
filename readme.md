@@ -6,7 +6,6 @@ A *really simple* CLI tool to help you track accounting information from the ter
 ## **Installation**  
 1. Clone the repository into a directory included in your PowerShell module path (`$Env:PSModulePath`).  
    - More details on PowerShell module paths can be found in the [official documentation](https://learn.microsoft.com/es-es/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.5).  
-
 2. Run the following commands in PowerShell:
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
@@ -17,7 +16,6 @@ A *really simple* CLI tool to help you track accounting information from the ter
    Import-Module accounting
    AccountingCommandLineInterface <action> # or acccli <action>
    ```
-
 3. If you have python-dependencies issues, don't worry! You can:
 	```
 	cd /path/to/cloned/repo/acc_py
@@ -25,7 +23,10 @@ A *really simple* CLI tool to help you track accounting information from the ter
 	```
 	Of course, you must have [poetry](https://python-poetry.org/) installed.
 
-### JSON Structure
+### config.json
+Check config-example.json for an up-to-date example.
+
+### fields.json
 It defines a list of categories. Each category contains basic metadata, and optionally, subcategories. Field Descriptions: 
 * key (string) – Unique identifier for the category.
 * shortname (string) – A brief display name.
@@ -66,6 +67,8 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - We should allow weekly plots as well.
 - Provide WhatsApp message parsing // need to elaborate.
 - Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py) // need to elaborate.
+- Provide light-mode support on plot.py
+- Full config.json support (all customizable).
 
 
 ## Requirements:

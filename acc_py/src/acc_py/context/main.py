@@ -23,28 +23,30 @@ def set_context(
 
     ctx.engine = create_engine(url=f"sqlite:///{config['db_path']}")
     ctx.field_json_path = fields_json_path
-    ctx.categories_dict = fetch_category_dictionary(json_path=fields_json_path)
     ctx.keybinds = fetch_keybind_dict(json_path=fields_json_path)
-    ctx.default_currency = prompt_currency(config['context'].get('default_currency'), silent=True)
-    ctx.editor = check_editor(Path(config['context'].get("editor_path")))
+    ctx.default_currency = prompt_currency(config.get('default_currency'), silent=True)
+    ctx.editor = check_editor(Path(config.get("editor_path")))
 
     if plot:
-        if config["context"].get("ask_period"):
+        ctx.darkmode = config.get('darkmode')
+        ctx.bar_color = config.get('bar_color')
+        ctx.categories_dict = fetch_category_dictionary(json_path=fields_json_path)
+        if config.get("ask_period"):
             ctx.period = prompt_period()
         else:
             ctx.period = Period(date.today(), 'M')
         
-        currency_list = config['context'].get('currency_list')
+        currency_list = config.get('currency_list')
         if currency_list:
             ctx.currency_list = check_currency_list(currency_list) 
         else:
             ctx.currency_list = get_full_currencies_list()
 
         ctx.colors = check_colors(
-            color_list=config['context'].get('rgb_colors'),
+            color_list=config.get('rgb_colors'),
             currency_list=ctx.currency_list
         )
         ctx.exchange_dictionary = fetch_exchange_dict(
             curr_list=[curr.lower() for curr in ctx.currency_list],
-            cached_file=config['context'].get('cached_file')
+            cached_file=config.get('cached_file')
         )

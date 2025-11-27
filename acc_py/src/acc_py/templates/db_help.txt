@@ -1,0 +1,16 @@
+Interactive DB management via SQLAlchemy.
+
+Available functions:
+    e  = edit
+    d  = delete
+    w  = write
+    wl = write_list
+    wc = write_conversion
+    rc = read_conversion
+    r  = read
+    el = edit_list
+    load // loads plot module -- db.h -> h_db
+
+For further help, you can do: 
+    - h(f)      -> prints documentation of f
+    - h()       -> prints this message

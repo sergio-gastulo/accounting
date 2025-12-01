@@ -97,7 +97,7 @@ def parse_double_currency(
         lower_bound : float = 0.0,
 ) -> tuple[float, str]:
     try:
-        operation_str, currency_str = re.match(r'^([\d\+\-\=\*\/\s]+)(\s[a-zA-Z]{3})?$', double_currency_str).groups()
+        operation_str, currency_str = re.match(r'^([\d\+\-\=\.\*\/\s]+)(\s[a-zA-Z]{3})?$', double_currency_str).groups()
         operation = parse_arithmetic_operation(operation_str, lower_bound)
         if currency_str:
             currency = parse_currency(currency_str.strip())

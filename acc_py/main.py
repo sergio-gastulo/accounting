@@ -7,6 +7,7 @@ from typing import Callable
 from src.acc_py.utilities.miscellanea import print_func_doc
 from src.acc_py.context.main import set_context
 from src.acc_py.context.context import ctx
+from src.acc_py.utilities.miscellanea import pprint_categories
 
 
 p1 : Callable = None
@@ -22,12 +23,48 @@ rc : Callable = None
 r : Callable = None
 el : Callable = None
 h : Callable = None
+
+
+#region ########################### interface-independent ######################
+
 DOCS_DIR : Path = Path(__file__).resolve().parent / "src" / "acc_py" / "templates"
+
+def pc(help : bool = False) -> None:
+    """
+    Print all categories in a readable, formatted way.
+
+    Parameters
+    ----------
+    categories_dict : dict[str, str]
+        A mapping of category names to their descriptions.
+        Each key is a category name, and each value is the category's
+        human-readable label or explanation.
+
+    field_json_path : Path
+        Path to the JSON file from which the categories originate.
+        Used for reference only; the function does not modify the file.
+
+    help : bool, optional
+        If False (default), print each category and its description
+        in a clean, aligned, human-friendly format.
+        If True, print extended help information for all available
+        categories, including additional notes or hints contained in the
+        descriptions.
+
+    Returns
+    -------
+    None
+        This function only prints formatted output and does not return a value.
+    """
+    pprint_categories(
+        categories_dict=ctx.categories_dict,
+        field_json_path=ctx.field_json_path,
+        help=help
+    )
 
 
 # https://www.reddit.com/r/learnpython/comments/1b4sk5n/comment/kt1bgsy/
 c = lambda : os.system('cls' if os.name == 'nt' else 'clear')
-
 
 def custom_help(arg : str, func : Callable | None = None) -> None:
 
@@ -44,6 +81,9 @@ def custom_help(arg : str, func : Callable | None = None) -> None:
         return
 
 
+#endregion ######################### interface-independent ######################
+
+
 def plot() -> None:
     import src.acc_py.plot.plot as pp
     pp.darkmode()
@@ -53,6 +93,7 @@ def plot() -> None:
     p3 = pp.category_time_series
     p4 = pp.monthly_time_series
     if h:
+        print("Setting db.h as h_db")
         globals()["h_db"] = h
     h  = lambda f=None : custom_help(arg='plot', func=f)
     globals()["load"] = db
@@ -92,7 +133,7 @@ def main(
         db()
 
     else:
-        print(f"'{flag}' is not a valid flag.")
+        raise ValueError(f"'{flag}' is not a valid flag.")
 
 
 if __name__ == "__main__":

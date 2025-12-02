@@ -1,7 +1,7 @@
 # old repo files
 files/
 
-#regular py-vscode trash
+# regular py-vscode trash
 **/env/
 **/.env
 **/__pycache__

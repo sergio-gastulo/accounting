@@ -48,5 +48,6 @@ def set_context(
         )
         ctx.exchange_dictionary = fetch_exchange_dict(
             curr_list=[curr.lower() for curr in ctx.currency_list],
+            use_cache=config.get('use_cache'),
             cached_file=config.get('cached_file')
         )

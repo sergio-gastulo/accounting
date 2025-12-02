@@ -10,7 +10,8 @@ Available functions:
     r  = read
     el = edit_list
     load // loads plot module -- db.h -> h_db
-
+    pc = pretty prints categories
+    
 For further help, you can do: 
     - h(f)      -> prints documentation of f
     - h()       -> prints this message

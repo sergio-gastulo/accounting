@@ -70,7 +70,8 @@ function Install-Python
     if (-not (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Error `
         -Message "Function is allowed in Administrator Mode only." `
-        -Category PermissionDenied
+        -Category PermissionDenied `
+        -ErrorAction Stop
     }
 
     # check version regex
@@ -78,7 +79,8 @@ function Install-Python
     {
         Write-Error `
         -Message "Not a valid version format has been specified: '$version'." `
-        -Category InvalidArgument
+        -Category InvalidArgument `
+        -ErrorAction Stop
     }
 
     # ensure version and architecture
@@ -154,7 +156,8 @@ function Install-SQLite3
     if (-not (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Error `
         -Message "Function is allowed in Administrator Mode only." `
-        -Category PermissionDenied
+        -Category PermissionDenied `
+        -ErrorAction Stop
     }
 
     Write-Host "Installing SQLite3 tools..."
@@ -194,9 +197,9 @@ function Test-AccountingHealth
     try {
         $python = Get-Command python.exe -All
         # this path is just a path to the Microsoft Store. 
-        # Should not be a valid python path. 
-        $invalidPythonPath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "Microsoft\WindowsApp\python.exe"
-        if ( $python[0].Source -eq $invalidPythonPath)
+        # it should not be a valid python path. 
+        $invalidpyScriptPath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "Microsoft\WindowsApp\python.exe"
+        if ( $python[0].Source -eq $invalidpyScriptPath)
         {
             throw
         }
@@ -208,23 +211,58 @@ function Test-AccountingHealth
     } 
     catch 
     {
-        Write-Warning "python.exe is not installed on this computer."
+        Write-Error `
+        -Message "python.exe is not installed on this computer." `
+        -Category ObjectNotFound 
         Write-Host "If you would like to install python, please execute Install-Python from Powershell with elevated privileges."
         Write-Host "To launch powershell with elevated privileges, you can execute 'saps powershell -verb runas' and import the module again."
+        return
     }
-
+    
     # check sqlite3
     where.exe sqlite3 > $null 2>&1
     if ( $LASTEXITCODE -eq 1 )
     {
-        Write-Warning "sqlite3.exe is not installed on this computer."
+        Write-Error `
+        -Message "sqlite3.exe is not installed on this computer." `
+        -Category ObjectNotFound 
         Write-Host "If you would like to install sqlite3, please execute 'Install-SQLite3' from Powershell with elevated privileges."
         Write-Host "To launch powershell with elevated privileges, you can execute 'saps powershell -verb runas' and import the module again."
+        return
     }
     else
     {
         Write-Host "Sqlite3 is succesfully installed on this machine:" -ForegroundColor Blue
         sqlite3.exe --version
+    }
+
+    # Checking config paths
+    $configPath = Join-Path -Path $PSScriptRoot -ChildPath ".\config.json"
+    if(Test-Path $configPath)
+    {
+        Write-Host "config.json successfully found." -ForegroundColor Blue
+    }
+    else
+    {
+        Write-Error `
+        -Message "Could not find valid configuration file." `
+        -Category ObjectNotFound
+        Write-Host "Try renaming config-example.json!"
+        return
+    }
+    
+    $fieldsJSONPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
+    if(Test-Path $fieldsJSONPath)
+    {
+        Write-Host "config.json successfully found." -ForegroundColor Blue
+    }
+    else
+    {
+        Write-Error `
+        -Message "Could not find valid configuration file." `
+        -Category ObjectNotFound
+        Write-Host "Try renaming config-example.json!"
+        return
     }
 }
 
@@ -267,14 +305,14 @@ function AccountingCommandLineInterface
 
     # configuration and paths update
     $configPath = Join-Path -Path $PSScriptRoot -ChildPath ".\config.json"
-    $databasePath = (Get-Content $configPath -Raw | ConvertFrom-Json).db_path
-    $pythonPath = Join-Path -Path $PSScriptRoot -ChildPath ".\acc_py\main.py"
     $fieldsJSONPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
+    $databasePath = (Get-Content $configPath -Raw | ConvertFrom-Json).db_path
+    $pyScriptPath = Join-Path -Path $PSScriptRoot -ChildPath ".\acc_py\main.py"
 
     switch ($action) 
     {
-        'plot'      { python -i $pythonPath $configPath $fieldsJSONPath 'plot' }
-        'db'        { python -i $pythonPath $configPath $fieldsJSONPath 'db' }
+        'plot'      { python -i $pyScriptPath $configPath $fieldsJSONPath 'plot' }
+        'db'        { python -i $pyScriptPath $configPath $fieldsJSONPath 'db' }
         'help'      { Get-Help AccountingCommandLineInterface }
         'sql'       { sqlite3.exe $databasePath }
         'backup'
@@ -287,6 +325,7 @@ function AccountingCommandLineInterface
         default { throw "Unknown action: '$action'" }
     }
 }
+
 
 if ( $flags ) 
 {
@@ -302,13 +341,11 @@ if ( $flags -contains "health" )
     Write-Host "Flag 'health' detected. Importing Test-AccountingHealth." -ForegroundColor Blue
     Export-ModuleMember -Function Test-AccountingHealth -Alias test-acc-health
 }
-elseif ( $flags -contains "install" ) 
+if ( $flags -contains "install" ) 
 {
     Write-Host "Flag 'install' detected. Importing Install-Python and Install-SQLite3" -ForegroundColor Blue
     Export-ModuleMember -Function Install-Python,Install-SQLite3
 } 
-else 
-{
-    Write-Host "Main function imported: AccountingCommandLineInterface (aka acccli)." -ForegroundColor Blue
-    Export-ModuleMember -Function AccountingCommandLineInterface -Alias acccli
-}
+
+Write-Host "Main function imported: AccountingCommandLineInterface (aka acccli)." -ForegroundColor Blue
+Export-ModuleMember -Function AccountingCommandLineInterface -Alias acccli

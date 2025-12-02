@@ -12,9 +12,8 @@ if __name__ == "__main__":
     debug_main(
         config_path=config["CONFIG_PATH"], 
         fields_json_path=config["FIELDS_JSON_PATH"],
-        flag='db'
+        flag='plot'
     )
 
-    from acc_py.utilities.prompt import prompt_double_currency
-
-    prompt_double_currency(ctx.default_currency, "4.7 EUR")
+    from src.acc_py.plot.plot import category_time_series
+    category_time_series(category='COMIDA-GROCERIES')

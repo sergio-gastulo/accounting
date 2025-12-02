@@ -94,13 +94,19 @@ def fetch_currency_exchange_rate(
 
 def fetch_exchange_dict(
         curr_list : List[str],
-        cached_file : Path | None = None
+        cached_file : Path | None = None,
+        use_cache : bool = False
 ):
 
     if not cached_file:
         cached_file = Path(gettempdir()) / "acccli" / "cached" / "exchange-cached.json"
 
     cached_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if use_cache:
+        with open(cached_file, 'r') as file:
+            curr_exchange_dict = json.load(file)
+        return curr_exchange_dict
 
     n = len(curr_list)
     curr_exchange_dict = {}

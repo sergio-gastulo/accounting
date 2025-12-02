@@ -46,7 +46,7 @@ def get_currency_list_by_period(
         return list(session.scalars(query_currencies))
 
 
-def on_click_printable(
+def filter_by_period_category_currency(
         period : str,
         category : str,
         currency : str
@@ -184,7 +184,7 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
                     if contains:
                         bar.set_color(ctx.bar_color)
                         df_category = (
-                            on_click_printable(
+                            filter_by_period_category_currency(
                                 period=period_str, 
                                 category=label, 
                                 currency=currency
@@ -294,12 +294,12 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
     """
 
     # ensuring a valid category
-    category = prompt_category_from_keybinds(ctx.keybinds, category)
+    if not category:
+        category = prompt_category_from_keybinds(ctx.keybinds, category)
 
-    if period is None:
+    if not period:
         period = ctx.period
-    else: 
-        period = pd.Period(period, 'M')
+    period = period.asfreq(freq='W')
     
     timestamp_period = period.to_timestamp()
     period_str = str(period)
@@ -307,22 +307,23 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
     query_total = (
         select(
             Record.currency,
-            PERIOD_COL,
+            func.strftime('%Y %W', Record.date).label('period'),
             TOTAL_AMOUNT_COL
         ).where(
-            Record.category == category
+            Record.category == category,
+            not_(INCLUDING_INCOMES)
         ).group_by(
             Record.currency,
-            PERIOD_COL
+            'period'
         )
     )
 
     df = pd.read_sql(
         query_total,
-        con=ctx.engine,
-        parse_dates={"period": {"format": "%Y-%m"}}
+        con=ctx.engine
     )
-    df.period = df.period.dt.to_period('M')
+    # https://stackoverflow.com/a/52851529/29272030
+    df['period'] = pd.to_datetime(df.period.astype(str) + ' 1', format='%Y %U %w')
 
     currency_list_period = df[df.period == period_str].currency.unique()
     currency_list = df.currency.unique()
@@ -330,9 +331,8 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
     # main plot -- not a single scatter here
     fig, ax = plt.subplots()
     for currency in currency_list:
-        # https://stackoverflow.com/questions/43206554/typeerror-float-argument-must-be-a-string-or-a-number-not-period
-        df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-        ax.plot(df_currency.index.to_timestamp() , df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
+        df_currency = df.loc[df.currency == currency, ['period', 'total_amount']]
+        ax.plot(df_currency.period, df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
 
     ax.set_title(f"{category} Time Series Plot")
     ax.set_xlabel("Spendings")
@@ -356,7 +356,7 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
             )
 
             print_df = (
-                on_click_printable(
+                filter_by_period_category_currency(
                     period=period_str, 
                     category=category, 
                     currency=currency
@@ -380,11 +380,12 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
 
     ax.legend()
     fig.autofmt_xdate()
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%b-%d'))
     plt.show()
 
 
 # alias: p4
-def monthly_time_series(currency: str, period: str | pd.Period | None = None) -> None:
+def monthly_time_series(currency: str | None = None, period: str | pd.Period | None = None) -> None:
     """
     Plot daily expenses for three months: previous, current, and next.
 
@@ -394,6 +395,10 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
     - Today marked with a vertical red line (shifted if 'period' is not current).
     - Excludes categories: BLIND, INGRESO.
     """
+
+    if not currency:
+        print("No currency specified, defaulting to default_currency in config.json")
+        currency = ctx.default_currency
 
     if period:
         period = pd.Period(period, 'M')
@@ -437,10 +442,12 @@ def monthly_time_series(currency: str, period: str | pd.Period | None = None) ->
         for axes in ax:
             axes.axvline(mdates.date2num(period.asfreq('D', how='start') + pd.Timestamp.today().day), color=(1,0,0))
 
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
         fig.suptitle(f'Monthly spendings centered at {period.strftime("%B")}, {period.year} in {currency}')
         fig.supxlabel('Periods', y=-0.1)
         fig.supylabel(f"Spendings in {currency}", x=0.05)
         fig.autofmt_xdate()
+    
         plt.show()
 
 

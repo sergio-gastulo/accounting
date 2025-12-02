@@ -1,7 +1,9 @@
 # accounting
 
+
 ## **Description**  
 A *really simple* CLI tool to help you track accounting information from the terminal. *(Windows only)*.  
+
 
 ## **Installation**  
 1. Clone the repository into a directory included in your PowerShell module path (`$Env:PSModulePath`).  
@@ -59,19 +61,22 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ]
 ```
 
-## TODO
+## **TODO**
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 - Provide toy files as examples.
-- Provide color pretty-printing.
 - We should allow weekly plots as well.
-- Provide WhatsApp message parsing // need to elaborate.
-- Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py) // need to elaborate.
 - Provide light-mode support on plot.py
 - Full config.json support (all customizable).
+- Provide support for incomes (e.g. BLIND, INGRESO).
+- Add interactive clicks on scatters
+
+### Need to elaborate
+- Provide WhatsApp message parsing // need to elaborate.
+- Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py) // need to elaborate.
 
 
-## Requirements:
+## **Requirements**:
 This project was built with `powershell`, `python`, and `sqlite`.
 1. `powershell` version
 ```

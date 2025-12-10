@@ -15,5 +15,5 @@ if __name__ == "__main__":
         flag='plot'
     )
 
-    from src.acc_py.plot.plot import category_time_series
-    category_time_series(category='COMIDA-GROCERIES')
+    from src.acc_py.plot.plot import monthly_time_series
+    monthly_time_series(currency='EUR')

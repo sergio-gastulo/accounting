@@ -4,6 +4,7 @@ import matplotlib.dates as mdates
 from numpy import atleast_1d
 import re
 from typing import List
+from datetime import datetime
 
 from ..db.model import Record
 from sqlalchemy import select, not_
@@ -13,13 +14,12 @@ from sqlalchemy.orm import Session
 from ..utilities.miscellanea import pprint_df
 from ..utilities.prompt import prompt_category_from_keybinds
 
-# fine to have ctx tbh, loades lots of configs
+# fine to have ctx tbh, loads lots of configs
 from ..context.context import ctx
 
 
-# ======================================
-#   Global constants
-# ======================================
+#region ========================== Global constants ============================
+
 
 INCOMES_CATEGORIES = ['INGRESO', 'BLIND']
 INCLUDING_INCOMES = Record.category.in_(INCOMES_CATEGORIES)
@@ -27,9 +27,11 @@ PERIOD_COL = func.strftime('%Y-%m', Record.date).label("period")
 TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
 
 
-# ======================================
-#   Helper functions
-# ======================================
+#endregion =====================================================================
+
+
+#region ======================= Helper functions ===============================
+
 
 def get_currency_list_by_period(
         period : str
@@ -71,7 +73,6 @@ def darkmode() -> None:
         plt.style.use('dark_background')
         plt.rcParams['font.family'] = 'monospace'
         plt.rcParams['font.size'] = 12
-        
 
 
 # ---------------------------------
@@ -102,7 +103,8 @@ def sum_currencies(
     curr_list = list(curr_amount_dict) 
     for curr in curr_list:
         res_sum = sum([
-                curr_amount_dict[key] * ctx.exchange_dictionary[key][curr] for key in curr_list
+                curr_amount_dict[key] * ctx.exchange_dictionary[key][curr] 
+                for key in curr_list
             ])
         res_dict.update({
             curr : f"{res_sum:.2f}"
@@ -111,9 +113,10 @@ def sum_currencies(
     return res_dict
 
 
-# ======================================
-#   Plotting functions
-# ======================================
+#endregion =====================================================================
+
+
+#region ====================== Plotting functions ==============================
 
 
 # alias: p1
@@ -297,12 +300,15 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
     if not category:
         category = prompt_category_from_keybinds(ctx.keybinds, category)
 
-    if not period:
-        period = ctx.period
-    period = period.asfreq(freq='W')
+    # as this is a weekly plot, no support for ctx.period (since it is in months)
+    if period and not period.freqstr.startswith('W-'):
+        raise ValueError(f"Invalid {period=}")
+
+    else:
+        period = pd.to_datetime(datetime.now().strftime('%Y %U') + ' 1', format='%Y %U %w')
     
-    timestamp_period = period.to_timestamp()
-    period_str = str(period)
+    # timestamp_period = period
+    # period_str = str(period)
 
     query_total = (
         select(
@@ -325,7 +331,7 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
     # https://stackoverflow.com/a/52851529/29272030
     df['period'] = pd.to_datetime(df.period.astype(str) + ' 1', format='%Y %U %w')
 
-    currency_list_period = df[df.period == period_str].currency.unique()
+    currency_list_in_period = df[df.period == period].currency.unique()
     currency_list = df.currency.unique()
 
     # main plot -- not a single scatter here
@@ -342,39 +348,32 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
         # scattering red points first
         try:
             color = ctx.colors[currency]
-            category_amount_period = df.loc[period, "total_amount"]
-            ax.scatter(timestamp_period, category_amount_period, color='red', zorder=5)
-            ax.axhline(category_amount_period, color=color, linestyle='dashed')
+
+            # this can fail horrendously if df.index is not sorted
+            current_week_amount = df.iloc[-1]["total_amount"]
+            prev_week_amount = df.iloc[-2]["total_amount"]
+
+            ax.scatter(period, current_week_amount, color='red', zorder=5)
+            ax.axhline(current_week_amount, color=color, linestyle='dashed')
             ax.text(
-                timestamp_period,
-                category_amount_period,
-                s=f'{currency} {category_amount_period:.2f}',
+                period,
+                current_week_amount,
+                s=f'{currency} {current_week_amount:.2f}',
                 size='11',
                 # I don't remember how this works, but it calibrates the placement of 'period' as a string in the plot 
-                horizontalalignment = 'left' if mdates.date2num(timestamp_period) < ax.get_xlim()[1] / 2 else 'right',
-                verticalalignment = 'bottom' if df["total_amount"].get(period - 1, 0) <= category_amount_period else 'top'
+                horizontalalignment = 'left' if mdates.date2num(period) < ax.get_xlim()[1] / 2 else 'right',
+                verticalalignment = 'bottom' if prev_week_amount <= current_week_amount else 'top'
             )
-
-            print_df = (
-                filter_by_period_category_currency(
-                    period=period_str, 
-                    category=category, 
-                    currency=currency
-                )
-                .sort_values('amount')    
-            )
-            header = f"Category: {category}, Currency: {currency}\n"
-            pprint_df(df=print_df, header=header)
 
         except KeyError:
-            print(f"{currency}: Period '{period_str}' is not available for scattering in the current plot")
+            print(f"{currency}: Week '{period}' is not available for scattering in the current plot")
             return
 
-    if len(currency_list_period) == 0:
-        print(f"Period '{period_str}' does not have any records associated to {category}.")
+    if len(currency_list_in_period) == 0:
+        print(f"Week '{period}' does not have any records associated to {category}.")
 
     else:
-        for currency in currency_list_period:
+        for currency in currency_list_in_period:
             df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
             scatter_logic(df=df_currency, currency=currency, ax=ax)  
 
@@ -442,7 +441,8 @@ def monthly_time_series(currency: str | None = None, period: str | pd.Period | N
         for axes in ax:
             axes.axvline(mdates.date2num(period.asfreq('D', how='start') + pd.Timestamp.today().day), color=(1,0,0))
 
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
+        ax[0].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
+        ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
         fig.suptitle(f'Monthly spendings centered at {period.strftime("%B")}, {period.year} in {currency}')
         fig.supxlabel('Periods', y=-0.1)
         fig.supylabel(f"Spendings in {currency}", x=0.05)
@@ -453,3 +453,5 @@ def monthly_time_series(currency: str | None = None, period: str | pd.Period | N
 
     core_plot_logic(df)
 
+
+#endregion =====================================================================

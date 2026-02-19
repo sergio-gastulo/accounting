@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-import os
 from typing import Callable
 
 # avoid installing acc_py by using src on from .. import .. as
@@ -62,9 +61,6 @@ def pc(help : bool = False) -> None:
         help=help
     )
 
-
-# https://www.reddit.com/r/learnpython/comments/1b4sk5n/comment/kt1bgsy/
-c = lambda : os.system('cls' if os.name == 'nt' else 'clear')
 
 def custom_help(arg : str, func : Callable | None = None) -> None:
 

@@ -104,9 +104,16 @@ def fetch_exchange_dict(
     cached_file.parent.mkdir(parents=True, exist_ok=True)
 
     if use_cache:
-        with open(cached_file, 'r') as file:
-            curr_exchange_dict = json.load(file)
-        return curr_exchange_dict
+        try:
+            with open(cached_file, 'r') as file:
+                curr_exchange_dict = json.load(file)
+            return curr_exchange_dict
+        except:
+            print(
+                "Something went wrong while trying to fetch from cache." 
+                "Temp file might have been removed."
+                "Pulling information from the internet."
+                )
 
     n = len(curr_list)
     curr_exchange_dict = {}

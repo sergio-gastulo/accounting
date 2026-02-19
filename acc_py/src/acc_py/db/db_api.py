@@ -178,7 +178,7 @@ def write_list(
             print("Could not parse your query. Uncomitting.")
 
     # removing file after execution
-	# if an error is raised, it won't be removed!
+    # if an error is raised, it won't be removed!
     temp_file.unlink(missing_ok=True)
 
 
@@ -284,22 +284,12 @@ def edit(
     for column, new_attribute in edit_dictionary.items():
         setattr(record, column, new_attribute)
     
-    print(
-        f"Your current record is: "
-        f"{record.pretty()}"
-    )
-    confirm : str = input("Confirm your commit [y/N]: ")
+    record.pprint() 
 
-    if confirm.lower() in ('y', 'yes'):
-        with Session(ctx.engine) as session:
-            session.add(record)
-            session.commit()
-        print("Record commited.")
-    elif not confirm or confirm.lower() in ('n', 'no'):
-        print("Change uncomitted.")
-    else:
-        print("Could not parse your query. Uncomitting.")
-
+    with Session(ctx.engine) as session:
+        session.add(record)
+        session.commit()
+    print("Record commited.")
 
 
 # ------------------------------------------------
@@ -414,6 +404,7 @@ def read(
     - Filter expressions are parsed by `parse_semantic_filter`.
     - When `semantic_filter` is omitted, the user may be prompted interactively.
     - Results are ordered by `Record.id` and limited by `n_lines`.
+    - To send SQL, use "sql: SELECT [...]" (only SELECT statements are supported).
     """
 
     today = datetime.date.today()
@@ -422,6 +413,7 @@ def read(
 
     stmt = parse_semantic_filter(semantic_filter)
 
+	# check this, not insinstance seems to be evaluating to true
     if not isinstance(stmt, TextClause):
         if filter_today:
             stmt = stmt.where(Record.date <= today)
@@ -536,9 +528,9 @@ def edit_list(
         "description" : "str",
         "category" : "str"
     })
-	
+    
     df["date"] = df["date"].dt.date
-	
+    
     def cleaner(string : str) -> float | int:
         op = "=" + string if "=" not in string else string 
         return parse_arithmetic_operation(op, quiet=True)

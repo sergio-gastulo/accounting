@@ -62,18 +62,23 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## **TODO**
+- We should allow weekly plots as well.
+- Provide support for incomes (e.g. BLIND, INGRESO).
+- Add interactive clicks on scatters
+- Provide support for several p1() plots (compare periods).
+- Implement duplicate of record.
+
+### User Compatibles TODOs
+TODOs that would be useful if this project became an application for other people.
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 - Provide toy files as examples.
-- We should allow weekly plots as well.
 - Provide light-mode support on plot.py
 - Full config.json support (all customizable).
-- Provide support for incomes (e.g. BLIND, INGRESO).
-- Add interactive clicks on scatters
 
 ### Need to elaborate
-- Provide WhatsApp message parsing // need to elaborate.
-- Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py) // need to elaborate.
+- Provide WhatsApp message parsing.
+- Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py).
 
 
 ## **Requirements**:

@@ -33,9 +33,10 @@ def parse_arithmetic_operation (
         else:
             value = eval(expr[1:], {"__builtins__": {}}) # removing '+', '=' from the beginning of the str
     else:
-        print(f"Input '{expr}' does not match an arithmetic operation. Will assume double.")
+        if not quiet:
+            print(f"Input '{expr}' does not match an arithmetic operation. Will assume double.")
         value = float(expr)
-
+    
     if value < lower_bound:
         raise ValueError(f"'{value}' must be >= '{lower_bound}'")
 
@@ -97,7 +98,9 @@ def parse_double_currency(
         lower_bound : float = 0.0,
 ) -> tuple[float, str]:
     try:
-        operation_str, currency_str = re.match(r'^([\d\+\-\=\.\*\/\s]+)(\s[a-zA-Z]{3})?$', double_currency_str).groups()
+        # ensure only +,-,/,*,(,) is used via regex match
+        # any better ideas? lol
+        operation_str, currency_str = re.match(r'^([\d\+\-\=\.\*\/\(\)\s]+)(\s[a-zA-Z]{3})?$', double_currency_str).groups()
         operation = parse_arithmetic_operation(operation_str, lower_bound)
         if currency_str:
             currency = parse_currency(currency_str.strip())
@@ -161,7 +164,11 @@ def core_semantic_filter_parse(
             return Record.id.between(id_ - bounds, id_ + bounds)
 
         # amount filters
-        case [("amount" | "am"), ("between" | "b"), lower_bound, "and", upper_bound]:
+        case (
+			    [("amount" | "am"), ("between" | "b"), lower_bound, "and", upper_bound] | 
+			    [lower_bound, ("<" | "<=") , "amount", ("<" | "<=") , upper_bound] | 
+			    [upper_bound, (">=" | ">"), "amount", (">=" | ">"), lower_bound]
+			):
             print("Amount between a and b.")
             lower_bound, upper_bound = map(float, [lower_bound, upper_bound])
             return Record.amount.between(lower_bound, upper_bound)
@@ -173,7 +180,7 @@ def core_semantic_filter_parse(
         
         case ["date", "=", date_]:
             print("Exact date match.")
-            return Record.date == date_
+            return Record.date == parse_date(date_).strftime("%Y-%m-%d")
         
         case ["date", ("r" | "regex" | "regexp"), date_regex]:
             print("Date regex match.")

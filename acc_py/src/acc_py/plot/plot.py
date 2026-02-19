@@ -21,7 +21,7 @@ from ..context.context import ctx
 #region ========================== Global constants ============================
 
 
-INCOMES_CATEGORIES = ['INGRESO', 'BLIND']
+INCOMES_CATEGORIES = ['INGRESO', 'BLIND', 'INTERESES']
 INCLUDING_INCOMES = Record.category.in_(INCOMES_CATEGORIES)
 PERIOD_COL = func.strftime('%Y-%m', Record.date).label("period")
 TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
@@ -120,7 +120,7 @@ def sum_currencies(
 
 
 # alias: p1
-def categories_per_period(period: str | pd.Period | None = None) -> None:
+def categories_per_period(period: str | int | pd.Period | None = None) -> None:
     """
     Plot database records grouped by category and currency for the given period.
 
@@ -129,8 +129,12 @@ def categories_per_period(period: str | pd.Period | None = None) -> None:
         - Prints the related records (date, description, amount).
     """
 
-    if period:
+    if isinstance(period, str):
         period = pd.Period(period, 'M')
+
+    elif isinstance(period, int):
+        period = ctx.period + period
+
     else:
         period = ctx.period
     period_str = str(period)
@@ -337,8 +341,21 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
     # main plot -- not a single scatter here
     fig, ax = plt.subplots()
     for currency in currency_list:
+        # select only df related to currency
         df_currency = df.loc[df.currency == currency, ['period', 'total_amount']]
-        ax.plot(df_currency.period, df_currency.total_amount, color=ctx.colors[currency], marker='o', label=currency)
+        # filling zeroes
+        full_weekly_range = pd.date_range(
+            start=df_currency.period.min(),
+            end=df_currency.period.max(),
+            freq='W-MON'
+        ).to_series(name='period')
+        df_currency = df_currency.merge(full_weekly_range, how='outer').fillna(0)
+    
+        # plot
+        ax.plot(
+            df_currency.period, 
+            df_currency.total_amount, 
+            color=ctx.colors[currency], marker='o', label=currency)
 
     ax.set_title(f"{category} Time Series Plot")
     ax.set_xlabel("Spendings")

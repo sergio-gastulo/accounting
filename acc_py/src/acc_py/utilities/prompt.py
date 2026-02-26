@@ -110,29 +110,6 @@ def prompt_double_currency(
         except Exception as e:
             print(f"'{double_curr_input}' could not be parsed as a valid double, currency: {e}")
             double_curr_input = None
-        
-
-def prompt_period(period_input : str | None = None) -> Period:
-
-    today_period = Period(date.today() , 'M')
-
-    while True:
-        if period_input is None:
-            print(
-                f"The following formats for period are currently available:\n"
-                f"  - yyyy[separator]MM // yy[separator]MM: 2025[separator]08 / 25[separator]08\n"
-                f"  - valid separators: '-', '/', ' '\n"
-                f"You can also type a single integer for months: e.g. '5' -> Period(year=this_year,month=5).\n"
-                f"You can type '0' to use today's period: '{today_period}'.\n"
-            )
-            period_input = input("Write your string period: ")
-        try:
-            period = parse_period(period_input, today_period)
-            print(f"Success: {period}")
-            return period
-        except Exception:
-            print(f"Could not parse: '{period_input}' as a valid period:\n{traceback.format_exc()}")
-            period_input = None
 
 
 # as this asks for double input depending on the context, 
@@ -268,9 +245,7 @@ def prompt_column_value(
         "description": lambda : input("Type your new description: "),
         "category": lambda : prompt_category_from_keybinds(keybind_dict)
     }
-
     list_fields = prompt_list_of_fields(fields_str)
-    
     res : dict[str, str | int] = {}
 
     for field in list_fields:

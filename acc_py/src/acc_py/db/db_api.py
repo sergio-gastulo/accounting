@@ -1,10 +1,14 @@
 from sqlalchemy import (
     inspect, 
     select,
-    desc
+    desc,
+    MetaData,
+    Table,
+    Connection
 )
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import TextClause
+from sqlalchemy.dialects.sqlite import insert as insert_sqlite
 
 import datetime
 import pandas as pd
@@ -31,6 +35,20 @@ from ..utilities.miscellanea import pprint_df
 TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
 
 
+def confirm_commit(connection : Connection | Session) -> None:
+    while True:
+        confirm : str = input("Confirm your commit [y/N]: ")
+        if confirm.lower() in ('y', 'yes'):
+            connection.commit()
+            print("Actions commited.")
+            return
+        elif not confirm or confirm.lower() in ('n', 'no'):
+            print("Change uncomitted.")
+            return         
+        else:
+            print("Could not parse your query, please try again.")
+
+
 # ----------------------------------------------------
 # current support: 
 # write() -> prompts for each record (mandatory)
@@ -40,7 +58,8 @@ def write(
         date : datetime.date | None = None,
         operation_str : str | None = None,
         description : str | None = None,
-        category : str | None = None
+        category : str | None = None,
+        df : pd.DataFrame | None = None
 ) -> None:
     # yes, documentation from ChatGPT because I'm lazy
     """
@@ -72,6 +91,10 @@ def write(
     - The new `Record` is created, added to the current session, committed,
     and then printed via `Record.pprint()`.
     """
+
+    if df is not None:
+        write_from_dataframe(df)
+        return
 
     date = prompt.prompt_date_operation(date)
     amount, currency = prompt.prompt_double_currency(ctx.default_currency, operation_str)
@@ -122,7 +145,8 @@ def write_list(
     Parameters
     ----------
     fixed_fields : dict[str, str | int] | None, optional
-        A dictionary mapping column names to fixed values (e.g., {"category": "Food"}).
+        A dictionary mapping column names to fixed values 
+        (e.g., {"category": "Food"}).
         These fields will be pre-populated and applied to all records. If not
         provided, the user is prompted interactively to supply them.
 
@@ -136,49 +160,42 @@ def write_list(
 
     fixed_fields = prompt.prompt_column_value(ctx.keybinds, fixed_fields)
 
-    # sorry for this, ik it's painful to read
-    template_str = ((Path(__file__).parent / ".." / "templates" / "csv_metadata.j2")).resolve().read_text()
-    csv_columns = ", ".join(set(TABLE_COLUMNS) - set(fixed_fields.keys()).union(["id"]))
-    text_template = Template(template_str).render(**fixed_fields, cols=csv_columns)
+    template_str = (
+        Path(__file__).parent.parent 
+        / "templates"
+        / "csv_metadata.j2"
+    ).resolve().read_text()
+    
+    complement = set(fixed_fields.keys()).union(["id"])
+    cols_to_write = sorted(set(TABLE_COLUMNS) - complement)
+    as_csv = ", ".join(cols_to_write)
+    text_template = Template(template_str).render(
+        **fixed_fields, 
+        cols=as_csv
+    )
 
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    editor = "notepad++.exe"
-    temp_file = Path(gettempdir()) / f"csv_{today}.csv"
+    today_str = datetime.date.today().strftime("%Y-%m-%d")
+    editor = ctx.editor
+    temp_file = Path(gettempdir()) / f"csv_{today_str}.csv"
 
     with open(temp_file, 'w') as file:
         file.write(text_template)
+    print(f"Launching {temp_file}.")
     subprocess.call([editor, temp_file])
 
-    df = parse_csv_record(path=temp_file)
+    try:
+        df = parse_csv_record(path=temp_file)
+    except:
+        print(
+            f"Could not parse the csv."
+            f"Please try to copy its content and re-write again."
+        )
+        return
+    
     for column, value in fixed_fields.items():
         df[column] = value
-    
-    # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_dict.html 
-    records = df.to_dict(orient='records') # has nothing to do with Record
-    with Session(ctx.engine) as session:
-        session.bulk_insert_mappings(
-            Record,
-            records,
-            return_defaults=True
-        )
-        df.insert(0, 'id', [record['id'] for record in records])
-        print(
-            f"Current records being inserted to database:\n"
-            f"{pprint_df(df, return_flag=True)}"
-        )
 
-        confirm : str = input("Confirm your commit [y/N]: ")
-
-        if confirm.lower() in ('y', 'yes'):
-            session.commit()
-            print("Record commited.")
-        elif not confirm or confirm.lower() in ('n', 'no'):
-            print("Change uncomitted.")
-        else:
-            print("Could not parse your query. Uncomitting.")
-
-    # removing file after execution
-    # if an error is raised, it won't be removed!
+    write_from_dataframe(df)
     temp_file.unlink(missing_ok=True)
 
 
@@ -375,7 +392,7 @@ def read(
         n_lines : int | None = 20,
         semantic_filter : str | None = None,
         filter_today : bool = True,
-        print_flag : bool = True
+        verbose : bool = True
 ) -> pd.DataFrame | None:
     """
     Query and optionally display records from the database.
@@ -404,11 +421,11 @@ def read(
     - Filter expressions are parsed by `parse_semantic_filter`.
     - When `semantic_filter` is omitted, the user may be prompted interactively.
     - Results are ordered by `Record.id` and limited by `n_lines`.
-    - To send SQL, use "sql: SELECT [...]" (only SELECT statements are supported).
+    - To use SQL, use "sql: SELECT ..." (only SELECT statements are supported).
     """
 
     today = datetime.date.today()
-    if not semantic_filter:
+    if semantic_filter is None:
         semantic_filter = input("Type your semantic filter: ")
 
     stmt = parse_semantic_filter(semantic_filter)
@@ -423,7 +440,7 @@ def read(
     
     df = pd.read_sql(stmt, ctx.engine, index_col='id')
 
-    if print_flag:
+    if verbose:
         pprint_df(df)
     else:
         return df
@@ -494,7 +511,7 @@ def edit_list(
 
     # file control
     today = datetime.date.today().strftime("%Y-%m-%d")
-    editor = "notepad++.exe"
+    editor = ctx.editor
     temp_file = Path(gettempdir()) / f"csv_{today}.csv"
     header = (
         f"# -----------------------------------------------------------------\n"
@@ -508,18 +525,24 @@ def edit_list(
     with open(temp_file, 'w') as file:
         file.write(header)
 
-    # retrieve records and save to csv
+    # write records to csv for editing.
     (
         pd
         .read_sql(sql=stmt, con=ctx.engine, index_col='id')
         .to_csv(temp_file, mode='a', header=False)
     )
-
-    # open editor
     subprocess.call([editor, temp_file])
     
     # retrieve from file
-    df = pd.read_csv(temp_file, skiprows=n_skip_rows_, names=TABLE_COLUMNS)
+    try:
+        df = pd.read_csv(temp_file, skiprows=n_skip_rows_, names=TABLE_COLUMNS)
+    except:
+        print(
+            f"Could not parse the csv."
+            f"Please try to copy its content and re-write again."
+        )
+        return
+
     df = df.astype({
         "id" : "int",
         "date" : "datetime64[ns]",
@@ -543,28 +566,50 @@ def edit_list(
             Record,
             df.to_dict(orient='records')
         )
-
         print(
             f"Current records being updated to database:\n"
-            f"{df.to_markdown(index=False)}"
+            f"{df.to_markdown()}"
         )   
-
-        confirm : str = input("Confirm your commit [y/N]: ")
-
-        if confirm.lower() in ('y', 'yes'):
-            session.commit()
-            print("Record commited.")
-        elif not confirm or confirm.lower() in ('n', 'no'):
-            print("Change uncomitted.")
-        else:
-            print("Could not parse your query. Uncomitting.")
+        confirm_commit(connection=session)
 
     # removing file after execution
     temp_file.unlink(missing_ok=True)
 
 
 def get_full_currencies_list() -> List[str]:
-
     query_currencies = select(Record.currency.distinct())    
     with Session(ctx.engine) as session:
         return list(session.scalars(query_currencies))
+
+
+def write_from_dataframe(df : pd.DataFrame) -> None:
+    table_name = "cuentas"
+
+    if not 'id' in df.columns and df.index.name != 'id':
+        pprint_df(df=df, header="Changes will be commited.\n")
+        df.to_sql(
+            name=table_name,
+            con=ctx.engine,
+            if_exists='append',
+            index=False
+        )
+        return
+
+    if df.index.name == 'id':
+        df = df.reset_index()
+
+    md = MetaData()
+    table_insert = Table(table_name, md, autoload_with=ctx.engine)
+
+    with ctx.engine.connect() as con:
+        stmt = insert_sqlite(table_insert)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=['id'],
+            set_={
+                c : stmt.excluded[c] 
+                for c in df.columns.to_list() if c != "id"
+            }
+        )
+        con.execute(stmt, df.to_dict(orient="records"))
+        pprint_df(df=df)
+        confirm_commit(connection=con)

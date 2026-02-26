@@ -111,19 +111,30 @@ def parse_double_currency(
         raise SyntaxError(f"'{double_currency_str}' could not be parsed as a valid operation, currency pair.")
     
 
-def parse_period(period_str : str | None, default_period : Period) -> Period:
+def parse_period(period : str | int | pd.Period | None, default_period : Period) -> Period:
 
-    if period_str == '0' or not period_str:
-        return default_period
-
-    elif re.match(r'^\d{1,}$',period_str):
-        return Period(year=default_period.year, month=int(period_str), freq='M')
-
-    year, _separator, month = re.match(r'^(\d{2}|\d{4})([\s\-\/])(\d{1,2})$', string=period_str).groups()
-    year, month = map(int, (year, month))
-    year += 2000 if year < 100 else 0
+    if isinstance(period, int):
+        return default_period + period
     
-    return Period(year=year, month=month, freq='M')
+    if period is None:
+        return default_period
+    
+    if isinstance(period, str):
+        try:
+            period = Period(period, 'M')
+            return period
+        except:
+            print("Something went wrong while using default pandas parser. Manual parser activated.")
+            # 24 6 -> 2024-06
+            # 24/6 -> 2024-06
+            # 24-6 -> 2024-06
+            year, _separator, month = re.match(r'^(\d{2}|\d{4})([\s\-\/])(\d{1,2})$', string=period).groups()
+            year, month = map(int, (year, month))
+            year += 2000 if year < 100 else 0
+            return Period(year=year, month=month, freq='M')    
+
+    if isinstance(period, Period):
+        return period
 
 
 def parse_category(category_dict : dict[str, str], category_str : str | None) -> str:
@@ -278,8 +289,8 @@ def parse_csv_record(
     _, csv_content = text.split("# Now add your records in CSV format:", 1)
     
     df = pd.read_csv(StringIO(csv_content))
+    
     df.columns = df.columns.str.strip()
-
     type_map = {
         "date" : "datetime64[ns]",
         "amount" : "str",
@@ -288,7 +299,11 @@ def parse_csv_record(
         "category" : "str"
     }
 
-    type_dict = {key : val for key, val in type_map.items() if key in df.columns}
+    type_dict = {
+        key : val 
+        for key, val in type_map.items() 
+        if key in df.columns
+    }
     df = df.astype(type_dict)
     if "date" in df.columns:
         df["date"] = df["date"].dt.date

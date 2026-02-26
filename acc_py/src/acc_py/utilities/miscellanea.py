@@ -26,7 +26,7 @@ def pprint_df(
     
     df.description = df.description.str[:100]
     print_df : str = df.to_markdown(
-        index=False,
+        index=True,
         tablefmt="outline"
     )
     n : int = len(print_df.partition('\n')[0])

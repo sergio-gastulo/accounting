@@ -7,12 +7,13 @@ from typing import List
 from datetime import datetime
 
 from ..db.model import Record
-from sqlalchemy import select, not_
+from sqlalchemy import select, not_, case
 from sqlalchemy.sql import functions, func
 from sqlalchemy.orm import Session
 
 from ..utilities.miscellanea import pprint_df
 from ..utilities.prompt import prompt_category_from_keybinds
+from ..utilities.core_parser import parse_period
 
 # fine to have ctx tbh, loads lots of configs
 from ..context.context import ctx
@@ -63,6 +64,9 @@ def filter_by_period_category_currency(
             Record.date.like(period + "%"),
             Record.category == category,
             Record.currency == currency
+        ).order_by(
+            Record.amount.desc(),
+            Record.date.desc()
         )
 
     return pd.read_sql(query_printable, con=ctx.engine, index_col='id')
@@ -81,8 +85,7 @@ def darkmode() -> None:
 #   {
 #       "eur" : x,
 #       "usd" : y,
-#       "pen" : z,
-#       ...
+#       "pen" : z
 #   }
 #   |->
 #   (
@@ -91,8 +94,7 @@ def darkmode() -> None:
 #               z * fetch_currency(pen, eur),
 #       "usd" : x * fetch_currency(eur, usd) +
 #               y * fetch_currency(usd, usd) +
-#               z * fetch_currency(pen, usd),
-#       ...
+#               z * fetch_currency(pen, usd)
 #   )
 # ---------------------------------
 def sum_currencies(
@@ -100,14 +102,14 @@ def sum_currencies(
 ) -> dict[str, str]:
 
     res_dict = {}
-    curr_list = list(curr_amount_dict) 
+    curr_list = [curr.lower() for curr in list(curr_amount_dict)] 
     for curr in curr_list:
         res_sum = sum([
                 curr_amount_dict[key] * ctx.exchange_dictionary[key][curr] 
                 for key in curr_list
             ])
         res_dict.update({
-            curr : f"{res_sum:.2f}"
+            curr : round(res_sum, 2)
         })
 
     return res_dict
@@ -125,19 +127,11 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
     Plot database records grouped by category and currency for the given period.
 
     Clicking on a bar:
-        - Highlights it in red.
+        - Highlights it in red. 
         - Prints the related records (date, description, amount).
     """
 
-    if isinstance(period, str):
-        period = pd.Period(period, 'M')
-
-    elif isinstance(period, int):
-        period = ctx.period + period
-
-    else:
-        period = ctx.period
-    period_str = str(period)
+    period_str = str(parse_period(period, default_period=ctx.period))
 
     query_totals = (
         select(
@@ -158,11 +152,15 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
 
     bars_per_ax = []
     store_totals = {}
-    def core_plot_logic(df: pd.DataFrame, currency: str, ax=None, fig=None) -> None:            
+
+    def core(df: pd.DataFrame, currency: str, ax=None, fig=None) -> None:            
         values = df.total_amount
         max_value = max(values)
         labels = [ctx.categories_dict[key] for key in df.category]
-        bars = ax.barh(labels, values, height=0.8, color = (1,1,1), align='center')
+        bars = ax.barh(
+            labels, values, 
+            height=0.8, color = (1,1,1), 
+            align='center')
         ax.tick_params(axis='y', labelsize=10.5)
 
         bars_per_ax.append((ax, bars, df.category.to_list(), currency))
@@ -174,14 +172,23 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
             ypos    = bar.get_y() + bar.get_height() / 2
             color   = (0,0,0) if inside else (1,1,1)
             
-            ax.text(xpos, ypos, f'{width:.2f} {currency}', 
-                va='center', ha='left', fontsize=10, color=color
+            ax.text(
+                xpos, ypos, 
+                f'{width:.2f} {currency}', 
+                va='center', ha='left', 
+                fontsize=10, color=color
             )
+
         vals = values.sum()
         store_totals.update({currency.lower() : vals})
-        ax.text(0.90, 0.95, f'{currency} {vals:.2f}', transform=ax.transAxes, ha="left", va="top", fontsize=12)
+        ax.text(
+            0.90, 0.95, 
+            f'{currency} {vals:.2f}', 
+            transform=ax.transAxes, 
+            ha="left", va="top", 
+            fontsize=12
+        )
         fig.subplots_adjust(left=0.25, right=0.95)
-
 
     def on_click(event):
         for ax, bars, labels, currency in bars_per_ax:
@@ -190,31 +197,35 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
                     contains, _ = bar.contains(event)
                     if contains:
                         bar.set_color(ctx.bar_color)
-                        df_category = (
-                            filter_by_period_category_currency(
+                        df_category = filter_by_period_category_currency(
                                 period=period_str, 
                                 category=label, 
                                 currency=currency
-                            )
-                            .sort_values(by=['amount', 'date'], ascending=False)
                         )
-                        header = f"Category: {label}, Currency: {currency}, Total: {df_category.amount.sum()}"
+                        header = (
+                            f"Category: {label}," 
+                            f"Currency: {currency},"
+                            f"Total: {df_category.amount.sum()}"
+                        )
                         pprint_df(df_category, header=header)
-
                         ax.figure.canvas.draw()
                         return
-
 
     heights = [
         len(df.loc[df.currency == currency, 'category'].unique())
         for currency in currency_list
     ]
 
-    fig, axs = plt.subplots(len(currency_list), 1, sharex=True, gridspec_kw={'height_ratios': heights})
+    fig, axs = plt.subplots(
+        len(currency_list), 1, sharex=True, 
+        gridspec_kw={'height_ratios': heights}
+    )
     axs = atleast_1d(axs)
     for i, currency in enumerate(currency_list):
-        df_currency = df.loc[df.currency == currency, ['category', 'total_amount']].sort_values('total_amount', ascending=False)
-        core_plot_logic(df_currency, currency, ax=axs[i], fig=fig)
+        df_currency = df.loc[
+            df.currency == currency, ['category', 'total_amount']
+        ].sort_values('total_amount', ascending=False)
+        core(df_currency, currency, ax=axs[i], fig=fig)
 
     currency_totals = sum_currencies(store_totals)
 
@@ -222,7 +233,6 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
         f"Spendings registered on {period.strftime("%B")}, {period.year}\n"
         f"Total accumulated on it's own currency: {currency_totals}"
     )
-
     fig.canvas.mpl_connect('button_press_event', on_click)
     plt.show()
 
@@ -257,47 +267,69 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
         )
     )
 
-    df = pd.read_sql(query, con=ctx.engine, parse_dates={"period": {"format" : "%Y-%m"}})
+    df = pd.read_sql(
+        query, con=ctx.engine, 
+        parse_dates={"period": {"format" : "%Y-%m"}}
+    )
     df.period = df.period.dt.to_period('M')
     currency_list_in_period = get_currency_list_by_period(period=str(period))
 
-    def core_plot_logic(df: pd.DataFrame, currency: str, color: str, ax = None, fig = None) -> None:
-        ax.plot(df.index.to_timestamp(), df.values, marker='o', color=color, label=currency)
+    def core(
+            df: pd.DataFrame, 
+            currency: str, 
+            color: str, 
+            ax = None, fig = None
+        ) -> None:
+        
+        ax.plot(
+            df.index.to_timestamp(), 
+            df, 
+            marker='o', color=color, label=currency)
         
         if currency in currency_list_in_period:
             scatter_value = df.loc[period, "total_amount"]
-            ax.scatter(period.to_timestamp(), scatter_value, color='red', zorder=5)
-            x = period.to_timestamp() + pd.Timedelta(days=10)       # x-axis + offset
-            y = scatter_value * 1.05                                # y-axis * offset
+            period_ts = period.to_timestamp()
+            ax.scatter(
+                period_ts, 
+                scatter_value, 
+                color='red', zorder=5
+            )
+            x = period_ts + pd.Timedelta(days=10)       # x-axis + offset
+            y = scatter_value * 1.05                    # y-axis * offset
             text = f'{currency} {scatter_value:.2f}'
-            ax.text(x, y, s=text, size='12')
+            ax.text(x, y, s=text, size=12)
         else:
             print(f"'{currency}' is not available to be scattered.")
 
-        ax.set_xlabel('Date', labelpad=16.0)
+        ax.set_xlabel('Date', labelpad=16)
         fig.autofmt_xdate()
-
 
     fig, ax = plt.subplots()
 
     for currency in ctx.currency_list:
         color = ctx.colors[currency]
-        df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-        core_plot_logic(df_currency, currency, ax=ax, fig=fig, color=color)
+        df_currency = df.loc[
+            df.currency == currency, 
+            ['period', 'total_amount']
+        ].set_index('period')
+        core(df_currency, currency, ax=ax, fig=fig, color=color)
     
     fig.suptitle("Spendings as a Time Series per Currency")
     plt.show()
 
 
 # alias: p3
-def category_time_series(category: str | None = None, period: str | pd.Period | None = None) -> None:
+def category_time_series(
+        category: str | None = None, 
+        period: str | pd.Period | None = None
+        ) -> None:
     """
     Plot a time series for the given category.
 
     - The given period is highlighted if present.
     - If the period lies out of the date range, a warning is printed.
 
-    Useful for categories that should stay around an average (e.g. INGRESOS, CASA-ALQUILER).
+    Useful for categories that should stay around an average (e.g. INGRESOS).
     """
 
     # ensuring a valid category
@@ -309,10 +341,9 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
         raise ValueError(f"Invalid {period=}")
 
     else:
-        period = pd.to_datetime(datetime.now().strftime('%Y %U') + ' 1', format='%Y %U %w')
-    
-    # timestamp_period = period
-    # period_str = str(period)
+        period = pd.to_datetime(
+            datetime.now().strftime('%Y %U') + ' 1', 
+            format='%Y %U %w')
 
     query_total = (
         select(
@@ -327,11 +358,8 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
             'period'
         )
     )
+    df = pd.read_sql(query_total, con=ctx.engine)
 
-    df = pd.read_sql(
-        query_total,
-        con=ctx.engine
-    )
     # https://stackoverflow.com/a/52851529/29272030
     df['period'] = pd.to_datetime(df.period.astype(str) + ' 1', format='%Y %U %w')
 
@@ -341,15 +369,22 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
     # main plot -- not a single scatter here
     fig, ax = plt.subplots()
     for currency in currency_list:
+
         # select only df related to currency
-        df_currency = df.loc[df.currency == currency, ['period', 'total_amount']]
+        df_currency = df.loc[
+            df.currency == currency, 
+            ['period', 'total_amount']
+        ]
+
         # filling zeroes
         full_weekly_range = pd.date_range(
             start=df_currency.period.min(),
             end=df_currency.period.max(),
             freq='W-MON'
         ).to_series(name='period')
-        df_currency = df_currency.merge(full_weekly_range, how='outer').fillna(0)
+        df_currency = df_currency.merge(
+            full_weekly_range, 
+            how='outer').fillna(0)
     
         # plot
         ax.plot(
@@ -361,7 +396,7 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
     ax.set_xlabel("Spendings")
     ax.set_ylabel("Dates")
 
-    def scatter_logic(df: pd.DataFrame, currency: str, ax = None) -> None:
+    def scatter(df: pd.DataFrame, currency: str, ax = None) -> None:
         # scattering red points first
         try:
             color = ctx.colors[currency]
@@ -377,22 +412,37 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
                 current_week_amount,
                 s=f'{currency} {current_week_amount:.2f}',
                 size='11',
-                # I don't remember how this works, but it calibrates the placement of 'period' as a string in the plot 
-                horizontalalignment = 'left' if mdates.date2num(period) < ax.get_xlim()[1] / 2 else 'right',
-                verticalalignment = 'bottom' if prev_week_amount <= current_week_amount else 'top'
+                # calibrates the placement of 'period' as a string in the plot 
+                horizontalalignment = (
+                    'left' if mdates.date2num(period) < ax.get_xlim()[1] / 2 
+                    else 'right'
+                ),
+                verticalalignment = (
+                    'bottom' if prev_week_amount <= current_week_amount 
+                    else 'top'
+                )
             )
 
         except KeyError:
-            print(f"{currency}: Week '{period}' is not available for scattering in the current plot")
+            print(
+                f"{currency}: Week '{period.strftime('%Y-%m-%d')}'" 
+                f"is not available for scattering in the current plot"
+            )
             return
 
     if len(currency_list_in_period) == 0:
-        print(f"Week '{period}' does not have any records associated to {category}.")
+        print(
+            f"Week '{period}' does not have"
+            f"any records associated to {category}."
+        )
 
     else:
         for currency in currency_list_in_period:
-            df_currency = df.loc[df.currency == currency, ['period', 'total_amount']].set_index('period')
-            scatter_logic(df=df_currency, currency=currency, ax=ax)  
+            df_currency = df.loc[
+                df.currency == currency, 
+                ['period', 'total_amount']
+            ].set_index('period')
+            scatter(df=df_currency, currency=currency, ax=ax)  
 
     ax.legend()
     fig.autofmt_xdate()
@@ -401,7 +451,9 @@ def category_time_series(category: str | None = None, period: str | pd.Period | 
 
 
 # alias: p4
-def monthly_time_series(currency: str | None = None, period: str | pd.Period | None = None) -> None:
+def monthly_time_series(
+        currency: str | None = None, 
+        period: str | pd.Period | None = None) -> None:
     """
     Plot daily expenses for three months: previous, current, and next.
 
@@ -413,7 +465,10 @@ def monthly_time_series(currency: str | None = None, period: str | pd.Period | N
     """
 
     if not currency:
-        print("No currency specified, defaulting to default_currency in config.json")
+        print(
+            f"No currency specified, defaulting to"
+            f"default_currency in config.json"
+        )
         currency = ctx.default_currency
 
     if period:
@@ -444,7 +499,7 @@ def monthly_time_series(currency: str | None = None, period: str | pd.Period | N
         parse_dates={"date": {"format": "%Y-%m-%d"}}
     )
 
-    def core_plot_logic(df: pd.DataFrame) -> None:
+    def core(df: pd.DataFrame) -> None:
         
         fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -452,23 +507,98 @@ def monthly_time_series(currency: str | None = None, period: str | pd.Period | N
 
             dframe = df.loc[df.date.dt.strftime('%Y-%m') == iter_period]
             color = (1,1,1) if i != 1 else (0,1,0)
-            ax[0].plot(dframe.date, dframe.total_amount, marker='o', color=color)
-            ax[1].plot(dframe.date, dframe.total_amount.cumsum(), color=color, marker='o')
+            ax[0].plot(
+                dframe.date, 
+                dframe.total_amount, 
+                marker='o', color=color)
+            ax[1].plot(
+                dframe.date, 
+                dframe.total_amount.cumsum(), 
+                color=color, marker='o')
 
         for axes in ax:
-            axes.axvline(mdates.date2num(period.asfreq('D', how='start') + pd.Timestamp.today().day), color=(1,0,0))
+            period_daily_freq = period.asfreq('D', how='start')
+            axes.axvline(
+                mdates.date2num(period_daily_freq + pd.Timestamp.today().day), 
+                color=(1,0,0)
+            )
 
         ax[0].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
         ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
-        fig.suptitle(f'Monthly spendings centered at {period.strftime("%B")}, {period.year} in {currency}')
-        fig.supxlabel('Periods', y=-0.1)
+        fig.suptitle(
+            f"Monthly spendings centered at {period.strftime("%B")}"
+            f", {period.year} in {currency}"
+        )
+        fig.supxlabel("Periods", y=-0.1)
         fig.supylabel(f"Spendings in {currency}", x=0.05)
-        fig.autofmt_xdate()
-    
+        fig.autofmt_xdate()    
         plt.show()
 
+    core(df)
 
-    core_plot_logic(df)
 
+def savings_plot():
+    query = select(
+        PERIOD_COL,
+        Record.currency,
+        functions.sum(
+            case(
+                (Record.category.in_(INCOMES_CATEGORIES), +1),
+                else_=-1
+            ) * Record.amount
+        ).label('savings')
+    ).group_by(
+        'period',
+        Record.currency
+    )
+
+    df = pd.read_sql(
+        query, 
+        con=ctx.engine, 
+        parse_dates={"period" : {"format" : "%Y-%m"}}
+    )
+    df.period = df.period.dt.to_period('M')
+    df = df.pivot(index='period',columns='currency',values='savings').fillna(0)
+
+    def core(
+            df_currency : pd.DataFrame, label : str, color : str, 
+            ax = None, fig = None):
+        # selecting minimal df for plot
+        ax.plot(
+            df_currency.index.to_timestamp(), 
+            df_currency.cumsum(), 
+            marker='o', color=color, 
+            label=label
+        )
+        fig.autofmt_xdate()
+
+    fig, ax = plt.subplots()
+    for currency in ctx.currency_list:
+        color = ctx.colors[currency]
+        core(df[currency],label=currency, color=color, ax=ax, fig=fig)
+
+    # combining savings into a single column for plotting purposes    
+    combined = df.apply(
+        lambda row: sum_currencies({
+            'pen': row['PEN'],
+            'usd': row['USD'],
+            'eur': row['EUR']
+        })[ctx.default_currency.lower()],
+        axis=1
+    )
+    # orange
+    color = [255 / 255, 99 / 255, 71 / 255]
+    core(
+        df_currency=combined, 
+        label=f"comb-{ctx.default_currency}",
+        color=color, 
+        ax=ax, fig=fig
+    )
+
+    ax.legend()
+    ax.set_xlabel("Year-month period.")
+    ax.set_xlabel("Raw saving.")
+    fig.suptitle('Savings as a Time Series per Currency')
+    plt.show()
 
 #endregion =====================================================================

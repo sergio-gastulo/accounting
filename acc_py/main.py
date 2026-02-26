@@ -13,6 +13,7 @@ p1 : Callable = None
 p2 : Callable = None
 p3 : Callable = None
 p4 : Callable = None
+sp : Callable = None
 e : Callable = None
 d : Callable = None
 w : Callable = None
@@ -26,7 +27,12 @@ h : Callable = None
 
 #region ########################### interface-independent ######################
 
-DOCS_DIR : Path = Path(__file__).resolve().parent / "src" / "acc_py" / "templates"
+DOCS_DIR : Path = (
+    Path(__file__).resolve().parent 
+    / "src" 
+    / "acc_py" 
+    / "templates"
+)
 
 def pc(help : bool = False) -> None:
     """
@@ -77,26 +83,28 @@ def custom_help(arg : str, func : Callable | None = None) -> None:
         return
 
 
-#endregion ######################### interface-independent ######################
+#endregion ######################### interface-independent #####################
 
 
-def plot() -> None:
+def plot(debug : bool = False) -> None:
     import src.acc_py.plot.plot as pp
     pp.darkmode()
-    global p1, p2, p3, p4, h
+    global p1, p2, p3, p4, sp, h
     p1 = pp.categories_per_period
     p2 = pp.expenses_time_series
     p3 = pp.category_time_series
     p4 = pp.monthly_time_series
+    sp = pp.savings_plot
     if h:
         print("Setting db.h as h_db")
         globals()["h_db"] = h
     h  = lambda f=None : custom_help(arg='plot', func=f)
     globals()["load"] = db
-    h()
+    if not debug:
+        h()
 
 
-def db() -> None:    
+def db(debug : bool = False) -> None:    
     import src.acc_py.db.db_api as da
     global e, d, w, wl, wc, rc, r, el, h
     e  = da.edit
@@ -111,31 +119,35 @@ def db() -> None:
         globals()["h_plot"] = h
     h  = lambda f=None : custom_help(arg='db', func=f)
     globals()["load"] = plot
-    h()
+    if not debug:
+        h()
 
 
 def main(
         config_path : Path,
         fields_json_path : Path,
-        flag : str
+        flag : str,
+        debug : bool
 ) -> None:
 
     if flag == 'plot':
         set_context(config_path, fields_json_path, True)
-        plot()
+        plot(debug)
 
     elif flag == 'db':
         set_context(config_path, fields_json_path, False)
-        db()
+        db(debug)
 
     else:
         raise ValueError(f"'{flag}' is not a valid flag.")
 
 
 if __name__ == "__main__":
-    
+    import sys
+    sys.ps1 = "(acccli) >>> "
     main(
         config_path = sys.argv[1],
         fields_json_path = sys.argv[2],
-        flag = sys.argv[3]
+        flag = sys.argv[3],
+        debug=False
     )

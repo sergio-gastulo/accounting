@@ -67,13 +67,16 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Add interactive clicks on scatters
 - Provide support for several p1() plots (compare periods).
 - Implement duplicate of record.
+- Allow writing dataframe to database **IMPORTANT**.
+- After parsing, allow config.json to be saved from ctx.
+- Think of conversion plots.
 
 ### User Compatibles TODOs
 TODOs that would be useful if this project became an application for other people.
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 - Provide toy files as examples.
-- Provide light-mode support on plot.py
+- Provide light-mode support on plot.py.
 - Full config.json support (all customizable).
 
 ### Need to elaborate

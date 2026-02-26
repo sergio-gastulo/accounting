@@ -18,7 +18,8 @@ RGB = Tuple[int, int, int]
 
 def fetch_category_dictionary(json_path: Path) -> dict[str, str]:
     """
-    Loads JSON from 'path' and flattens the fields.json in the key-value pair format: 'shortname': 'description'   
+    Loads JSON from 'path' and flattens the fields.json in 
+    the key-value pair format: 'shortname': 'description'   
     """
     shortname_descript_dict = {}
 
@@ -27,9 +28,13 @@ def fetch_category_dictionary(json_path: Path) -> dict[str, str]:
             subcategories = item_dict.get("subcategories")
             if subcategories:
                 for item in subcategories:
-                    shortname_descript_dict.update({item["shortname"]: item["description"]})
+                    shortname_descript_dict.update(
+                        {item["shortname"]: item["description"]}
+                    )
             else:
-                shortname_descript_dict.update({item_dict["shortname"]: item_dict["description"]})
+                shortname_descript_dict.update(
+                    {item_dict["shortname"]: item_dict["description"]}
+                )
 
     return shortname_descript_dict
 
@@ -85,10 +90,10 @@ def fetch_currency_exchange_rate(
         url_request = urllib.parse.urljoin(url, currency_1.lower() + ".json")
         response = requests.get(url_request)
         if (response.ok):
-            return json.loads(response.content)[currency_1.lower()][currency_2.lower()]
+            json_res = json.loads(response.content)
+            return json_res[currency_1.lower()][currency_2.lower()]
         else:
             continue
-    
     response.raise_for_status()
 
 
@@ -99,7 +104,11 @@ def fetch_exchange_dict(
 ):
 
     if not cached_file:
-        cached_file = Path(gettempdir()) / "acccli" / "cached" / "exchange-cached.json"
+        cached_file = (
+            Path(gettempdir()) 
+            / "acccli" 
+            / "cached" 
+            / "exchange-cached.json")
 
     cached_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -113,7 +122,7 @@ def fetch_exchange_dict(
                 "Something went wrong while trying to fetch from cache." 
                 "Temp file might have been removed."
                 "Pulling information from the internet."
-                )
+            )
 
     n = len(curr_list)
     curr_exchange_dict = {}
@@ -128,7 +137,10 @@ def fetch_exchange_dict(
                 elif j == i :
                     res = 1
                 else:
-                    res = fetch_currency_exchange_rate(curr_list[i], curr_list[j])
+                    res = fetch_currency_exchange_rate(
+                        currency_1=curr_list[i], 
+                        currency_2=curr_list[j]
+                    )
                 curr_exchange_dict[curr_list[i]].update(
                     { curr_list[j] : res }
                 )
@@ -137,7 +149,7 @@ def fetch_exchange_dict(
             json.dump(curr_exchange_dict, file)
 
     else:
-        print("Loading from cache since there is no Internet connection available.")
+        print("Loading from cache -- no Internet connection available.")
         with open(cached_file, 'r') as file:
             curr_exchange_dict = json.load(file)
 

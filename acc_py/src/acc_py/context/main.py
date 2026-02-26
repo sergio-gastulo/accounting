@@ -7,7 +7,6 @@ from datetime import date
 from .context import ctx
 from .utils import *
 
-from ..utilities.prompt import prompt_period
 from ..utilities.prompt import prompt_currency
 from ..db.db_api import get_full_currencies_list
 
@@ -23,18 +22,17 @@ def set_context(
 
     ctx.engine = create_engine(url=f"sqlite:///{config['db_path']}")
     ctx.field_json_path = fields_json_path
-    ctx.keybinds = fetch_keybind_dict(json_path=fields_json_path)
-    ctx.default_currency = prompt_currency(config.get('default_currency'), silent=True)
+    ctx.keybinds = fetch_keybind_dict(fields_json_path)
+    ctx.default_currency = prompt_currency(
+        config.get('default_currency'), 
+        silent=True)
     ctx.editor = check_editor(Path(config.get("editor_path")))
 
     if plot:
         ctx.darkmode = config.get('darkmode')
         ctx.bar_color = config.get('bar_color')
-        ctx.categories_dict = fetch_category_dictionary(json_path=fields_json_path)
-        if config.get("ask_period"):
-            ctx.period = prompt_period()
-        else:
-            ctx.period = Period(date.today(), 'M')
+        ctx.categories_dict = fetch_category_dictionary(fields_json_path)
+        ctx.period = Period(date.today(), 'M')
         
         currency_list = config.get('currency_list')
         if currency_list:

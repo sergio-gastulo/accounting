@@ -27,11 +27,11 @@ def set_context(
         config.get('default_currency'), 
         silent=True)
     ctx.editor = check_editor(Path(config.get("editor_path")))
+    ctx.categories_dict = fetch_category_dictionary(fields_json_path)
 
     if plot:
         ctx.darkmode = config.get('darkmode')
         ctx.bar_color = config.get('bar_color')
-        ctx.categories_dict = fetch_category_dictionary(fields_json_path)
         ctx.period = Period(date.today(), 'M')
         
         currency_list = config.get('currency_list')

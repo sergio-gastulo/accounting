@@ -55,11 +55,11 @@ def confirm_commit(connection : Connection | Session) -> None:
 # write(field=value) -> specify some fields beforehand
 # ----------------------------------------------------
 def write(
+        df : pd.DataFrame | None = None,
         date : datetime.date | None = None,
         operation_str : str | None = None,
         description : str | None = None,
-        category : str | None = None,
-        df : pd.DataFrame | None = None
+        category : str | None = None
 ) -> None:
     # yes, documentation from ChatGPT because I'm lazy
     """
@@ -132,7 +132,8 @@ def write(
 # then parses a list of records and writes them all
 # ------------------------------------------------------
 def write_list(
-        fixed_fields : dict[str, str | int] | None = None 
+        fixed_fields : dict[str, str | int] | None = None,
+        return_dataframe : bool = False 
 ) -> None:
     """
     Create multiple Records and write to db.
@@ -188,14 +189,17 @@ def write_list(
     except:
         print(
             f"Could not parse the csv."
-            f"Please try to copy its content and re-write again."
+            f"Please review its content and re-write again."
         )
         return
     
     for column, value in fixed_fields.items():
         df[column] = value
 
-    write_from_dataframe(df)
+    if return_dataframe:
+        return df
+    else:
+        write_from_dataframe(df)
     temp_file.unlink(missing_ok=True)
 
 
@@ -586,7 +590,7 @@ def write_from_dataframe(df : pd.DataFrame) -> None:
     table_name = "cuentas"
 
     if not 'id' in df.columns and df.index.name != 'id':
-        pprint_df(df=df, header="Changes will be commited.\n")
+        pprint_df(df=df, header="Changes will be commited.")
         df.to_sql(
             name=table_name,
             con=ctx.engine,

@@ -7,6 +7,7 @@ from src.acc_py.utilities.miscellanea import print_func_doc
 from src.acc_py.context.main import set_context
 from src.acc_py.context.context import ctx
 from src.acc_py.utilities.miscellanea import pprint_categories
+from datetime import datetime
 
 
 p1 : Callable = None
@@ -18,11 +19,13 @@ e : Callable = None
 d : Callable = None
 w : Callable = None
 wl : Callable = None
+wdf : Callable = None
 wc : Callable = None
 rc : Callable = None
 r : Callable = None
 el : Callable = None
 h : Callable = None
+now : Callable = lambda : datetime.now().strftime('%H:%M:%S')
 
 
 #region ########################### interface-independent ######################
@@ -106,11 +109,12 @@ def plot(debug : bool = False) -> None:
 
 def db(debug : bool = False) -> None:    
     import src.acc_py.db.db_api as da
-    global e, d, w, wl, wc, rc, r, el, h
+    global e, d, w, wl, wc, rc, r, el, h, wdf
     e  = da.edit
     d  = da.delete
     w  = da.write
     wl = da.write_list
+    wdf = lambda : da.write_list(return_dataframe=True)
     wc = da.write_conversion
     rc = da.read_conversion
     r  = da.read

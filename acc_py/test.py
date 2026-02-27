@@ -16,9 +16,10 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from src.acc_py.db.db_api import *
+    from src.acc_py.utilities.miscellanea import pprint_categories
 
-    # print(sum_currencies({
-    #     "pen" : 5.6,
-    #     "usd" : 894
-    # }))
+    pprint_categories(
+        categories_dict=ctx.categories_dict, 
+        field_json_path=ctx.field_json_path,
+        help=True
+    )

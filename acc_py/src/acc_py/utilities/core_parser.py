@@ -174,6 +174,11 @@ def core_semantic_filter_parse(
             print(f"id in [{id_ - bounds}, {id_ + bounds}]")
             return Record.id.between(id_ - bounds, id_ + bounds)
 
+        case ["id", ("between" | "b"), id_1, id_2]:
+            id_1, id_2 = map(float, [id_1, id_2])
+            return Record.id.between(id_1, id_2)
+
+
         # amount filters
         case (
 			    [("amount" | "am"), ("between" | "b"), lower_bound, "and", upper_bound] | 
@@ -183,6 +188,20 @@ def core_semantic_filter_parse(
             print("Amount between a and b.")
             lower_bound, upper_bound = map(float, [lower_bound, upper_bound])
             return Record.amount.between(lower_bound, upper_bound)
+
+        case (
+            [lower_bound, "<", ("amount" | "a")] | 
+            [("amount" | "a"), ">", lower_bound]
+        ):
+            lower_bound = float(lower_bound)
+            return Record.amount > lower_bound
+        
+        case (
+            [upper_bound, ">", ("amount" | "a")] | 
+            [("amount" | "a"), "<", upper_bound]
+        ): 
+            upper_bound = float(upper_bound)
+            return Record.amount < upper_bound
 
         # dates filters
         case ["date", "like", date_wildcard]:

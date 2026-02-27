@@ -25,8 +25,9 @@ def pprint_df(
 ) -> None | str:
     
     df.description = df.description.str[:100]
+    
     print_df : str = df.to_markdown(
-        index=True,
+        index=(df.index.name == 'id'),
         tablefmt="outline"
     )
     n : int = len(print_df.partition('\n')[0])
@@ -53,18 +54,6 @@ def has_internet(
         port : int = 443, 
         timeout : int = 3
 ) -> bool:
-    """
-    Function that checks if there is internet.
-    
-    :param host:
-    :type host: str
-    :param port:
-    :type port: int
-    :param timeout:
-    :type timeout: int
-    :return:
-    :rtype: bool
-    """
     try:
         socket.setdefaulttimeout(timeout)
         socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))

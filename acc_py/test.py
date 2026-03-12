@@ -16,10 +16,6 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from src.acc_py.utilities.miscellanea import pprint_categories
+    from src.acc_py.plot.plot import categories_per_period as c
 
-    pprint_categories(
-        categories_dict=ctx.categories_dict, 
-        field_json_path=ctx.field_json_path,
-        help=True
-    )
+    c()

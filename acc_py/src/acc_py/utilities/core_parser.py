@@ -7,6 +7,7 @@ from typing import List
 from pathlib import Path
 import pandas as pd 
 from io import StringIO
+from typing import Literal
 
 from sqlalchemy.sql import selectable
 from sqlalchemy import select, true, text
@@ -54,8 +55,8 @@ def parse_currency(currency : str) -> str:
     """
     if re.match(r'^[a-zA-Z]{3}$', string=currency):
         return currency.upper()
-    else:
-        raise ValueError(f"'{currency}' is not a valid currency.")
+
+    raise ValueError(f"'{currency}' is not a valid currency.")
     
 
 def parse_date(date_str : str) -> date:
@@ -111,7 +112,10 @@ def parse_double_currency(
         raise SyntaxError(f"'{double_currency_str}' could not be parsed as a valid operation, currency pair.")
     
 
-def parse_period(period : str | int | pd.Period | None, default_period : Period) -> Period:
+def parse_period(
+        period : str | int | pd.Period | None, 
+        default_period : Period,
+    ) -> Period:
 
     if isinstance(period, int):
         return default_period + period
@@ -124,11 +128,17 @@ def parse_period(period : str | int | pd.Period | None, default_period : Period)
             period = Period(period, 'M')
             return period
         except:
-            print("Something went wrong while using default pandas parser. Manual parser activated.")
+            print(
+                f"Something went wrong while using default pandas parser."
+                f"Manual parser activated."
+            )
             # 24 6 -> 2024-06
             # 24/6 -> 2024-06
             # 24-6 -> 2024-06
-            year, _separator, month = re.match(r'^(\d{2}|\d{4})([\s\-\/])(\d{1,2})$', string=period).groups()
+            year, _separator, month = re.match(
+                r'^(\d{2}|\d{4})([\s\-\/])(\d{1,2})$', 
+                string=period
+            ).groups()
             year, month = map(int, (year, month))
             year += 2000 if year < 100 else 0
             return Period(year=year, month=month, freq='M')    

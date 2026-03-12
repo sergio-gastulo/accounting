@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from ..utilities.miscellanea import pprint_df
 from ..utilities.prompt import prompt_category_from_keybinds
-from ..utilities.core_parser import parse_period
+from ..utilities.core_parser import parse_period, parse_currency
 
 # fine to have ctx tbh, loads lots of configs
 from ..context.context import ctx
@@ -131,7 +131,8 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
         - Prints the related records (date, description, amount).
     """
 
-    period_str = str(parse_period(period, default_period=ctx.period))
+    period = parse_period(period, default_period=ctx.period)
+    period_str = str(period)
 
     query_totals = (
         select(
@@ -320,30 +321,16 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
 
 # alias: p3
 def category_time_series(
-        category: str | None = None, 
-        period: str | pd.Period | None = None
+        category: str | None = None
         ) -> None:
     """
     Plot a time series for the given category.
-
-    - The given period is highlighted if present.
-    - If the period lies out of the date range, a warning is printed.
-
     Useful for categories that should stay around an average (e.g. INGRESOS).
     """
 
     # ensuring a valid category
-    if not category:
+    if category is None or category not in ctx.categories_dict:
         category = prompt_category_from_keybinds(ctx.keybinds, category)
-
-    # as this is a weekly plot, no support for ctx.period (since it is in months)
-    if period and not period.freqstr.startswith('W-'):
-        raise ValueError(f"Invalid {period=}")
-
-    else:
-        period = pd.to_datetime(
-            datetime.now().strftime('%Y %U') + ' 1', 
-            format='%Y %U %w')
 
     query_total = (
         select(
@@ -352,7 +339,6 @@ def category_time_series(
             TOTAL_AMOUNT_COL
         ).where(
             Record.category == category,
-            not_(INCLUDING_INCOMES)
         ).group_by(
             Record.currency,
             'period'
@@ -361,12 +347,14 @@ def category_time_series(
     df = pd.read_sql(query_total, con=ctx.engine)
 
     # https://stackoverflow.com/a/52851529/29272030
-    df['period'] = pd.to_datetime(df.period.astype(str) + ' 1', format='%Y %U %w')
+    df['period'] = pd.to_datetime(
+        df.period.astype(str) + ' 1', 
+        format='%Y %U %w'
+    )
 
-    currency_list_in_period = df[df.period == period].currency.unique()
     currency_list = df.currency.unique()
 
-    # main plot -- not a single scatter here
+    # main plot
     fig, ax = plt.subplots()
     for currency in currency_list:
 
@@ -390,60 +378,12 @@ def category_time_series(
         ax.plot(
             df_currency.period, 
             df_currency.total_amount, 
-            color=ctx.colors[currency], marker='o', label=currency)
+            color=ctx.colors[currency], marker='o', label=currency
+        )
 
     ax.set_title(f"{category} Time Series Plot")
     ax.set_xlabel("Spendings")
     ax.set_ylabel("Dates")
-
-    def scatter(df: pd.DataFrame, currency: str, ax = None) -> None:
-        # scattering red points first
-        try:
-            color = ctx.colors[currency]
-
-            # this can fail horrendously if df.index is not sorted
-            current_week_amount = df.iloc[-1]["total_amount"]
-            prev_week_amount = df.iloc[-2]["total_amount"]
-
-            ax.scatter(period, current_week_amount, color='red', zorder=5)
-            ax.axhline(current_week_amount, color=color, linestyle='dashed')
-            ax.text(
-                period,
-                current_week_amount,
-                s=f'{currency} {current_week_amount:.2f}',
-                size='11',
-                # calibrates the placement of 'period' as a string in the plot 
-                horizontalalignment = (
-                    'left' if mdates.date2num(period) < ax.get_xlim()[1] / 2 
-                    else 'right'
-                ),
-                verticalalignment = (
-                    'bottom' if prev_week_amount <= current_week_amount 
-                    else 'top'
-                )
-            )
-
-        except KeyError:
-            print(
-                f"{currency}: Week '{period.strftime('%Y-%m-%d')}'" 
-                f"is not available for scattering in the current plot"
-            )
-            return
-
-    if len(currency_list_in_period) == 0:
-        print(
-            f"Week '{period}' does not have"
-            f"any records associated to {category}."
-        )
-
-    else:
-        for currency in currency_list_in_period:
-            df_currency = df.loc[
-                df.currency == currency, 
-                ['period', 'total_amount']
-            ].set_index('period')
-            scatter(df=df_currency, currency=currency, ax=ax)  
-
     ax.legend()
     fig.autofmt_xdate()
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%b-%d'))
@@ -464,22 +404,12 @@ def monthly_time_series(
     - Excludes categories: BLIND, INGRESO.
     """
 
+    period = parse_period(period, ctx.period)
+
     if not currency:
-        print(
-            f"No currency specified, defaulting to"
-            f"default_currency in config.json"
-        )
         currency = ctx.default_currency
-
-    if period:
-        period = pd.Period(period, 'M')
-    else: 
-        period = ctx.period
-
-    if not re.match('^[a-zA-Z]{3}$', currency):
-        raise Exception(f"'{currency}' not a valid currency")
-    else: 
-        currency = currency.upper()
+    else:
+        currency = parse_currency(currency)
 
     # prev month, this month, next month
     period_list = [str(period + i) for i in range(-1, 2)]

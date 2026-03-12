@@ -62,11 +62,11 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## **TODO**
-- We should allow weekly plots as well.
 - Provide support for incomes (e.g. BLIND, INGRESO).
 - Add interactive clicks on scatters
 - Provide support for several p1() plots (for comparings periods).
 - Implement duplicate of record.
+- Allow both weekly, monthly and bimonthly, quaterly.
 - Think of conversion plots.
 
 ### User Compatibles TODOs

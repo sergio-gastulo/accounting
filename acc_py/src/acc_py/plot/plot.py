@@ -4,7 +4,7 @@ import matplotlib.dates as mdates
 from numpy import atleast_1d
 import re
 from typing import List
-from datetime import datetime
+from typing import Literal
 
 from ..db.model import Record
 from sqlalchemy import select, not_, case
@@ -321,7 +321,8 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
 
 # alias: p3
 def category_time_series(
-        category: str | None = None
+        category: str | None = None,
+        freq : Literal["w", "weekly", "m", "monthly"] = "w"
         ) -> None:
     """
     Plot a time series for the given category.
@@ -329,13 +330,30 @@ def category_time_series(
     """
 
     # ensuring a valid category
-    if category is None or category not in ctx.categories_dict:
+    if category is None or category.upper() not in ctx.categories_dict:
         category = prompt_category_from_keybinds(ctx.keybinds, category)
+
+    if freq.lower() in ["w", "weekly"]:
+        period_column = func.strftime('%Y %W', Record.date).label('period')
+        fill_zeroes_freq = "W-MON"
+        datetime_operation = lambda df: pd.to_datetime(
+            df.period + ' 1',
+            format='%Y %U %w'
+        )
+    elif freq.lower() in ["m", "monthly"]: 
+        period_column = PERIOD_COL
+        fill_zeroes_freq = "MS"
+        datetime_operation = lambda df: pd.to_datetime(
+            df.period,
+            format='%Y-%m'
+        )
+    else:
+        raise ValueError(f"{freq} is not a valid frequency.")
 
     query_total = (
         select(
             Record.currency,
-            func.strftime('%Y %W', Record.date).label('period'),
+            period_column,
             TOTAL_AMOUNT_COL
         ).where(
             Record.category == category,
@@ -347,37 +365,33 @@ def category_time_series(
     df = pd.read_sql(query_total, con=ctx.engine)
 
     # https://stackoverflow.com/a/52851529/29272030
-    df['period'] = pd.to_datetime(
-        df.period.astype(str) + ' 1', 
-        format='%Y %U %w'
-    )
+    df['period'] = datetime_operation(df)
 
-    currency_list = df.currency.unique()
+    df = df.pivot(
+        index='period',
+        columns='currency',
+        values='total_amount'
+    ).fillna(0)
 
     # main plot
     fig, ax = plt.subplots()
-    for currency in currency_list:
-
-        # select only df related to currency
-        df_currency = df.loc[
-            df.currency == currency, 
-            ['period', 'total_amount']
-        ]
+    for currency in df.columns:
+        df_currency = df[currency]
+        periods = df_currency.index
 
         # filling zeroes
-        full_weekly_range = pd.date_range(
-            start=df_currency.period.min(),
-            end=df_currency.period.max(),
-            freq='W-MON'
+        full_period_range = pd.date_range(
+            start=periods.min(),
+            end=periods.max(),
+            freq=fill_zeroes_freq
         ).to_series(name='period')
-        df_currency = df_currency.merge(
-            full_weekly_range, 
-            how='outer').fillna(0)
+        empty = pd.Series(0, index=full_period_range, name='period')
+        df_currency = df_currency.combine_first(empty)
     
         # plot
         ax.plot(
-            df_currency.period, 
-            df_currency.total_amount, 
+            df_currency.index,
+            df_currency.values,
             color=ctx.colors[currency], marker='o', label=currency
         )
 
@@ -387,6 +401,7 @@ def category_time_series(
     ax.legend()
     fig.autofmt_xdate()
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%b-%d'))
+    plt.xticks(rotation=30)
     plt.show()
 
 

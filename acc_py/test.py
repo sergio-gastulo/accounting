@@ -16,6 +16,5 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from src.acc_py.plot.plot import categories_per_period as c
-
-    c()
+    from src.acc_py.plot.plot import category_time_series as c
+    c("subscription", freq="m")

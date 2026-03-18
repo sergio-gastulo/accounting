@@ -123,8 +123,7 @@ def prompt_category_from_keybinds(
         if category_input is None:
             print(dumps(keybind_dict, indent=4))  # printing entire dict
             category_input = input("Type the corresponding keybind from the dictionary above: ")
-
-        category = keybind_dict.get(category_input)
+        category = keybind_dict.get(category_input.lower())
 
         if not category:
             print("This is not a valid keybind.")
@@ -148,7 +147,8 @@ def prompt_record_by_id(engine : Engine, id_ : int | None = None) -> Record:
     
     while True:
         if id_ is None:
-            id_ = int(input("Type the id to filter: ")) # TODO: validate this in a better way?
+            # TODO: validate this in a better way?
+            id_ = int(input("Type the id to filter: ")) 
         
         with Session(engine) as session:
             record = session.get(Record, id_)

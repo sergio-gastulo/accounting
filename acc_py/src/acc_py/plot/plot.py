@@ -330,7 +330,7 @@ def category_time_series(
     """
 
     # ensuring a valid category
-    if category is None or category.upper() not in ctx.categories_dict:
+    if category is None or (category := category.upper()) not in ctx.categories_dict:
         category = prompt_category_from_keybinds(ctx.keybinds, category)
 
     if freq.lower() in ["w", "weekly"]:

@@ -317,7 +317,7 @@ def parse_csv_record(
         text = file.read()
     _, csv_content = text.split("# Now add your records in CSV format:", 1)
     
-    df = pd.read_csv(StringIO(csv_content))
+    df = pd.read_csv(StringIO(csv_content), encoding='utf-8')
     
     df.columns = df.columns.str.strip()
     type_map = {

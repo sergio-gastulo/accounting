@@ -539,7 +539,11 @@ def edit_list(
     
     # retrieve from file
     try:
-        df = pd.read_csv(temp_file, skiprows=n_skip_rows_, names=TABLE_COLUMNS)
+        df = pd.read_csv(
+            temp_file, 
+            skiprows=n_skip_rows_, 
+            names=TABLE_COLUMNS,
+            encoding='utf-8')
     except:
         print(
             f"Could not parse the csv."

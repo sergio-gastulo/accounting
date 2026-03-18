@@ -17,4 +17,4 @@ if __name__ == "__main__":
     )
 
     from src.acc_py.plot.plot import category_time_series as c
-    c("subscription", freq="m")
+    c("in")

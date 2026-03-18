@@ -62,15 +62,12 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## **TODO**
-- Provide support for incomes (e.g. BLIND, INGRESO).
-- Add interactive clicks on scatters
-- Provide support for several p1() plots (for comparings periods).
-- Implement duplicate of record.
-- Allow both weekly, monthly and bimonthly, quaterly.
+- Provide support for several p1() periods (comparings periods).
 - Think of conversion plots.
 
-### User Compatibles TODOs
+### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.
+- Add interactive clicks on scatters
 - After parsing, allow config.json to be saved from ctx.
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
@@ -79,6 +76,7 @@ TODOs that would be useful if this project became an application for other peopl
 - Full config.json support (all customizable).
 
 ### Need to elaborate
+- Implement duplicate of record.
 - Provide WhatsApp message parsing.
 - Provide better printing for [rc()](/acc_py/src/acc_py/db/db_api.py).
 

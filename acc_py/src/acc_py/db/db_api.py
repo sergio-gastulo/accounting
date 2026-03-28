@@ -21,7 +21,8 @@ from typing import List
 from ..utilities.core_parser import (
     parse_semantic_filter,
     parse_csv_record,
-    parse_arithmetic_operation
+    parse_arithmetic_operation,
+    sanitize_df
 )
 from ..utilities import prompt
 from ..context.context import ctx
@@ -592,6 +593,7 @@ def get_full_currencies_list() -> List[str]:
 
 def write_from_dataframe(df : pd.DataFrame) -> None:
     table_name = "cuentas"
+    df = sanitize_df(df)
 
     if not 'id' in df.columns and df.index.name != 'id':
         pprint_df(df=df, header="Changes will be commited.")

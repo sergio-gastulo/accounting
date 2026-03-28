@@ -19,6 +19,8 @@ from ..db.model import Record
 # convention: parse_usage (obj : str) -> obj
 # should only contain raises and returns
 
+COLUMN_DATE_FORMAT = "%Y-%m-%d"
+
 
 def parse_arithmetic_operation (
         expr : str | None = None, 
@@ -147,18 +149,6 @@ def parse_period(
         return period
 
 
-def parse_category(category_dict : dict[str, str], category_str : str | None) -> str:
-    
-    if not category_str:
-        print("Random category.")
-        return choice(tuple(category_dict))
-
-    elif category_str.upper() in category_dict:
-        return category_str.upper()
-
-    raise KeyError(f"'{category_str}' is not part of 'category_dictionary'.")
-
-
 # ---------------------------------------------------
 # cases this should handle
 #    - 'amount between 10, 25'
@@ -220,7 +210,7 @@ def core_semantic_filter_parse(
         
         case ["date", "=", date_]:
             print("Exact date match.")
-            return Record.date == parse_date(date_).strftime("%Y-%m-%d")
+            return Record.date == parse_date(date_).strftime(COLUMN_DATE_FORMAT)
         
         case ["date", ("r" | "regex" | "regexp"), date_regex]:
             print("Date regex match.")
@@ -322,7 +312,7 @@ def parse_csv_record(
     df.columns = df.columns.str.strip()
     type_map = {
         "date" : "datetime64[ns]",
-        "amount" : "str",
+        "amount" : "str",           # it is later processed as float, obviously
         "currency" : "str",
         "description" : "str",
         "category" : "str"
@@ -342,4 +332,21 @@ def parse_csv_record(
         return parse_arithmetic_operation(op, quiet=True)
     df.amount = df.amount.map(cleaner)
     
+    return df
+
+
+def sanitize_df(
+        df : pd.DataFrame, 
+        category_dict : dict[str, dict[str, str] | str]
+    ) -> pd.DataFrame:
+
+    must_exist_columns = {"date", "amount", "currency", "description", "category"}
+    assert must_exist_columns.issubset(df.columns), "DataFrame is not complete."
+    assert (df.amount > 0).all(), "Dataframe has invalid values on amount column."
+    assert df.category.map(lambda key: key in category_dict).all(), "An invalid category has been found."
+
+    if df.date.dtype != 'O':
+        df.date = df.date.dt.strftime(COLUMN_DATE_FORMAT)
+    df.currency = df.currency.str.upper()
+
     return df

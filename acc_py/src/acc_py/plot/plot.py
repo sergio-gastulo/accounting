@@ -322,7 +322,8 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
 # alias: p3
 def category_time_series(
         category: str | None = None,
-        freq : Literal["w", "weekly", "m", "monthly"] = "w"
+        freq : Literal["w", "weekly", "m", "monthly"] = "w",
+        log : bool = False
         ) -> None:
     """
     Plot a time series for the given category.
@@ -395,12 +396,14 @@ def category_time_series(
             color=ctx.colors[currency], marker='o', label=currency
         )
 
+    if log:
+        ax.set_yscale('log')
     ax.set_title(f"{category} Time Series Plot")
     ax.set_xlabel("Spendings")
     ax.set_ylabel("Dates")
     ax.legend()
     fig.autofmt_xdate()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%b-%d'))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%b'))
     plt.xticks(rotation=30)
     plt.show()
 

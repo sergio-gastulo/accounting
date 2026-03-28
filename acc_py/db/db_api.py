@@ -18,19 +18,19 @@ from tempfile import gettempdir
 import subprocess
 from typing import List
 
-from ..utilities.core_parser import (
+from utilities.core_parser import (
     parse_semantic_filter,
     parse_csv_record,
     parse_arithmetic_operation,
     sanitize_df
 )
-from ..utilities import prompt
-from ..context.context import ctx
-from ..db.model import (
+from utilities import prompt
+from context.context import ctx
+from db.model import (
     Record,
     Conversion    
 )
-from ..utilities.miscellanea import pprint_df
+from utilities.miscellanea import pprint_df
 
 
 TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())

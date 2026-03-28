@@ -4,11 +4,11 @@ import urllib
 import requests
 import json
 from typing import List, Tuple, Iterable
-from ..utilities.miscellanea import has_internet
+from utilities.miscellanea import has_internet
 from tempfile import gettempdir
 from tkinter.filedialog import askopenfile
 from os import environ
-from ..utilities.core_parser import parse_currency
+from utilities.core_parser import parse_currency
 import tkinter as tk
 from tkinter.colorchooser import askcolor
 

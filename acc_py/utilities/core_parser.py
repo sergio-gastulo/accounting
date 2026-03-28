@@ -13,7 +13,7 @@ from sqlalchemy.sql import selectable
 from sqlalchemy import select, true, text
 from sqlalchemy.sql.elements import BinaryExpression, TextClause
 
-from ..db.model import Record
+from db.model import Record
 
 
 # convention: parse_usage (obj : str) -> obj

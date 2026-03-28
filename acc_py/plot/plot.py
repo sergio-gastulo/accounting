@@ -2,21 +2,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from numpy import atleast_1d
-import re
 from typing import List
 from typing import Literal
 
-from ..db.model import Record
+from db.model import Record
 from sqlalchemy import select, not_, case
 from sqlalchemy.sql import functions, func
 from sqlalchemy.orm import Session
 
-from ..utilities.miscellanea import pprint_df
-from ..utilities.prompt import prompt_category_from_keybinds
-from ..utilities.core_parser import parse_period, parse_currency
+from utilities.miscellanea import pprint_df
+from utilities.prompt import prompt_category_from_keybinds
+from utilities.core_parser import parse_period
 
 # fine to have ctx tbh, loads lots of configs
-from ..context.context import ctx
+from context.context import ctx
 
 
 #region ========================== Global constants ============================
@@ -408,6 +407,7 @@ def category_time_series(
     plt.show()
 
 
+# alias: sp
 def savings_plot():
     query = select(
         PERIOD_COL,
@@ -457,8 +457,8 @@ def savings_plot():
         })[ctx.default_currency.lower()],
         axis=1
     )
-    # orange
-    color = [255 / 255, 99 / 255, 71 / 255]
+
+    color = [255 / 255, 99 / 255, 71 / 255]         # redish orange
     core(
         df_currency=combined, 
         label=f"comb-{ctx.default_currency}",

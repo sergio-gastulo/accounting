@@ -4,11 +4,11 @@ import json
 from pandas import Period
 from datetime import date
 
-from .context import ctx
-from .utils import *
+from context.context import ctx
+from context.utils import *
 
-from ..utilities.prompt import prompt_currency
-from ..db.db_api import get_full_currencies_list
+from utilities.prompt import prompt_currency
+from db.db_api import get_full_currencies_list
 
 
 def set_context(

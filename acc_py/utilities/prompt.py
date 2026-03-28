@@ -1,11 +1,10 @@
 from datetime import date
-from pandas import Period
 import traceback
 from json import dumps
 from sqlalchemy.engine import Engine
 
-from .core_parser import *
-from ..db.model import Record, Session
+from utilities.core_parser import *
+from db.model import Record, Session
 
 
 # convention: prompt_usage ( object_input : str | None )

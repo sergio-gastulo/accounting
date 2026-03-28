@@ -1,8 +1,6 @@
 import dotenv
 from main import main as debug_main
-
-# important: fully specify src.acc_py otherwise this won't work
-from src.acc_py.context.context import ctx
+from context.context import ctx
 
 
 if __name__ == "__main__":
@@ -16,8 +14,8 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from src.acc_py.utilities.core_parser import sanitize_df
-    from src.acc_py.db.db_api import read
+    from utilities.core_parser import sanitize_df
+    from db.db_api import read
     df = read(semantic_filter="", verbose=False)
     print(df.head())
     # df.drop("date", axis=1, inplace=True)

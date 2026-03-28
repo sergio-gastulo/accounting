@@ -2,11 +2,10 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-# avoid installing acc_py by using src on from .. import .. as
-from src.acc_py.utilities.miscellanea import print_func_doc
-from src.acc_py.context.main import set_context
-from src.acc_py.context.context import ctx
-from src.acc_py.utilities.miscellanea import pprint_categories
+from utilities.miscellanea import print_func_doc
+from context.main import set_context
+from context.context import ctx
+from utilities.miscellanea import pprint_categories
 from datetime import datetime
 
 
@@ -32,10 +31,9 @@ now : Callable = lambda : datetime.now().strftime('%H:%M:%S')
 
 DOCS_DIR : Path = (
     Path(__file__).resolve().parent 
-    / "src" 
-    / "acc_py" 
     / "templates"
 )
+
 
 def pc(help : bool = False) -> None:
     """
@@ -82,7 +80,7 @@ def custom_help(arg : str, func : Callable | None = None) -> None:
         help_message = path.read_text()
         print(help_message) 
     else:
-        print(f"'{arg}' is not a valid flag.")
+        print(f"Something went wrong while loading {DOCS_DIR=}.")
         return
 
 
@@ -90,7 +88,7 @@ def custom_help(arg : str, func : Callable | None = None) -> None:
 
 
 def plot(debug : bool = False) -> None:
-    import src.acc_py.plot.plot as pp
+    import plot.plot as pp
     pp.darkmode()
     global p1, p2, p3, p4, sp, h
     p1 = pp.categories_per_period
@@ -107,7 +105,7 @@ def plot(debug : bool = False) -> None:
 
 
 def db(debug : bool = False) -> None:    
-    import src.acc_py.db.db_api as da
+    import db.db_api as da
     global e, d, w, wl, wc, rc, r, el, h, wdf
     e  = da.edit
     d  = da.delete
@@ -145,15 +143,14 @@ def main(
     if flag == 'plot':
         load_plot(config_path, fields_json_path, True)
         globals()["load"] = db
-        return
 
     elif flag == 'db':
         set_context(config_path, fields_json_path, False)
         db(debug)
         globals()["load"] = lambda : load_plot(config_path, fields_json_path, debug)
-        return
-
-    raise ValueError(f"'{flag}' is not a valid flag.")
+    
+    else:
+        raise ValueError(f"'{flag}' is not a valid flag.")
 
 
 if __name__ == "__main__":

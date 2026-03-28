@@ -13,7 +13,6 @@ from datetime import datetime
 p1 : Callable = None
 p2 : Callable = None
 p3 : Callable = None
-p4 : Callable = None
 sp : Callable = None
 e : Callable = None
 d : Callable = None
@@ -25,6 +24,7 @@ rc : Callable = None
 r : Callable = None
 el : Callable = None
 h : Callable = None
+load : Callable = None
 now : Callable = lambda : datetime.now().strftime('%H:%M:%S')
 
 
@@ -96,7 +96,6 @@ def plot(debug : bool = False) -> None:
     p1 = pp.categories_per_period
     p2 = pp.expenses_time_series
     p3 = pp.category_time_series
-    p4 = pp.monthly_time_series
     sp = pp.savings_plot
     if h:
         print("Setting db.h as h_db")
@@ -127,6 +126,15 @@ def db(debug : bool = False) -> None:
         h()
 
 
+def load_plot(
+        config_path : Path,
+        fields_json_path : Path,
+        debug : bool
+) -> None:
+    set_context(config_path, fields_json_path, True)
+    plot(debug)
+
+
 def main(
         config_path : Path,
         fields_json_path : Path,
@@ -135,15 +143,17 @@ def main(
 ) -> None:
 
     if flag == 'plot':
-        set_context(config_path, fields_json_path, True)
-        plot(debug)
+        load_plot(config_path, fields_json_path, True)
+        globals()["load"] = db
+        return
 
     elif flag == 'db':
         set_context(config_path, fields_json_path, False)
         db(debug)
+        globals()["load"] = lambda : load_plot(config_path, fields_json_path, debug)
+        return
 
-    else:
-        raise ValueError(f"'{flag}' is not a valid flag.")
+    raise ValueError(f"'{flag}' is not a valid flag.")
 
 
 if __name__ == "__main__":

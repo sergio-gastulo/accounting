@@ -131,6 +131,8 @@ def load_plot(
 ) -> None:
     set_context(config_path, fields_json_path, True)
     plot(debug)
+    if not debug:
+        h()
 
 
 def main(

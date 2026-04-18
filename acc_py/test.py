@@ -14,11 +14,11 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from utilities.core_parser import sanitize_df
-    from db.db_api import read
-    df = read(semantic_filter="", verbose=False)
-    print(df.head())
-    # df.drop("date", axis=1, inplace=True)
-    # df.iloc[0, 1] = -5.5
-    # df.iloc[0, -1] = "HELLO-WORLD"
-    df2 = sanitize_df(df, category_dict=ctx.categories_dict)
+    from utilities.core_parser import *
+    parse_valid_element_list(
+        column_input="cat",
+        list_to_validate=["category", "description", "currency", "amount"],
+        keybinds= {
+            "cat" : "category"
+        }
+    )

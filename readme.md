@@ -73,7 +73,13 @@ TODOs that would be useful if this project became an application for other peopl
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 - Provide toy files as examples.
 - Provide light-mode support on plot.py.
+- When writing conversion, print message showing help should make clearer what is base and target currency.
 - Full config.json support (all customizable).
+- Provide a saving option for every plot to prevent terminal from hanging when displaying plot.
+- When returning dataframe, pd.to_datetime should be called to cast dates automatically.
+- Expose date parser to construct dates from user input on python REPL.
+- Flush to stdout so terminal does not polute with user input validation. 
+- Change errors to what they actually represent. 
 
 ### Need to elaborate
 - Implement duplicate of record.

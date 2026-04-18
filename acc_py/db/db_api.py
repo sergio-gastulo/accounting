@@ -593,7 +593,7 @@ def get_full_currencies_list() -> List[str]:
 
 def write_from_dataframe(df : pd.DataFrame) -> None:
     table_name = "cuentas"
-    df = sanitize_df(df)
+    df = sanitize_df(df, ctx.categories_dict)
 
     if not 'id' in df.columns and df.index.name != 'id':
         pprint_df(df=df, header="Changes will be commited.")

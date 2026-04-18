@@ -1,0 +1,588 @@
+# unittest tools
+import unittest
+from unittest.mock import patch, call
+
+# generics
+import datetime
+from db.model import Record
+from sqlalchemy.dialects import sqlite
+from sqlalchemy import text
+from pandas import Period
+
+# actual testing
+from utilities.core_parser import *
+
+
+def compile_to_sql(sql_expr):
+    """Compiles sqlachemy stmt to vanilla sqlite3."""
+    dialect = sqlite.dialect()
+    kwargs = {"literal_binds" : True}
+    return str(sql_expr.compile(dialect=dialect, compile_kwargs=kwargs))
+
+
+class TestArithmeticOperationParser(unittest.TestCase):
+
+    def test_simple_operations(self):
+        cases = [
+            ('+65 - 66.99',                 -1.99),
+            ('=9.9/88 + 5 * 65.1',          325.6125),
+            ('+-5+9+1/6.5',                 4.15385),
+            ('-5-6',                        -11),
+        ]
+        for expr, expected in cases:
+            with self.subTest(expr=expr):
+                self.assertAlmostEqual(
+                    parse_arithmetic_operation(expr, lower_bound=-99999),
+                    expected,
+                    places=4
+                )
+
+    def test_err_and_injections(self):
+        malicious = [
+            'malicious test',
+            'import os; os.system("cls")',
+            '+5+8;print("injected!")',
+            '=98=5',
+            '=x+y',
+            ''
+        ]
+        for expr in malicious:
+            with self.assertRaises(SyntaxError):
+                parse_arithmetic_operation(expr)
+
+    def test_lower_bound(self):
+        with self.assertRaises(ValueError):
+            parse_arithmetic_operation('+1+1', lower_bound=3)
+
+
+class TestCurrencyParser(unittest.TestCase):
+
+    def test_currency(self):
+        cases = [
+            ('sdD',         'SDD'),
+            ('USD',         'USD'),
+            ('  pen   ',    'PEN'),
+        ]
+        for curr, expected_curr in cases:
+            with self.subTest(currency=curr):
+                self.assertEqual(
+                    parse_currency(curr),
+                    expected_curr
+                )
+
+    def test_currency_err(self):
+        cases = [
+            'not a valid one',
+            '2+2',
+            '   ',
+            '',
+        ]
+        for currency_input in cases:
+            with self.subTest(currency_input=currency_input):
+                with self.assertRaises(ValueError):
+                    parse_currency(currency_input)
+
+
+class TestDateParser(unittest.TestCase):
+
+    today = datetime.date.today()
+
+    def test_date(self):
+        cases = [
+            (10,                self.today.replace(day=10)),
+            (0,                 self.today),
+            ('10',              self.today.replace(day=10)),
+            ('10 08',           self.today.replace(month=10, day=8)),
+            ('  2025-12 31 ',   datetime.date(year=2025, month=12, day=31)), 
+            ('2025 12 31',      datetime.date(year=2025, month=12, day=31)), 
+            ('25 12 31',        datetime.date(year=2025, month=12, day=31)), 
+            ('today',           self.today),
+            ('0',               self.today),
+            ('',                self.today),
+            ('10-08',           self.today.replace(month=10, day=8)),
+            ('\'10-08\'',       self.today.replace(month=10, day=8))
+        ]
+        for date, expected in cases:
+            with self.subTest(date_input=date):
+                self.assertEqual(
+                    parse_date(date),
+                    expected
+                )
+
+    def test_date_err(self):
+        cases = [
+            99,
+            'foo',
+            'foo bar baz',
+            '99',
+            'dasads ads -asd asd asd das'
+        ]
+        for date_input in cases:
+            with self.subTest(date_input=date_input):
+                with self.assertRaises(ValueError):
+                    parse_date(date_input)
+
+
+class TestDoubleCurrencyPairParser(unittest.TestCase):
+    
+    def test_double_currency(self):
+        lbound = -99999
+        def_curr = 'DCU'
+        places_ = 3
+        cases = [
+            ('=5+2 usd           ',     ('=5+2', 'usd'),                (7, 'USD'),         False),
+            ('+5.5 - 2.5/2.5 pen',      ('+5.5 - 2.5/2.5', 'pen'),      (6.5, 'PEN'),       False),
+            ('   -5+9.00     ',         ('-5+9.00', '-5+9.00'),         (4., 'DCU'),        True),
+            ('   2.2 eur     ',         ('2.2', 'eur'),                 (2.2, 'EUR'),       False),
+            ('2.2',                     ('2.2', '2.2'),                 (2.2, 'DCU'),       True),
+        ]
+        for raw_input, (arg_arith, arg_curr), (e_amount, e_currency), use_default in cases:
+            with self.subTest(raw_input=raw_input):
+                with patch('utilities.core_parser.parse_arithmetic_operation') as mock_arith:
+                    with patch('utilities.core_parser.parse_currency') as mock_curr:
+                        mock_arith.return_value = e_amount
+                        if use_default:
+                            mock_curr.side_effect = [ValueError, e_currency]
+                        else:
+                            mock_curr.return_value = e_currency
+                        amount, currency = parse_double_currency(def_curr, raw_input, lbound)
+                        mock_arith.assert_called_once_with(arg_arith, lbound)
+                        if use_default:
+                            self.assertEqual(mock_curr.call_args_list, [call(arg_curr), call(def_curr)])
+                        else:
+                            mock_curr.assert_called_once_with(arg_curr)
+                        self.assertAlmostEqual(amount, e_amount, places=places_)
+                        self.assertEqual(currency, e_currency)
+
+    def test_double_currency_err(self):
+        lbound = -9999
+        def_curr = 'DEF'
+        cases = [
+            ('=5+5 usd usd',        SyntaxError),
+            ('5.       5',          ValueError),
+            ('2.2 / foo',           ValueError),
+            ('pen',                 SyntaxError),
+            ('',                    SyntaxError),
+            ('               ',     SyntaxError),
+        ]
+        for raw_input, err in cases:
+            with self.subTest(raw_input=raw_input):
+                with self.assertRaises(err):
+                    parse_double_currency(def_curr, raw_input, lbound)
+
+
+class TestPeriodParser(unittest.TestCase):
+
+    test_default = Period(year=2000, month=7, freq='M')
+
+    def test_period(self):
+        cases = [
+            (5,                         self.test_default + 5),
+            (-6,                        self.test_default - 6),
+            (None,                      self.test_default),
+            ('2024-12',                 Period(year=2024, month=12, freq='M')),
+            ('2024 12',                 Period(year=2024, month=12, freq='M')),
+            ('       24 12',            Period(year=2024, month=12, freq='M')),
+            ('24 / 12',                 Period(year=2024, month=12, freq='M')),
+            ('24 - 12',                 Period(year=2024, month=12, freq='M')),
+            (self.test_default,         self.test_default),
+            ('       ',                 self.test_default),
+            (' 5   ',                   self.test_default + 5),
+        ]
+        for period, expected_period in cases:
+            with self.subTest(period=period):
+                self.assertEqual(
+                    parse_period(period, self.test_default), 
+                    expected_period
+                )
+    
+    def test_period_err(self):
+        cases = [
+            ('   2022-332   ',  ValueError),
+            (print,             TypeError),
+            (2.0,               TypeError),
+        ]
+        for raw_input, err in cases:
+            with self.subTest(raw_input=raw_input):
+                with self.assertRaises(err):
+                    parse_period(raw_input, self.test_default)
+
+    def test_wrong_default_period(self):
+        cases = [
+            print,
+            None,
+            'foo',
+            9
+        ]
+        for bad_input in cases:
+            with self.subTest(bad_input=bad_input):
+                with self.assertRaises(TypeError):
+                    parse_period(period='', default_period=bad_input)
+
+
+class TestCoreSemanticFilterParser(unittest.TestCase):
+
+    @staticmethod
+    def wrap(filter):
+        """Replaces x -> compile(core_semantic_filter_parser(x))""" 
+        return compile_to_sql(core_semantic_filter_parse(filter))
+
+    today = datetime.date.today()
+
+    def test_id(self):
+        cases = [
+            ('id range 9 2',            (9-2, 9+2)),
+            ('id between 3 and 9',      (3, 9)),
+            ('id between -3 and 6',     (-3, 6))
+        ]
+        for id_filter, (lower, upper) in cases:
+            with self.subTest(id_filter=id_filter):
+                self.assertEqual(
+                    compile_to_sql(Record.id.between(lower, upper)),
+                    self.wrap(id_filter)
+                )    
+
+    def test_id_err(self):
+        cases = [
+            ('id range foo bar', ValueError),
+            ('id between value and value2', ValueError), 
+            ('id between foo bar baz', SyntaxError)
+        ]
+        for filter, err in cases:
+            with self.subTest(filter=filter):
+                with self.assertRaises(err):
+                    self.wrap(filter)
+
+
+    def test_amount(self):
+        cases = (
+            ('amount between 10.11 and 23.66',  (10.11, 23.66)),
+            ('amount b 10.11 and -6.99',        (10.11, -6.99)),
+            ('am b 9.45 and 100.99',            (9.45, 100.99)),
+            ('am between 10.11 and 23.66',      (10.11, 23.66)),
+            ('10.66 < amount < 10.97',          (10.66, 10.97)),
+            ('100.95 > amount > 65.32',         (65.32, 100.95)),
+            ('100.95 >= amount >= 65.32',       (65.32, 100.95)),
+            ('10.66 <= amount <= 10.97',        (10.66, 10.97))
+        )
+        for filter, (lower, upper) in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.amount.between(lower, upper)),
+                    self.wrap(filter)
+                )
+
+    def test_amount_gt(self):
+        cases = [
+            '3.0 < amount',
+            '3.0 <= a',
+            'amount >= 3.0',
+            'a > 3.0',
+        ]
+        for filter in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.amount >= 3.0),
+                    self.wrap(filter)
+                )
+
+    def test_amount_lt(self):
+        cases = [
+            '3.0 > amount',
+            '3.0 >= a',
+            'amount <= 3.0',
+            'a < 3.0',
+        ]
+        for filter in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.amount <= 3.0),
+                    self.wrap(filter)
+                )
+
+    def test_amount_err(self):
+        cases = [
+            ('amount << value', SyntaxError), 
+            ('amount <= value', ValueError),
+            ('1 < amount < 2.0foo', ValueError)
+        ]
+        for filter, err in cases:
+            with self.subTest(filter=filter):
+                with self.assertRaises(err):
+                    self.wrap(filter)
+
+    def test_date_like(self):
+        cases = [
+            ('date like 2025-12%', '2025-12%'),
+            ('date like \'2025-12%\'', '2025-12%')
+        ]
+        for date_like, expected in cases:
+            with self.subTest(date_like=date_like):
+                self.assertEqual(
+                    compile_to_sql(Record.date.like(expected)),
+                    self.wrap(date_like)
+                )
+
+    def test_date_parse(self):
+        cases = [
+            ('date = 2025 10 31',           '2025 10 31',       datetime.date(year=2025, month=10, day=31)),
+            ('date equal \'2025 10 31\'',   '\'2025 10 31\'',   datetime.date(year=2025, month=10, day=31)),
+            ('date = -12',                  '-12',              self.today + datetime.timedelta(days=-12)),
+            ('date = 0',                    '0',                self.today)
+        ]
+        for semantic_filter, date_call, expected in cases:
+            with self.subTest(semantic_filter=semantic_filter):
+                with patch('utilities.core_parser.parse_date') as mock_dateparser:
+                    mock_dateparser.return_value = expected
+                    result = self.wrap(semantic_filter)
+                    mock_dateparser.assert_called_once_with(date_call)
+                    self.assertEqual(
+                        compile_to_sql(Record.date == expected),
+                        result
+                    )
+
+    def test_date_regex(self):
+        cases = [
+            'date r 2025-01',
+            'date regex 2025-01',
+            'date regexp 2025-01',
+        ]
+        for date_regex_filter in cases:
+            with self.subTest(date_regex_filter=date_regex_filter):
+                self.assertEqual(
+                    compile_to_sql(Record.date.regexp_match('2025-01')),
+                    self.wrap(date_regex_filter)
+                )
+
+    def test_date_err(self):
+        cases = [
+            ('date = 99', ValueError),
+            ('date = \'18 - 2015 - 65\'', ValueError),
+            ('date equal 2025-31-12', ValueError),
+            ('dte = 2025-13-12', SyntaxError),
+            ('date regex 2025 08', SyntaxError),
+            ('date like 2028 -6%', SyntaxError)
+        ]
+        for date_filter, err in cases:
+            with self.subTest(date_filter=date_filter):
+                with self.assertRaises(err):
+                    self.wrap(date_filter)
+
+    def test_category_like(self):
+        cases = [
+            ('category like foobarbaz%',            'FOOBARBAZ%'),
+            ('cat like \'food%\'',                  'FOOD%'),
+            ('cat like \"food%\"',                  'FOOD%')
+        ]
+        for filter, like in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.category.like(like)),
+                    self.wrap(filter)
+                )
+
+    def test_category_regex(self):
+        cases = [
+            ('category r expr',         'expr'),
+            ('cat regexp expr',         'expr'),
+            ('category regex expr_',    'expr_')
+        ]
+        for filter, regexp in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.category.regexp_match(regexp)),
+                    self.wrap(filter)
+                )
+
+    def test_category_eq(self):
+        cases = [
+            ('category foo',        'FOO'),
+            ('category \'bar\'',    'BAR'),
+            ('category "baz"',      'BAZ')
+        ]
+        for filter, category_ in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.category == category_),
+                    self.wrap(filter)
+                )
+
+    def test_category_err(self):
+        cases = [
+            ('category like foo bar baz%',      SyntaxError),
+            ('cat reg foo',                     SyntaxError),
+            ('cat regexp invalid regex',        SyntaxError),
+            ('cat INvalid caTEGory',            SyntaxError)
+        ]
+        for filter, err in cases:
+            with self.subTest(filter=filter):
+                with self.assertRaises(err):
+                    self.wrap(filter)
+
+    def test_currency(self):
+        cases = [
+            ('currency USD',            'USD'),
+            ('curr \'EUR\'',            'EUR'),
+            ('curr = \'euR\'',          'EUR'),
+            ('cur = "lowcase"',         'LOWCASE')
+        ]
+        for filter, currency_ in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.currency == currency_),
+                    self.wrap(filter)
+                )
+
+    def test_currency_err(self):
+        with self.assertRaises(SyntaxError):
+            self.wrap('currency invalid currency')
+
+    def test_description_like(self):
+        cases = [
+            ('description like valid desc%',    'valid desc%'),
+            ('desc like "valid desc%"',         '"valid desc%"'),
+            ('desc like %',                     '%'),
+        ] 
+        for filter, description in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.description.like(description)),
+                    self.wrap(filter)
+                )
+
+    def test_description_eq(self):
+        cases = [
+            ('description = test case',     'test case'),
+            ('desc equal "quotes"',         '"quotes"'),
+            ('desc = \'more quotes\'',      "'more quotes'"),
+        ]
+        for filter, description_ in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.description == description_),
+                    self.wrap(filter)
+                )
+
+    def test_description_regex(self):
+        cases = [
+            ('description  regexp valid regex',     'valid regex'),
+            ('   description r ^"',                 '^\"'),
+            ('  desc regex  ^beg\\.end$',           r'^beg\.end$')
+        ]
+        for filter, regexp in cases:
+            with self.subTest(filter=filter):
+                self.assertEqual(
+                    compile_to_sql(Record.description.regexp_match(regexp)),
+                    self.wrap(filter)
+                )        
+
+    def test_description_err(self):
+        cases = [
+            'description like ',
+            'description regexp',
+            'desc = '
+        ]
+        for filter in cases:
+            with self.subTest(filter=filter):
+                with self.assertRaises(SyntaxError):
+                    self.wrap(filter)
+
+    def test_true(self):
+        valid_true = [
+            '',
+            "true",
+            "True"
+        ]
+        true_stmt = compile_to_sql(true())
+        for true_ in valid_true:
+            with self.subTest(filter=true_):
+                self.assertEqual(
+                    true_stmt,
+                    self.wrap(true_)
+                )
+
+    def test_generic_err(self):
+        cases = [
+            "false",
+            "update cuentas set currency=BROKEN",
+            "SELECT sql FROM sqlite_master",
+            "not a valid query",
+            "foo"
+        ]
+        for invalid in cases:
+            with self.assertRaises(SyntaxError):
+                self.wrap(invalid)
+
+
+class TestSemanticFilterParser(unittest.TestCase):
+    
+    @staticmethod
+    def wrap(sql_expr) : 
+        return compile_to_sql(parse_semantic_filter(sql_expr))
+    
+    today = date.today()
+
+    def test_semantic_filter(self):
+        cases = [
+            (
+                "      sql: SELECT * FROM cuentas WHERE description like 'test%'",
+                text("SELECT * FROM cuentas WHERE description like 'test%'")
+            ),
+            (
+                'description like test% && date = 2',
+                select(Record).where(
+                    Record.description.like('test%'),
+                    Record.date == self.today.replace(day=2)
+                )
+            ),
+            (
+                '      currency  =     EUR &&         amount < 2.3',
+                select(Record).where(
+                    Record.currency == 'EUR',
+                    Record.amount <= 2.3
+                )
+            ),
+            (
+                'category TEST && amount   > 1200 && currency USD &&     date like "2024-10%"',
+                select(Record).where(
+                    Record.category == 'TEST',
+                    Record.amount >= 1200.0,
+                    Record.currency == 'USD',
+                    Record.date.like('2024-10%')
+                )
+            ),
+            (
+                '              ',
+                select(Record).where(true())
+            ),
+            (
+                '   && &&                    && &&           ',
+                select(Record).where(true())
+            ),
+        ]
+        for raw_query, expected_query in cases:
+            with self.subTest(raw_query=raw_query):
+                self.assertEqual(
+                    compile_to_sql(expected_query),
+                    self.wrap(raw_query)
+                )
+
+    def test_semantic_filter_err(self):
+        cases = [
+            ('sql: UPDATE * FROM cuentas SET currency=\'CORRUPTED\'',       ValueError),
+            ('sql: DROP cuentas',                                           ValueError),
+            ('sql: INSERT INTO cuentas VALUES (1,1,1,1,1,1)',               ValueError),
+        ]
+        for query, err in cases:
+            with self.subTest(query=query):
+                with self.assertRaises(err):
+                    self.wrap(query)
+
+
+class TestValidElementFromListParser(unittest.TestCase):
+    def test_parse_valid_element_list(self):
+        pass
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -30,7 +30,7 @@ from db.model import (
     Record,
     Conversion    
 )
-from utilities.miscellanea import pprint_df
+from utilities.miscellanea import pprint_df, get_all_categories
 
 
 TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
@@ -593,7 +593,8 @@ def get_full_currencies_list() -> List[str]:
 
 def write_from_dataframe(df : pd.DataFrame) -> None:
     table_name = "cuentas"
-    df = sanitize_df(df, ctx.categories_dict)
+    category_list = get_all_categories(ctx.categories_dict)
+    df = sanitize_df(df, category_list)
 
     if not 'id' in df.columns and df.index.name != 'id':
         pprint_df(df=df, header="Changes will be commited.")

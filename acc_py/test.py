@@ -16,9 +16,10 @@ if __name__ == "__main__":
 
     from utilities.core_parser import *
     parse_valid_element_list(
-        column_input="cat",
-        list_to_validate=["category", "description", "currency", "amount"],
-        keybinds= {
-            "cat" : "category"
+        user_input = "value",
+        keybinds = {
+            "key" : "value",
+            "key2" : "value2",
+            "weird" : "weird value"
         }
     )

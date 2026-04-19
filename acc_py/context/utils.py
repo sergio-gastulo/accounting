@@ -80,9 +80,9 @@ def fetch_currency_exchange_rate(
         currency_2 : str
 )-> float | int:
 
+    # https://github.com/fawazahmed0/exchange-api?tab=readme-ov-file 
     url_bases = [
         "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/",
-        # as per https://github.com/fawazahmed0/exchange-api?tab=readme-ov-file: 
         "https://latest.currency-api.pages.dev/v1/currencies/" 
     ]
 

@@ -3,6 +3,7 @@ from pandas import DataFrame
 import socket
 import json
 from pathlib import Path
+from typing import List
 
 
 def print_func_doc(func: callable) -> None:
@@ -92,3 +93,19 @@ def pprint_categories(
                     { item['shortname'] : item['help']}
                 )
     print(json.dumps(print_dict, indent=4))
+
+
+def get_all_categories(
+        category_dict : dict[str, dict[str, str] | str]
+) -> List[str] : 
+    
+    res = []
+
+    for item in category_dict:
+        res.append(item['shortname'])
+        collection = item.get('subcategories')
+        if collection:
+            for subitem in collection:
+                res.append(subitem['shortname'])
+
+    return res

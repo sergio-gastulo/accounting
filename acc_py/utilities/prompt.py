@@ -178,25 +178,22 @@ def prompt_list_of_fields(
         explain : bool = True
 ) -> List[str]:
     
-    list_to_validate = ['date', 'amount', 'currency', 'description', 'category']
-    keybind_dict = dict(zip(['d', 'a', 'c', 'desc', 'cat'], list_to_validate))
+    keybind_dict = {
+        "d"     : "date",
+        "a"     : "amount",
+        "c"     : "currency",
+        "desc"  : "description",
+        "cat"   : "category" 
+    }
 
     if explain:
         print(
             f"Given the following list: \n"
-            f"{list_to_validate}\n"
+            f"{keybind_dict.values()}\n"
             f"You can whether type an elemnt or a corresponding keybind:\n"
             f"{dumps(keybind_dict, indent=4)}\n"
             f"e.g. 'd c cat' will be parsed to ['date', 'currency', 'category']"
         )
-
-    # tries to convert to int
-    # if it fails, returns str
-    def mapper(i : str) -> int | str:
-        try:
-            return int(i)
-        except ValueError:
-            return i
 
     while True:
         if not user_input:
@@ -204,8 +201,7 @@ def prompt_list_of_fields(
         try:
             return [
                 parse_valid_element_list(
-                    column_input=mapper(column), 
-                    list_to_validate=list_to_validate, 
+                    user_input=column, 
                     keybinds=keybind_dict
                 ) 
                 for column in user_input.split()

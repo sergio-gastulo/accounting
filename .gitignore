@@ -11,3 +11,6 @@ files/
 config.json
 fields.json
 config-test.json
+
+# exceptions
+!acc_py/tests/files

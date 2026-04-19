@@ -1,16 +1,20 @@
 import re
 from datetime import date, timedelta
 from pandas import Period
-from typing import List
 from pathlib import Path
 import pandas as pd 
 from io import StringIO
+from pandas.api.types import is_datetime64_any_dtype as is_datetime
+from pandas.api.types import is_string_dtype
+from typing import List
+
 
 from sqlalchemy.sql import selectable
 from sqlalchemy import select, true, text
 from sqlalchemy.sql.elements import BinaryExpression, TextClause
 
 from db.model import Record
+
 
 
 # convention: parse_usage (obj : str) -> obj
@@ -235,14 +239,20 @@ def core_semantic_filter_parse(
 
         # description match
         case [ "description" | "desc", "like", *wildcard]:
+            if len(wildcard) == 0:
+                raise ValueError("Invalid description filter.")
             wildcard = ' '.join(wildcard)
             return Record.description.like(wildcard)
         
         case [ "description" | "desc", "=" | "equal", *description_str]:
+            if len(description_str) == 0 :
+                raise ValueError("Invalid description comparison.")
             description_str = ' '.join(description_str)
             return Record.description == description_str
         
         case [ "description" | "desc", ('r' | 'regex' | 'regexp'), *description_regex]:
+            if len(description_regex) == 0 :
+                raise ValueError("Invalid description regex match.")
             description_regex = ' '.join(description_regex)
             return Record.description.regexp_match(description_regex)
         
@@ -275,35 +285,20 @@ def parse_semantic_filter(
     return select(Record).where(*sql_expr_and)
 
 
-# -------------------------------------------------
-# this function aims to take a single int | str
-# and transforms input into an element of the list
-# -------------------------------------------------
 def parse_valid_element_list(
-        column_input : str | int,
-        list_to_validate : List[str],
+        user_input : str,
         keybinds : dict[str, str]
 ) -> str:
-
-    # using keybinds or actual column
-    if isinstance(column_input, str):
-        if column_input in keybinds:
-            return keybinds[column_input]
-        if column_input in list_to_validate:
-            return column_input
-        else:
-            raise KeyError(f"Could not parse '{column_input}' as a valid column.")
+    if not isinstance(user_input, str):
+        raise TypeError(f"Argument {user_input=} is not a valid string.")
     
-    # using index position
-    elif isinstance(column_input, int):
-        bound = len(list_to_validate)
-        if 0 <= column_input < bound:
-            return list_to_validate[column_input]
-        else:
-            raise ValueError(f"'{column_input}' is greater than {bound}.")
+    if user_input in keybinds:
+        return keybinds[user_input]
+    
+    if user_input in keybinds.values():
+        return user_input
 
-    raise SyntaxError(f"Could not parse '{column_input}' as a valid column.")
-
+    raise ValueError(f"Could not validate {user_input=}.")
 
 
 def parse_csv_record(
@@ -344,16 +339,46 @@ def parse_csv_record(
 
 def sanitize_df(
         df : pd.DataFrame, 
-        category_dict : dict[str, dict[str, str] | str]
+        category_list : List[str]
     ) -> pd.DataFrame:
 
-    must_exist_columns = {"date", "amount", "currency", "description", "category"}
-    assert must_exist_columns.issubset(df.columns), "DataFrame is not complete."
-    assert (df.amount > 0).all(), "Dataframe has invalid values on amount column."
-    assert df.category.map(lambda key: key in category_dict).all(), "An invalid category has been found."
+    check_category = lambda key: key in category_list
 
-    if df.date.dtype != 'O':
-        df.date = df.date.dt.strftime(DATE_COLUMN_FORMAT)
+    must_exist_columns = {
+        "date", "amount", "currency", "description", "category"}
+
+    errors : List[str] = []
+
+    if not must_exist_columns.issubset(df.columns):
+        raise ValueError(f"DataFrame does not have the columns {must_exist_columns=}.")
+
+    if not (df.amount > 0).all():
+        errors.append("DataFrame has a negative value in one (or more) of its rows.")
+
+    if not is_string_dtype(df.currency):
+        errors.append("DataFrame does not have proper currency column.")
+
+    if not is_string_dtype(df.description):
+        errors.append("Description is not string type.")
+
+    if not df.category.map(check_category).all():
+        errors.append("An invalid category has been found, please check.")
+
+    # https://stackoverflow.com/a/57187654/29272030
+    if not is_string_dtype(df.date) or not is_datetime(df.date):
+        errors.append("DataFrame's date column must be string or datetime-like.")
+
+    if errors:
+        raise ValueError(f"Following errors found: {errors}.")
+
+    # conversions after ensuring type check
     df.currency = df.currency.str.upper()
+    if is_string_dtype(df.date):
+        try:
+            df.date = pd.to_datetime(df.date)
+        except ValueError:
+            errors.append("DataFrame contains an invalid string that Pandas could not parse as a valid date.")
+    # datetime uniformization
+    df.date = df.date.dt.strftime(DATE_COLUMN_FORMAT)
 
     return df

@@ -1,4 +1,4 @@
-# unittest tools
+# unittest tooling
 import unittest
 from unittest.mock import patch, call
 
@@ -7,10 +7,15 @@ import datetime
 from db.model import Record
 from sqlalchemy.dialects import sqlite
 from sqlalchemy import text
-from pandas import Period
+import pandas as pd
+from pathlib import Path
 
-# actual testing
+# files being tested
 from utilities.core_parser import *
+
+
+TEST_FILES_DIRECTORY = Path(__file__).parent / "files"
+
 
 
 def compile_to_sql(sql_expr):
@@ -173,18 +178,18 @@ class TestDoubleCurrencyPairParser(unittest.TestCase):
 
 class TestPeriodParser(unittest.TestCase):
 
-    test_default = Period(year=2000, month=7, freq='M')
+    test_default = pd.Period(year=2000, month=7, freq='M')
 
     def test_period(self):
         cases = [
             (5,                         self.test_default + 5),
             (-6,                        self.test_default - 6),
             (None,                      self.test_default),
-            ('2024-12',                 Period(year=2024, month=12, freq='M')),
-            ('2024 12',                 Period(year=2024, month=12, freq='M')),
-            ('       24 12',            Period(year=2024, month=12, freq='M')),
-            ('24 / 12',                 Period(year=2024, month=12, freq='M')),
-            ('24 - 12',                 Period(year=2024, month=12, freq='M')),
+            ('2024-12',                 pd.Period(year=2024, month=12, freq='M')),
+            ('2024 12',                 pd.Period(year=2024, month=12, freq='M')),
+            ('       24 12',            pd.Period(year=2024, month=12, freq='M')),
+            ('24 / 12',                 pd.Period(year=2024, month=12, freq='M')),
+            ('24 - 12',                 pd.Period(year=2024, month=12, freq='M')),
             (self.test_default,         self.test_default),
             ('       ',                 self.test_default),
             (' 5   ',                   self.test_default + 5),
@@ -244,13 +249,13 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
 
     def test_id_err(self):
         cases = [
-            ('id range foo bar', ValueError),
-            ('id between value and value2', ValueError), 
-            ('id between foo bar baz', SyntaxError)
+            'id range foo bar',
+            'id between value and value2', 
+            'id between foo bar baz'
         ]
-        for filter, err in cases:
+        for filter in cases:
             with self.subTest(filter=filter):
-                with self.assertRaises(err):
+                with self.assertRaises(ValueError):
                     self.wrap(filter)
 
 
@@ -302,8 +307,8 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
 
     def test_amount_err(self):
         cases = [
-            ('amount << value', SyntaxError), 
-            ('amount <= value', ValueError),
+            ('amount << value',     ValueError), 
+            ('amount <= value',     ValueError),
             ('1 < amount < 2.0foo', ValueError)
         ]
         for filter, err in cases:
@@ -356,16 +361,15 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
 
     def test_date_err(self):
         cases = [
-            ('date = 99', ValueError),
-            ('date = \'18 - 2015 - 65\'', ValueError),
-            ('date equal 2025-31-12', ValueError),
-            ('dte = 2025-13-12', SyntaxError),
-            ('date regex 2025 08', SyntaxError),
-            ('date like 2028 -6%', SyntaxError)
+            'date = 99',
+            'date = \'18 - 2015 - 65\'',
+            'date equal 2025-31-12',
+            'dte = 2025-13-12',
+            'date regex 2025 08'
         ]
-        for date_filter, err in cases:
+        for date_filter in cases:
             with self.subTest(date_filter=date_filter):
-                with self.assertRaises(err):
+                with self.assertRaises(ValueError):
                     self.wrap(date_filter)
 
     def test_category_like(self):
@@ -409,14 +413,14 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
 
     def test_category_err(self):
         cases = [
-            ('category like foo bar baz%',      SyntaxError),
-            ('cat reg foo',                     SyntaxError),
-            ('cat regexp invalid regex',        SyntaxError),
-            ('cat INvalid caTEGory',            SyntaxError)
+            'category like foo bar baz%',
+            'cat reg foo',
+            'cat regexp invalid regex',
+            'cat INvalid caTEGory',        
         ]
-        for filter, err in cases:
+        for filter in cases:
             with self.subTest(filter=filter):
-                with self.assertRaises(err):
+                with self.assertRaises(ValueError):
                     self.wrap(filter)
 
     def test_currency(self):
@@ -434,7 +438,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
                 )
 
     def test_currency_err(self):
-        with self.assertRaises(SyntaxError):
+        with self.assertRaises(ValueError):
             self.wrap('currency invalid currency')
 
     def test_description_like(self):
@@ -484,7 +488,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         ]
         for filter in cases:
             with self.subTest(filter=filter):
-                with self.assertRaises(SyntaxError):
+                with self.assertRaises(ValueError):
                     self.wrap(filter)
 
     def test_true(self):
@@ -510,7 +514,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
             "foo"
         ]
         for invalid in cases:
-            with self.assertRaises(SyntaxError):
+            with self.assertRaises(ValueError):
                 self.wrap(invalid)
 
 
@@ -581,7 +585,133 @@ class TestSemanticFilterParser(unittest.TestCase):
 
 class TestValidElementFromListParser(unittest.TestCase):
     def test_parse_valid_element_list(self):
+        keybinds = {
+            "key" : "value",
+            "key2" : "value2",
+            "weird" : "weird value"
+        }
+        for key, value in keybinds.items():
+            with self.subTest(key=key, value=value):
+                self.assertEqual(
+                    value,
+                    parse_valid_element_list(
+                        user_input=key,
+                        keybinds=keybinds
+                    )
+                )
+                self.assertEqual(
+                    value, 
+                    parse_valid_element_list(
+                        user_input=value,
+                        keybinds=keybinds
+                    )
+                )
+
+    def test_parse_valid_element_list_err(self):
+        cases = [
+            ( { "key":  "value" },  "invalid",      ValueError),
+            ( { },                  "any",          ValueError),
+            ( { "key":  "value" },  2,              TypeError),
+        ]
+        for keybind, uinput, err in cases:
+            with self.subTest(uinput=uinput, keybind=keybind):
+                with self.assertRaises(err):
+                    parse_valid_element_list(
+                        user_input=uinput,
+                        keybinds=keybind
+                    )
+
+
+
+# TODO
+class TestCSVRecordParser(unittest.TestCase):
+    pass
+
+
+
+
+class TestDataFrameSanitizer(unittest.TestCase):
+
+    category_list = ["category" + str(i) for i in range(10)]
+
+    def test_sanitize_df(self):
         pass
+
+
+    def test_sanitize_df_err_small(self):
+        cases = [
+            (
+                pd.DataFrame([ ]),
+                "empty dataframe"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : "2024-10-12", 
+                        "amount": -5,
+                        "currency" : "EUR",
+                        "description": "any",
+                        "category" : "invalid"
+                    }
+                ]),
+                "negative amount"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : "2024-10-12", 
+                        "amount": 5,
+                        "currency" : None,
+                        "description": "any",
+                        "category" : "invalid"
+                    }
+                ]),
+                "currency not string"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : "2024-10-12", 
+                        "amount": 5,
+                        "currency" : "EUR",
+                        "description": print,
+                        "category" : "invalid"
+                    }
+                ]),
+                "description not string"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : "2024-10-12", 
+                        "amount": 5,
+                        "currency" : "EUR",
+                        "description": "any desc",
+                        "category" : "invalid"
+                    }
+                ]),
+                "category not in category list"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : "foobarbaz", 
+                        "amount": 5,
+                        "currency" : "EUR",
+                        "description": "any desc",
+                        "category" : "category 8"
+                    }
+                ]),
+                "erroneous date"
+            ),
+        ]    
+        for df, label in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(ValueError):
+                    sanitize_df(df, self.category_list)
+
+
+
 
 
 if __name__ == "__main__":

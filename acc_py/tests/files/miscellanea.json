@@ -1,0 +1,16 @@
+[
+    {
+        "shortname" : "foobarbaz",
+        "subcategories" : [
+            {
+                "shortname" : "foobarbaz2"
+            },
+            {
+                "shortname" : "foobarbaz3"
+            }
+        ]
+    },
+    {
+        "shortname" : "imagination"
+    }
+]

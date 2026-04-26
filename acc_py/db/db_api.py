@@ -30,7 +30,7 @@ from db.model import (
     Record,
     Conversion    
 )
-from utilities.miscellanea import pprint_df, get_all_categories
+from utilities.miscellanea import pprint_df
 
 
 TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
@@ -93,7 +93,7 @@ def write(
     and then printed via `Record.pprint()`.
     """
 
-    if df is not None:
+    if df is not None and isinstance(df, pd.DataFrame):
         write_from_dataframe(df)
         return
 
@@ -134,7 +134,7 @@ def write(
 # ------------------------------------------------------
 def write_list(
         fixed_fields : dict[str, str | int] | None = None,
-        return_dataframe : bool = False 
+        return_dataframe : bool = False
 ) -> None:
     """
     Create multiple Records and write to db.
@@ -171,8 +171,7 @@ def write_list(
     complement = set(fixed_fields.keys()).union(["id"])
     cols_to_write = sorted(set(TABLE_COLUMNS) - complement)
     as_csv = ", ".join(cols_to_write)
-    text_template = Template(template_str).render(
-        **fixed_fields, 
+    text_template = Template(template_str).render( 
         cols=as_csv
     )
 
@@ -185,18 +184,12 @@ def write_list(
     print(f"Launching {temp_file}.")
     subprocess.call([editor, temp_file])
 
-    try:
-        df = parse_csv_record(path=temp_file)
-    except:
-        print(
-            f"Could not parse the csv."
-            f"Please review its content and re-write again."
-        )
-        return
+    df = parse_csv_record(temp_file)
     
     for column, value in fixed_fields.items():
         df[column] = value
-
+    df.date = pd.to_datetime(df.date)
+    
     if return_dataframe:
         return df
     else:
@@ -593,7 +586,7 @@ def get_full_currencies_list() -> List[str]:
 
 def write_from_dataframe(df : pd.DataFrame) -> None:
     table_name = "cuentas"
-    category_list = get_all_categories(ctx.categories_dict)
+    category_list = list(ctx.categories_dict.keys())
     df = sanitize_df(df, category_list)
 
     if not 'id' in df.columns and df.index.name != 'id':

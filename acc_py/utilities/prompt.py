@@ -75,7 +75,7 @@ def prompt_date_operation(
         if not date_str_input:
             date_str_input = input("Insert period or day arithmetic: ")
         try: 
-            return_date = parse_date(date_str=date_str_input)
+            return_date = parse_date(date_str_input)
             print(f"Success: {return_date.strftime("%a %d %b %Y")}")
             return return_date
         except Exception as e:

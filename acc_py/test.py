@@ -14,12 +14,16 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from utilities.core_parser import *
-    parse_valid_element_list(
-        user_input = "value",
-        keybinds = {
-            "key" : "value",
-            "key2" : "value2",
-            "weird" : "weird value"
-        }
-    )
+    from utilities.core_parser import cast_csv_types
+    import pandas as pd
+
+    df, dfe, _ =  (
+                "category, description\n",
+                pd.DataFrame({
+                    "category" : [],
+                    "description" : []
+                }),
+                "empty df"
+            )
+
+    df = cast_csv_types(df)

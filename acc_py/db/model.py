@@ -1,5 +1,4 @@
 import datetime
-from pathlib import Path
 from sqlalchemy import String, Date, Numeric, MetaData
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
 from sqlalchemy.engine.base import Engine

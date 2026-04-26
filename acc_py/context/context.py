@@ -10,7 +10,7 @@ class AccountingContext:
 
     engine: Engine | None
     keybinds : dict[str, str | dict[str, str]]
-    field_json_path : Path
+    fields : List[dict[str | List[dict[str, str]]]]
     default_currency : str
     editor : Path
 

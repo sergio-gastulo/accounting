@@ -5,7 +5,7 @@ from pandas import Period
 from datetime import date
 
 from context.context import ctx
-from context.utils import *
+from utilities.miscellanea import *
 
 from utilities.prompt import prompt_currency
 from db.db_api import get_full_currencies_list
@@ -21,13 +21,15 @@ def set_context(
         config = json.load(file)
 
     ctx.engine = create_engine(url=f"sqlite:///{config['db_path']}")
-    ctx.field_json_path = fields_json_path
-    ctx.keybinds = fetch_keybind_dict(fields_json_path)
+    
+    ctx.fields = import_fields(fields_json_path)
+    ctx.keybinds = fetch_keybind_dict(ctx.fields)
+    ctx.categories_dict = fetch_category_dictionary(fields_json_path)
+    
     ctx.default_currency = prompt_currency(
         config.get('default_currency'), 
         silent=True)
     ctx.editor = check_editor(Path(config.get("editor_path")))
-    ctx.categories_dict = fetch_category_dictionary(fields_json_path)
 
     if plot:
         ctx.darkmode = config.get('darkmode')

@@ -64,7 +64,7 @@ def pc(help : bool = False) -> None:
     """
     pprint_categories(
         categories_dict=ctx.categories_dict,
-        field_json_path=ctx.field_json_path,
+        fields_dict=ctx.fields,
         help=help
     )
 

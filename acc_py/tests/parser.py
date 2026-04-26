@@ -622,12 +622,98 @@ class TestValidElementFromListParser(unittest.TestCase):
                     )
 
 
-
-# TODO
+@unittest.skip("TODO: not implemented yet -- a simple open call")
 class TestCSVRecordParser(unittest.TestCase):
     pass
 
 
+class TestCastCSVTypes(unittest.TestCase):
+
+    def test_cast_csv_types(self):
+        cases = [
+            (
+                "amount, description\n"
+                "9.65, testing description\n"
+                "0.65, testing unícode",
+                pd.DataFrame({
+                    "amount" : [9.65, 0.65],
+                    "description" : [
+                        "testing description",
+                        "testing unícode"
+                    ]
+                }),
+                "amount and description"
+            ),
+            (
+                " date         , amount\n        "
+                "2024-10-12, 9.11\n"
+                "2025-03-31, 9.10\n",
+                pd.DataFrame({
+                    "date" : pd.array([
+                        pd.Timestamp("2024-10-12"),
+                        pd.Timestamp("2025-03-31")
+                    ], dtype="datetime64[ns]"),
+                    "amount" : [9.11, 9.10]
+                }),
+                "date and amount"
+            ),
+            (
+                "category,      description\n"
+                "category1, desc1\n"
+                "category2, desc2",
+                pd.DataFrame({
+                    "category" : ["category1", "category2"],
+                    "description" : ["desc1", "desc2"]
+                }),
+                "category and description"
+            ),
+            (
+                "        category,      description\n",
+                pd.DataFrame({
+                    "category" : pd.array([], dtype='str'),
+                    "description" : pd.array([], dtype='str')
+                }),
+                "empty df"
+            ),
+        ]
+        for csv_str, expected_df, label in cases:
+            with self.subTest(label=label):
+                self.assertEqual(
+                    True,
+                    expected_df.equals(
+                        cast_csv_types(csv_str)
+                    )
+                )
+
+    def test_cast_csv_types_err(self):
+        cases = [
+            (
+                " corrupted,    column\n"
+                "9.65, desc corrupted\n"
+                ".665, desc corrp",
+                "corrupted cols"
+            ),
+            (
+                "date, amount, currency, description, category, another_col\n"
+                "2024-10-12, .3, EUR, foobarbaz, category1, another col",
+                "more cols than specified"
+            ),
+            (
+                "amount, description\n"
+                "6.565, foobarbaz, another_col",
+                "additional unexpected field"
+            ),
+            (
+                "amount, description\n"
+                "6.56, hi, my name is sergio\n"
+                "6.67, and my last name is gustavo",
+                "unexpected comma"
+            )
+        ]
+        for bad_str, label in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(ValueError):
+                    cast_csv_types(bad_str)
 
 
 class TestDataFrameSanitizer(unittest.TestCase):
@@ -635,8 +721,34 @@ class TestDataFrameSanitizer(unittest.TestCase):
     category_list = ["category" + str(i) for i in range(10)]
 
     def test_sanitize_df(self):
-        pass
-
+        cases = [
+            (
+                pd.DataFrame([{
+                    "date": pd.Timestamp("2024-12-31"),
+                    "amount" : 65,
+                    "currency" : "eur",
+                    "description": "desc",
+                    "category": "category2"
+                }]),
+                pd.DataFrame([{
+                    "date": "2024-12-31",
+                    "amount" : 65,
+                    "currency" : "EUR",
+                    "description": "desc",
+                    "category": "category2"
+                }]),
+                "coerce date and upper currency"
+            ),
+        ]
+        for df_input, df_expected, label in cases:
+            with self.subTest(label=label):
+                # https://stackoverflow.com/questions/69535331/how-to-compare-2-dataframes-in-python-unittest-using-assert-methods
+                self.assertEqual(
+                    True,
+                    df_expected.equals(
+                        sanitize_df(df_input, self.category_list)
+                    )
+                )
 
     def test_sanitize_df_err_small(self):
         cases = [
@@ -660,13 +772,37 @@ class TestDataFrameSanitizer(unittest.TestCase):
                 pd.DataFrame([
                     {
                         "date" : "2024-10-12", 
+                        "amount": "not valid amount",
+                        "currency" : "EUR",
+                        "description": "any",
+                        "category" : "invalid"
+                    }
+                ]),
+                "invalid amount type"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : "2024-10-12", 
                         "amount": 5,
                         "currency" : None,
                         "description": "any",
                         "category" : "invalid"
                     }
                 ]),
-                "currency not string"
+                "Missing currency"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : None, 
+                        "amount": 5,
+                        "currency" : "EUR",
+                        "description": "any",
+                        "category" : "invalid"
+                    }
+                ]),
+                "Missing date"
             ),
             (
                 pd.DataFrame([
@@ -702,7 +838,29 @@ class TestDataFrameSanitizer(unittest.TestCase):
                         "category" : "category 8"
                     }
                 ]),
-                "erroneous date"
+                "invalid date str"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : "2024-10-65", 
+                        "amount": 5,
+                        "currency" : "EUR",
+                        "description": "any desc",
+                        "category" : "category 8"
+                    }
+                ]),
+                "datetime-like but not parsable"
+            ),
+            (
+                pd.DataFrame([
+                    {
+                        "date" : "foobarbaz", 
+                        "amount": 5,
+                        "category" : "category 8"
+                    }
+                ]),
+                "missing cols"
             ),
         ]    
         for df, label in cases:
@@ -710,7 +868,19 @@ class TestDataFrameSanitizer(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     sanitize_df(df, self.category_list)
 
-
+    def test_sanitize_df_err_types(self):
+        cases = [
+            [],
+            (),
+            None,
+            print,
+            5,
+            "not valid"
+        ]
+        for bad_df in cases:
+            with self.subTest(input=bad_df):
+                with self.assertRaises(TypeError):
+                    sanitize_df(bad_df)
 
 
 

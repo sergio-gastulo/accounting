@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd 
 from io import StringIO
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
-from pandas.api.types import is_string_dtype
+from pandas.api.types import is_string_dtype, is_numeric_dtype
 from typing import List
 
 
@@ -301,40 +301,47 @@ def parse_valid_element_list(
     raise ValueError(f"Could not validate {user_input=}.")
 
 
+def cast_csv_types(
+        csv_content : str
+) -> pd.DataFrame:
+    
+    df = pd.read_csv(
+        StringIO(csv_content), 
+        encoding='utf-8',
+        skipinitialspace=True
+    )
+    df.columns = df.columns.str.strip()
+    
+    type_mapping = {
+        "date" :        "datetime64[ns]",
+        "amount" :      "float64",
+        "currency" :    "str",
+        "description" : "str",
+        "category" :    "str"
+    }
+    
+    # ensure uncorrupted columns before moving on
+    if not set(df.columns).issubset(type_mapping.keys()):
+        raise ValueError("Dataframe columns are not valid.")
+
+    if not isinstance(df.index, pd.RangeIndex):
+        raise ValueError("Dataframe contains more columns than expected.")
+
+    type_cols = {
+        key : val 
+        for key, val in type_mapping.items() 
+        if key in df.columns
+    }
+
+    return df.astype(type_cols)
+
+
 def parse_csv_record(
         path : Path
 ) -> pd.DataFrame:
-    
     with open(path, 'r', encoding='utf-8') as file:
-        text = file.read()
-    _, csv_content = text.split("# Now add your records in CSV format:", 1)
-    
-    df = pd.read_csv(StringIO(csv_content), encoding='utf-8')
-    
-    df.columns = df.columns.str.strip()
-    type_map = {
-        "date" : "datetime64[ns]",
-        "amount" : "str",           # it is later processed as float, obviously
-        "currency" : "str",
-        "description" : "str",
-        "category" : "str"
-    }
-
-    type_dict = {
-        key : val 
-        for key, val in type_map.items() 
-        if key in df.columns
-    }
-    df = df.astype(type_dict)
-    if "date" in df.columns:
-        df["date"] = df["date"].dt.date
-
-    def cleaner(string : str) -> float | int:
-        op = "=" + string if "=" not in string else string 
-        return parse_arithmetic_operation(op, quiet=True)
-    df.amount = df.amount.map(cleaner)
-    
-    return df
+        text = file.read() 
+    return cast_csv_types(text)
 
 
 def sanitize_df(
@@ -342,18 +349,23 @@ def sanitize_df(
         category_list : List[str]
     ) -> pd.DataFrame:
 
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"Argument {df=} is not a valid df.")
+
     check_category = lambda key: key in category_list
-
     must_exist_columns = {
-        "date", "amount", "currency", "description", "category"}
-
+        "date", "amount", "currency", "description", "category"
+    }
     errors : List[str] = []
 
     if not must_exist_columns.issubset(df.columns):
         raise ValueError(f"DataFrame does not have the columns {must_exist_columns=}.")
 
-    if not (df.amount > 0).all():
-        errors.append("DataFrame has a negative value in one (or more) of its rows.")
+    if is_numeric_dtype(df.amount):
+        if not (df.amount > 0).all():
+            errors.append("DataFrame has a negative value in one (or more) of its rows.")
+    else:
+        errors.append("Dataframe does not contain numeric amount column.")
 
     if not is_string_dtype(df.currency):
         errors.append("DataFrame does not have proper currency column.")
@@ -364,20 +376,16 @@ def sanitize_df(
     if not df.category.map(check_category).all():
         errors.append("An invalid category has been found, please check.")
 
-    # https://stackoverflow.com/a/57187654/29272030
-    if not is_string_dtype(df.date) or not is_datetime(df.date):
+    if not (is_string_dtype(df.date) or is_datetime(df.date)):
         errors.append("DataFrame's date column must be string or datetime-like.")
 
     if errors:
         raise ValueError(f"Following errors found: {errors}.")
 
-    # conversions after ensuring type check
+    # conversions after checking dtypes
     df.currency = df.currency.str.upper()
     if is_string_dtype(df.date):
-        try:
-            df.date = pd.to_datetime(df.date)
-        except ValueError:
-            errors.append("DataFrame contains an invalid string that Pandas could not parse as a valid date.")
+        df.date = pd.to_datetime(df.date)
     # datetime uniformization
     df.date = df.date.dt.strftime(DATE_COLUMN_FORMAT)
 

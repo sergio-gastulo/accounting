@@ -1,24 +1,30 @@
 import inspect
-from typing import List, Tuple, Iterable
-from pathlib import Path
+from typing import List, Tuple, Any
+from pathlib import Path, WindowsPath
+from sqlalchemy import create_engine
 import json
 import socket
 import urllib
 import requests
 from tempfile import gettempdir
 from os import environ
-import tkinter as tk
-from tkinter.filedialog import askopenfile
+from tkinter.filedialog import askopenfilename
 from tkinter.colorchooser import askcolor
 from pandas import DataFrame
+
 from pandas.api.types import is_string_dtype
+from matplotlib.colors import is_color_like
 
-from utilities.core_parser import parse_currency
 
-
-RGB = Tuple[int, int, int]
+RGB = List[int] | List[float] | Tuple[int] | Tuple[float]
 FieldDictType = List[dict[str, str | List[dict[str, str]]]]
+ExchangeDictType = dict[str, dict[str, float | int]]
 
+
+def engine(url : str | Path | None):
+    if url is None:
+        return create_engine("sqlite://")
+    return create_engine(f"sqlite:///{url}")
 
 def _raw_keys_check(
         field : dict[str, str | dict[str, str]], 
@@ -27,11 +33,11 @@ def _raw_keys_check(
 ) -> None:
 
     for key in keys:
-        if not field.get(key):
-            err_list.append(f"{field=} does not contain {key=}.")
-        else:
+        if field.get(key):
             if not isinstance(field[key], str):
                 err_list.append(f"{field=}: {key=} must be string type.")
+        else:
+            err_list.append(f"{field=} does not contain {key=}.")
 
 def _jopen(path : Path) -> dict:
     with open(path, 'r') as file:
@@ -199,6 +205,7 @@ def fetch_keybind_dict(
 
     keybind_dict = {}
 
+    # key checking in body of import_fields
     for item_dict in field_dict:
         subcategories = item_dict.get("subcategories")
         if subcategories:
@@ -208,144 +215,203 @@ def fetch_keybind_dict(
                     for item in subcategories
                 })
             })
-        else: 
+        else:
             keybind_dict.update({item_dict["key"]: item_dict["shortname"]})
 
     return _sort_dict(keybind_dict)
 
 
-# ----------------------------------------------
-# This should return the following syntax:   
-#     f(curr1, curr2) = exchange rate between 
-#       curr1 and curr2
-# ----------------------------------------------
-def fetch_currency_exchange_rate(
-        currency_1 : str,
-        currency_2 : str
-)-> float | int:
-
-    # https://github.com/fawazahmed0/exchange-api?tab=readme-ov-file 
+def _fetch_exchange(currency : str) :
+    
+    # https://github.com/fawazahmed0/exchange-api
     url_bases = [
         "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/",
         "https://latest.currency-api.pages.dev/v1/currencies/" 
     ]
 
+    currency = currency.lower()
+    endpoint = f"{currency}.json"
     for url in url_bases:
-        url_request = urllib.parse.urljoin(url, currency_1.lower() + ".json")
+        url_request = urllib.parse.urljoin(url, endpoint)
         response = requests.get(url_request)
-        if (response.ok):
-            json_res = json.loads(response.content)
-            return json_res[currency_1.lower()][currency_2.lower()]
-        else:
-            continue
-    response.raise_for_status()
+        if response.ok :
+            res = json.loads(response.content)
+            res = res[currency]
+            return res
+            
+    if response.status_code == 404:
+        raise ValueError(f"{currency=} does not exist.")
+
+def _currency_type_check(currency : str) -> str:
+    if not isinstance(currency, str):
+        raise TypeError(f"{currency=} is not string type.")
+    if len(currency) != 3:
+        raise ValueError(f"{currency=} is not in valid ISO format.")
+    return currency.lower()
+
+exchange_memo = {}
+def fetch_exchange_rate(
+        currency : str
+) -> dict : 
+    
+    currency = _currency_type_check(currency)
+    if currency in exchange_memo:
+        return exchange_memo[currency]
+
+    res = _fetch_exchange(currency)
+    exchange_memo.update( { currency : res } )
+    return res
 
 
-def fetch_exchange_dict(
+def get_exchange_rate(
+        currency_1 : str,
+        currency_2 : str
+)-> float:
+    
+    currency_1 = _currency_type_check(currency_1)
+    currency_2 = _currency_type_check(currency_2)
+    if currency_1 == currency_2:
+        return 1.0
+
+    res = fetch_exchange_rate(currency_1)
+    exchange = res.get(currency_2)
+    if exchange:
+        return exchange
+    raise ValueError(f"{currency_2=} does not exist in exchange dictionary for {currency_1=}.")
+
+
+def _create_exchange_cache() -> Path:
+    cache_path = Path(gettempdir())
+    cache_path = cache_path / "acccli" / "cached" / "exchange-cached.json"
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    return cache_path
+
+def _jdump(d : dict, path : Path) -> None:
+    with open(path, 'w') as file:
+        json.dump(d, file)
+
+def build_exchange(curr_list : List[str]) -> dict:
+    res = {
+        curr1 : {
+            curr2 : get_exchange_rate(curr1, curr2)
+            for curr2 in curr_list  
+        }
+        for curr1 in curr_list
+    }
+    return res
+
+
+def get_exchange_dict(
         curr_list : List[str],
-        cached_file : Path | None = None,
         use_cache : bool = False
-):
-
-    if not cached_file:
-        cached_file = (
-            Path(gettempdir()) 
-            / "acccli" 
-            / "cached" 
-            / "exchange-cached.json")
-
-    cached_file.parent.mkdir(parents=True, exist_ok=True)
-
-    if use_cache:
-        try:
-            with open(cached_file, 'r') as file:
-                curr_exchange_dict = json.load(file)
-            return curr_exchange_dict
-        except:
-            print(
-                "Something went wrong while trying to fetch from cache." 
-                "Temp file might have been removed."
-                "Pulling information from the internet."
-            )
-
-    n = len(curr_list)
-    curr_exchange_dict = {}
+) -> ExchangeDictType:
     
-    if has_internet():
-        # { "eur" : { "usd" : xx,  "pen" : yy, "eur" : 1}, ... }
-        for i in range(n):
-            curr_exchange_dict[curr_list[i]] = {}
-            for j in range(n):
-                if j < i:
-                    res = 1 / curr_exchange_dict[curr_list[j]][curr_list[i]]
-                elif j == i :
-                    res = 1
-                else:
-                    res = fetch_currency_exchange_rate(
-                        currency_1=curr_list[i], 
-                        currency_2=curr_list[j]
-                    )
-                curr_exchange_dict[curr_list[i]].update(
-                    { curr_list[j] : res }
-                )
+    cached_path = _create_exchange_cache()
+    if (use_cache and cached_path.exists()) or (not has_internet()):
+        res = _jopen(cached_path)
+        return res
 
-        with open(cached_file, 'w') as file:
-            json.dump(curr_exchange_dict, file)
-
-    else:
-        print("Loading from cache -- no Internet connection available.")
-        with open(cached_file, 'r') as file:
-            curr_exchange_dict = json.load(file)
-
-    print(
-        f"Current exchange dictionary loaded:\n"
-        f"{json.dumps(curr_exchange_dict, indent=4)}"
-    )
-    
-    return curr_exchange_dict
+    curr_list = [ _currency_type_check(curr) for curr in curr_list ]
+    curr_exchange = build_exchange(curr_list)
+    _jdump(curr_exchange, cached_path)
+    _raw_print(curr_exchange)
+    exchange_memo.clear()
+    return curr_exchange
 
 
-
-def check_editor(editor_file : Path | None) -> Path:
-    
-    if editor_file.exists() and editor_file.suffix == ".exe":
-        return editor_file
-    
+def _ask_editor() -> Path:
     program_files = environ['ProgramFiles']
     title = "Select your preferred text editor."
     allowed = [("Exe", "*.exe")]
     
-    while not editor_file:
+    while not editor_path:
         print("An editor file is mandatory for editing, please pick one.")
-        editor_file = askopenfile(
+        editor_path = askopenfilename(
             initialdir=program_files, 
             title=title,
             filetypes=allowed
         )
 
-    return editor_file
+    return Path(editor_path)
+
+def check_editor(editor_path : Path | str | None) -> Path:
+    
+    if isinstance(editor_path, str):
+        editor_path = Path(editor_path)
+    
+    if isinstance(editor_path, Path | WindowsPath):
+        if editor_path.exists() and editor_path.suffix == ".exe":
+            return editor_path
+        return _ask_editor()
+    
+    if editor_path is None:
+        return _ask_editor()
+
+    raise TypeError(f"{editor_path=} is not a valid argument.")
 
 
 def check_currency_list(currency_list : List[str]) -> List[str]:
-    return [parse_currency(currency=curr) for curr in currency_list]
+    return [_currency_type_check(curr) for curr in currency_list]
 
+
+def convert_rgb(color : RGB) -> RGB:
+    if not isinstance(color, list | tuple):
+        raise TypeError(f"{color=} is not a valid RGB color.")
+    if len(color) not in [3, 4]:
+        raise ValueError(f"{color=} is not a valid RGB color.")
+
+    res = ()
+    for c in color:
+        if isinstance(c, int) and (0 <= c <= 255):
+            res += (c / 255, ) 
+        elif isinstance(c, float) and 0 <= c <= 1:
+            res += (c, )
+        else:
+            raise ValueError(f"{color=} can't be casted to RGB.")
+    return res
+
+
+def _cast_color(color: Any) -> RGB | str:
+    if is_color_like(color):
+        return color
+    try:
+        c = convert_rgb(color)
+        return c
+    except TypeError:
+        raise ValueError(f"Unsupported conversion for {color=}.")
+
+def _build_color_dict(
+        currencies : List[str],
+        colors : List[RGB | str] 
+) -> dict[str, RGB | str]:
+    res = {
+        currency : _cast_color(color) 
+        for currency, color in zip(currencies, colors) 
+    }
+    return res
+
+def _ask_color(currency : str) -> Tuple[RGB, str]:
+    return askcolor(title=f"Pick color for {currency}:")
 
 def check_colors(
-        color_list : Iterable[RGB] | None,
-        currency_list : List[str]
+        currencies : List[str],
+        colors : List[RGB] | None
 ) -> dict[str, RGB | str]:
 
-    if color_list:
-        dict_res = {
-            currency : [spec / 255 for spec in color if spec > 1] 
-            for currency, color in zip(currency_list, color_list)
-        }
-        return dict_res
+    ncolors = len(colors)
+    ncurrs = len(currencies)
 
-    root = tk.Tk()
-    root.withdraw()
-    dict_res = {
-        curr : askcolor(title=f"Pick color for {curr}:")[1] 
-        for curr in currency_list
-    }
-    return dict_res
+    if ncolors > ncurrs:
+        # numer of excesive colors is simply ignored
+        return _build_color_dict(currencies, colors[:ncurrs])
+    
+    elif ncolors < ncurrs:
+        # more colors must be passed
+        res = _build_color_dict(currencies[:ncolors], colors)
+        for currency in currencies[ncolors:]:
+            color, _hex_color = _ask_color(currency)
+            res.update( { currency : _cast_color(color) } )
+        return res
+    
+    else:
+        return _build_color_dict(currencies, colors)

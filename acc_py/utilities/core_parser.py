@@ -16,10 +16,6 @@ from sqlalchemy.sql.elements import BinaryExpression, TextClause
 from db.model import Record
 
 
-
-# convention: parse_usage (obj : str) -> obj
-# should only contain raises and returns
-
 DATE_COLUMN_FORMAT = "%Y-%m-%d"
 
 

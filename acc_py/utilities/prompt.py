@@ -2,12 +2,16 @@ from datetime import date
 import traceback
 from json import dumps
 from sqlalchemy.engine import Engine
-
-from utilities.core_parser import *
 from db.model import Record, Session
+from typing import List
 
-
-# convention: prompt_usage ( object_input : str | None )
+from utilities.core_parser import (
+    parse_arithmetic_operation,
+    parse_currency,
+    parse_date,
+    parse_double_currency,
+    parse_valid_element_list,
+)
 
 
 def prompt_arithmetic_operation(

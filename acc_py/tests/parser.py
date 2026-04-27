@@ -6,16 +6,26 @@ from unittest.mock import patch, call
 import datetime
 from db.model import Record
 from sqlalchemy.dialects import sqlite
-from sqlalchemy import text
+from sqlalchemy import text, true, select
 import pandas as pd
 from pathlib import Path
+from datetime import date
 
-# files being tested
-from utilities.core_parser import *
+from utilities.core_parser import (
+    parse_period,
+    parse_arithmetic_operation,
+    parse_currency,
+    parse_date,
+    parse_double_currency,
+    core_semantic_filter_parse,
+    parse_semantic_filter,
+    parse_valid_element_list,
+    cast_csv_types,
+    sanitize_df
+)
 
 
 TEST_FILES_DIRECTORY = Path(__file__).parent / "files"
-
 
 
 def compile_to_sql(sql_expr):

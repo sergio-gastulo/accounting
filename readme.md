@@ -65,6 +65,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Provide support for several p1() periods (comparings periods).
 - Think of conversion plots.
 - Provide support to dump-save python objects. 
+- Dump valid ctx. for faster import (check has for edition).
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.

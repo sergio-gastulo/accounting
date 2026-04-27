@@ -1,16 +1,38 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, call
 
 # general
 from pathlib import Path
 import pandas as pd
 import io
+import json
+import os
+from dotenv import load_dotenv
 
-# submodule being tested
-from utilities.miscellanea import *
+
+from utilities.miscellanea import (
+    import_fields,
+    pprint_df,
+    get_help_dictionary,
+    pprint_categories,
+    get_all_categories,
+    fetch_category_dictionary,
+    fetch_keybind_dict,
+    fetch_exchange_rate,
+    get_exchange_rate,
+    exchange_memo,
+    get_exchange_dict,
+    check_editor,
+    build_exchange,
+    check_currency_list,
+    convert_rgb,
+    check_colors,
+)
 
 
 TEST_FILE_DIRECTORY = Path(__file__).parent / "files"
+load_dotenv()
+RUN_API_TEST = os.getenv('RUN_API_TEST').lower() in (1, "true", "yes")
 
 
 class TestFieldImporter(unittest.TestCase):
@@ -306,15 +328,6 @@ class TestGetAllCategories(unittest.TestCase):
             expected
         )
 
-    def test_get_all_categories_err(self):
-        bad_category_dict = [
-            {
-                "not_shortname" : "any"
-            }
-        ]
-        with self.assertRaises(ValueError):
-            get_all_categories(bad_category_dict)
-
 
 class TestCategoryDictionaryFetcher(unittest.TestCase):
     def test_fetch_category_dictionary(self):
@@ -362,24 +375,298 @@ class TestCategoryDictionaryFetcher(unittest.TestCase):
                     expected
                 )
                 
-@unittest.skip("Working on it")
-class TestSortDictionary(unittest.TestCase):
-    pass
 
-
-@unittest.skip("Working on it")
 class TestKeybindDictionaryFetcher(unittest.TestCase):
     def test_fetch_keybind_dict(self):
-        pass
+        cases = [
+            (
+                [
+                    {
+                        "shortname" : "foo",
+                        "key" : "f",
+                        "subcategories" : [
+                            {
+                                "shortname" : "bar",
+                                "key" : "b"
+                            }
+                        ]
+                    },
+                    {
+                        "shortname" : "category 1",
+                        "key" : "c1"
+                    }
+                ],
+                {
+                    "c1" : "category 1", 
+                    "f" : {
+                        "b" : "bar"
+                    }
+                },
+                "simple nested"
+            ),
+        ]
+        for field_dict, expected, label in cases:
+            with self.subTest(label=label):
+                self.assertEqual(
+                    fetch_keybind_dict(field_dict),
+                    expected
+                )
 
 
+@unittest.skipUnless(RUN_API_TEST, "skipping API tests (set RUN_API_TESTS=1 to enable)")
+class TestExchangeRateFetcher(unittest.TestCase):
+
+    def test_fetch_exchange_rate(self):
+        cases = [
+            "pen",
+            "eur"
+        ]
+        for currency in cases:
+            with self.subTest(currency=currency):
+                res = fetch_exchange_rate(currency)
+                self.assertIsInstance(
+                    res,
+                    dict
+                )
+                for curr, exchange in res.items():
+                    with self.subTest(curr=curr):
+                        self.assertIsInstance(curr, str)
+                        self.assertIsInstance(exchange, float | int)
+
+    def test_fetch_exchange_rate_err(self):
+        bad_cases = [
+            ("any-currency",    ValueError),
+            (print,             TypeError),
+            (None,              TypeError),
+            ("asd",             ValueError)
+        ]
+        for bad_currency, err in bad_cases:
+            with self.subTest(bad_currency=bad_currency):
+                with self.assertRaises(err):
+                    fetch_exchange_rate(bad_currency)
+
+    def test_fetch_exchange_rate_memo(self):
+        currency = "pen"
+        expected = "foo"
+        with patch('utilities.miscellanea.exchange_memo', {currency : expected}):
+            with patch('utilities.miscellanea._fetch_exchange') as mock_fetch_exchange:
+                res = fetch_exchange_rate(currency)
+                mock_fetch_exchange.assert_not_called()
+                self.assertEqual(res, expected)
 
 
+@unittest.skipUnless(RUN_API_TEST, "skipping API tests (set RUN_API_TESTS=1 to enable)")
+class TestExchangeRateGetter(unittest.TestCase):
+    def test_get_exchange_rate(self):
+        cases = [
+            ("pen", "usd"),
+            ("usd", "eur"),
+        ]
+        for curr1, curr2 in cases:
+            with self.subTest(curr1=curr1, curr2=curr2):
+                self.assertIsInstance(
+                    get_exchange_rate(curr1, curr2),
+                    float
+                )
+
+class TestExchangeBuilder(unittest.TestCase):
+    def test_build_exchange(self):
+        cases = [
+            (
+                ["foo", "bar", "baz"],
+                {
+                    "foo" : {
+                        "foo" : 2.0,
+                        "bar" : 2.0,
+                        "baz" : 2.0
+                    },
+                    "bar" : {
+                        "foo" : 2.0,
+                        "bar" : 2.0,
+                        "baz" : 2.0
+                    },
+                    "baz" : {
+                        "foo" : 2.0,
+                        "bar" : 2.0,
+                        "baz" : 2.0
+                    }
+                }
+            ),
+        ]
+        for curr_list, expected in cases:
+            with self.subTest(curr_list=curr_list):
+                with patch('utilities.miscellanea.get_exchange_rate') as mock_get_exchange:
+                    mock_get_exchange.return_value = 2.0
+                    self.assertEqual(
+                        build_exchange(curr_list),
+                        expected
+                    )
+        
+
+class TestExchangeDictionaryGetter(unittest.TestCase):
+
+    def test_get_exchange_dict(self):
+        curr_list = [ "JPY", "EUR" ]
+        curr_list_lower = ['jpy', 'eur']
+        mocked_build_return = {
+                "jpy" : {"jpy" : 1.0, "eur" : 3.0},
+                "eur" : {"eur" : 1.0, "jpy" : 2.0}
+            }
+        with (
+            patch('utilities.miscellanea.has_internet') as mock_has_internet,
+            patch('utilities.miscellanea.build_exchange') as mock_build,
+            patch('utilities.miscellanea._currency_type_check') as mock_curr_type,
+            patch('utilities.miscellanea._jdump') as mock_jdump,
+            patch('utilities.miscellanea._raw_print') as mock_rprint,
+            patch('utilities.miscellanea._create_exchange_cache') as mock_create_cache,
+        ):
+            mock_has_internet.return_value = True
+            mock_build.return_value = mocked_build_return
+            mock_curr_type.side_effect = lambda s : s.lower()
+            mock_create_cache.return_value = "mocked"
+            self.assertEqual(
+                get_exchange_dict(curr_list),
+                mocked_build_return
+            )
+            self.assertEqual(exchange_memo, {})
+            mock_curr_type.assert_has_calls([call('JPY'), call('EUR')])
+            mock_build.assert_called_once_with(curr_list_lower)
+            mock_jdump.assert_called_once_with(mocked_build_return, "mocked")
+            mock_rprint.assert_called_once()
+
+    def test_get_exchange_dict_with_cache(self):
+        res = "any"
+        with (
+            patch('utilities.miscellanea._jopen') as mock_jopen,
+            patch('utilities.miscellanea._create_exchange_cache') as mock_create_cache,
+            patch('utilities.miscellanea.build_exchange') as mock_build,
+        ):
+            mock_create_cache.return_value.exists.return_value = True
+            get_exchange_dict(res, True)
+            mock_jopen.assert_called_once_with(mock_create_cache.return_value)
+            mock_build.assert_not_called()
+    
+
+class TestEditorChecker(unittest.TestCase):
+
+    def test_check_editor(self):
+        editor = r'C:\Program Files\Notepad++\notepad++.exe'
+        self.assertEqual(
+            check_editor(editor),
+            Path(editor)
+        )
+
+    def test_check_editor_err(self):
+        bad_args = [
+            print, 
+            55,           
+        ]
+        for bad_arg in bad_args:
+            with self.subTest(bad_arg=bad_arg):
+                with self.assertRaises(TypeError):
+                    check_editor(bad_arg)
+
+    def test_check_editor_asks_for_file(self):
+        any_args = [
+            "invalid-path",
+            None,
+            Path("wrapped-but-invalid"),
+        ]
+        for arg in any_args:
+            with self.subTest(arg=arg):
+                with patch('utilities.miscellanea._ask_editor') as mock_ask_editor:
+                    check_editor(arg)
+                    mock_ask_editor.assert_called_once()
 
 
+class TestCurrencyListChecker(unittest.TestCase):
+    def test_check_currency_list(self):
+        arg = ["FOO", "BAR", "BAZ"]
+        self.assertEqual(
+            check_currency_list(arg),
+            ["foo", "bar", "baz"]
+        )
+
+    def test_check_currency_list_err(self):
+        bad = ["foo", "bar4"]
+        with self.assertRaises(ValueError):
+            check_currency_list(bad)
 
 
+class TestRGBConverter(unittest.TestCase):
+    def test_convert_rgb(self):
+        cases = [
+            ([255, 255, 255],   (1.0, 1.0, 1.0)),
+            ([1.0, 0.0, 0.5],   (1.0, 0.0, 0.5)),
+            ((0, 0, 0, 0),      (0, 0, 0, 0)),
+            ((1.0, 128, 0, 0),  (1.0, 128 / 255, 0, 0))
+        ]
+        for color, expected in cases:
+            with self.subTest(color=color):
+                self.assertEqual(
+                    convert_rgb(color), 
+                    expected
+                )
 
+    def test_convert_rgb_err(self):
+        cases = [
+            ("foo",                 TypeError),
+            ((300, 200, 100, 0),    ValueError),
+            ([1.0, 1.1, 1.0, 1.5],  ValueError)
+        ]
+        for bad_color, err in cases:
+            with self.subTest(bad_color=bad_color):
+                with self.assertRaises(err):
+                    convert_rgb(bad_color)
+
+
+class TestColorChecker(unittest.TestCase):
+    def test_check_colors(self):
+        currencies = ["per", "eur", "usa"]
+        colors = ["red", "blue", [1.0, 0.5, 0.5]]
+        expected = {
+            "per" : "red",
+            "eur" : "blue",
+            "usa" : [1.0, 0.5, 0.5]
+        }
+        self.assertEqual(
+            check_colors(currencies, colors),
+            expected
+        )
+
+    def test_check_colors_dimensions_1(self):
+        currencies = [ "per" ]
+        colors = ["red", "blue", [1.0, 0.5, 0.5]]
+        expected = {
+            "per" : "red"
+        }
+        self.assertEqual(
+            check_colors(currencies, colors),
+            expected
+        )
+
+    def test_check_colors_dimensions_2(self):
+        currencies = [ "per", "eur", "usd" ]
+        colors = [ "red" ]
+        test_color = (0.5, 0.5, 0.5)
+        expected = {
+            "per" : "red",
+            "eur" : test_color, 
+            "usd" : test_color
+        }
+        with patch('utilities.miscellanea._ask_color') as mock_ask_color:
+            mock_ask_color.return_value = (0.5, 0.5, 0.5), "hex"
+            self.assertEqual(
+                check_colors(currencies, colors),
+                expected
+            )
+            mock_ask_color.assert_has_calls([call("eur"), call("usd")])
+
+    def test_check_colors_err(self):
+        currencies = [ "per", "eur" ]
+        colors = [ "red", "not-a-color" ]
+        with self.assertRaises(ValueError):
+            check_colors(currencies, colors)
 
 
 if __name__ == "__main__":

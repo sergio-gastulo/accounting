@@ -10,9 +10,9 @@ from sqlalchemy import select, not_, case
 from sqlalchemy.sql import functions, func
 from sqlalchemy.orm import Session
 
-from utilities.miscellanea import pprint_df
+from utilities.core import pprint_df
+from utilities.parser import parse_period
 from utilities.prompt import prompt_category_from_keybinds
-from utilities.core_parser import parse_period
 
 # fine to have ctx tbh, loads lots of configs
 from context.context import ctx

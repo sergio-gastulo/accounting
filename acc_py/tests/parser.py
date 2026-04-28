@@ -1,6 +1,7 @@
 # unittest tooling
 import unittest
-from unittest.mock import patch, call
+from unittest.mock import call, MagicMock
+
 
 # generics
 import datetime
@@ -8,10 +9,11 @@ from db.model import Record
 from sqlalchemy.dialects import sqlite
 from sqlalchemy import text, true, select
 import pandas as pd
-from pathlib import Path
 from datetime import date
+from typing import Callable
+from tests._shared import patch_this
 
-from utilities.core_parser import (
+from utilities.parser import (
     parse_period,
     parse_arithmetic_operation,
     parse_currency,
@@ -24,15 +26,23 @@ from utilities.core_parser import (
     sanitize_df
 )
 
+#region ============================ utils =====================================
 
-TEST_FILES_DIRECTORY = Path(__file__).parent / "files"
+TEST_MODULE = 'utilities.parser'
+
+def _patch_this(f : Callable | str) -> MagicMock:
+    return patch_this(TEST_MODULE, f)
 
 
-def compile_to_sql(sql_expr):
+def compile_sql(sql_expr):
     """Compiles sqlachemy stmt to vanilla sqlite3."""
     dialect = sqlite.dialect()
     kwargs = {"literal_binds" : True}
     return str(sql_expr.compile(dialect=dialect, compile_kwargs=kwargs))
+
+
+#endregion =====================================================================
+
 
 
 class TestArithmeticOperationParser(unittest.TestCase):
@@ -153,21 +163,23 @@ class TestDoubleCurrencyPairParser(unittest.TestCase):
         ]
         for raw_input, (arg_arith, arg_curr), (e_amount, e_currency), use_default in cases:
             with self.subTest(raw_input=raw_input):
-                with patch('utilities.core_parser.parse_arithmetic_operation') as mock_arith:
-                    with patch('utilities.core_parser.parse_currency') as mock_curr:
-                        mock_arith.return_value = e_amount
-                        if use_default:
-                            mock_curr.side_effect = [ValueError, e_currency]
-                        else:
-                            mock_curr.return_value = e_currency
-                        amount, currency = parse_double_currency(def_curr, raw_input, lbound)
-                        mock_arith.assert_called_once_with(arg_arith, lbound)
-                        if use_default:
-                            self.assertEqual(mock_curr.call_args_list, [call(arg_curr), call(def_curr)])
-                        else:
-                            mock_curr.assert_called_once_with(arg_curr)
-                        self.assertAlmostEqual(amount, e_amount, places=places_)
-                        self.assertEqual(currency, e_currency)
+                with (
+                    _patch_this(parse_arithmetic_operation) as mock_arith,
+                    _patch_this(parse_currency) as mock_curr
+                ):
+                    mock_arith.return_value = e_amount
+                    if use_default:
+                        mock_curr.side_effect = [ValueError, e_currency]
+                    else:
+                        mock_curr.return_value = e_currency
+                    amount, currency = parse_double_currency(def_curr, raw_input, lbound)
+                    mock_arith.assert_called_once_with(arg_arith, lbound)
+                    if use_default:
+                        self.assertEqual(mock_curr.call_args_list, [call(arg_curr), call(def_curr)])
+                    else:
+                        mock_curr.assert_called_once_with(arg_curr)
+                    self.assertAlmostEqual(amount, e_amount, places=places_)
+                    self.assertEqual(currency, e_currency)
 
     def test_double_currency_err(self):
         lbound = -9999
@@ -240,7 +252,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
     @staticmethod
     def wrap(filter):
         """Replaces x -> compile(core_semantic_filter_parser(x))""" 
-        return compile_to_sql(core_semantic_filter_parse(filter))
+        return compile_sql(core_semantic_filter_parse(filter))
 
     today = datetime.date.today()
 
@@ -253,7 +265,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for id_filter, (lower, upper) in cases:
             with self.subTest(id_filter=id_filter):
                 self.assertEqual(
-                    compile_to_sql(Record.id.between(lower, upper)),
+                    compile_sql(Record.id.between(lower, upper)),
                     self.wrap(id_filter)
                 )    
 
@@ -283,7 +295,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter, (lower, upper) in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.amount.between(lower, upper)),
+                    compile_sql(Record.amount.between(lower, upper)),
                     self.wrap(filter)
                 )
 
@@ -297,7 +309,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.amount >= 3.0),
+                    compile_sql(Record.amount >= 3.0),
                     self.wrap(filter)
                 )
 
@@ -311,7 +323,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.amount <= 3.0),
+                    compile_sql(Record.amount <= 3.0),
                     self.wrap(filter)
                 )
 
@@ -334,7 +346,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for date_like, expected in cases:
             with self.subTest(date_like=date_like):
                 self.assertEqual(
-                    compile_to_sql(Record.date.like(expected)),
+                    compile_sql(Record.date.like(expected)),
                     self.wrap(date_like)
                 )
 
@@ -347,12 +359,12 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         ]
         for semantic_filter, date_call, expected in cases:
             with self.subTest(semantic_filter=semantic_filter):
-                with patch('utilities.core_parser.parse_date') as mock_dateparser:
+                with _patch_this(parse_date) as mock_dateparser:
                     mock_dateparser.return_value = expected
                     result = self.wrap(semantic_filter)
                     mock_dateparser.assert_called_once_with(date_call)
                     self.assertEqual(
-                        compile_to_sql(Record.date == expected),
+                        compile_sql(Record.date == expected),
                         result
                     )
 
@@ -365,7 +377,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for date_regex_filter in cases:
             with self.subTest(date_regex_filter=date_regex_filter):
                 self.assertEqual(
-                    compile_to_sql(Record.date.regexp_match('2025-01')),
+                    compile_sql(Record.date.regexp_match('2025-01')),
                     self.wrap(date_regex_filter)
                 )
 
@@ -391,7 +403,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter, like in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.category.like(like)),
+                    compile_sql(Record.category.like(like)),
                     self.wrap(filter)
                 )
 
@@ -404,7 +416,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter, regexp in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.category.regexp_match(regexp)),
+                    compile_sql(Record.category.regexp_match(regexp)),
                     self.wrap(filter)
                 )
 
@@ -417,7 +429,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter, category_ in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.category == category_),
+                    compile_sql(Record.category == category_),
                     self.wrap(filter)
                 )
 
@@ -443,7 +455,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter, currency_ in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.currency == currency_),
+                    compile_sql(Record.currency == currency_),
                     self.wrap(filter)
                 )
 
@@ -460,7 +472,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter, description in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.description.like(description)),
+                    compile_sql(Record.description.like(description)),
                     self.wrap(filter)
                 )
 
@@ -473,7 +485,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter, description_ in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.description == description_),
+                    compile_sql(Record.description == description_),
                     self.wrap(filter)
                 )
 
@@ -486,7 +498,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
         for filter, regexp in cases:
             with self.subTest(filter=filter):
                 self.assertEqual(
-                    compile_to_sql(Record.description.regexp_match(regexp)),
+                    compile_sql(Record.description.regexp_match(regexp)),
                     self.wrap(filter)
                 )        
 
@@ -507,7 +519,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
             "true",
             "True"
         ]
-        true_stmt = compile_to_sql(true())
+        true_stmt = compile_sql(true())
         for true_ in valid_true:
             with self.subTest(filter=true_):
                 self.assertEqual(
@@ -532,7 +544,7 @@ class TestSemanticFilterParser(unittest.TestCase):
     
     @staticmethod
     def wrap(sql_expr) : 
-        return compile_to_sql(parse_semantic_filter(sql_expr))
+        return compile_sql(parse_semantic_filter(sql_expr))
     
     today = date.today()
 
@@ -577,7 +589,7 @@ class TestSemanticFilterParser(unittest.TestCase):
         for raw_query, expected_query in cases:
             with self.subTest(raw_query=raw_query):
                 self.assertEqual(
-                    compile_to_sql(expected_query),
+                    compile_sql(expected_query),
                     self.wrap(raw_query)
                 )
 

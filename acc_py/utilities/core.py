@@ -1,7 +1,6 @@
 import inspect
 from typing import List, Tuple, Any
 from pathlib import Path, WindowsPath
-from sqlalchemy import create_engine
 import json
 import socket
 import urllib
@@ -16,15 +15,20 @@ from pandas.api.types import is_string_dtype
 from matplotlib.colors import is_color_like
 
 
-RGB = List[int] | List[float] | Tuple[int] | Tuple[float]
+#region ========================== new types ===================================
+
+RGBType = List[int] | List[float] | Tuple[int] | Tuple[float]
 FieldDictType = List[dict[str, str | List[dict[str, str]]]]
 ExchangeDictType = dict[str, dict[str, float | int]]
+KeybindDictType = dict[str, str | dict[str, str]]
+
+#endregion =====================================================================
 
 
 #region ======================= json operations ================================
 
 def _jopen(path : Path) -> dict:
-    with open(path, 'r') as file:
+    with open(path, 'r', encoding='utf8') as file:
         res = json.load(file)
     return res
 
@@ -40,11 +44,6 @@ def _jdump(d : dict, path : Path) -> None:
 
 #endregion =====================================================================
 
-
-def engine(url : str | Path | None):
-    if url is None:
-        return create_engine("sqlite://")
-    return create_engine(f"sqlite:///{url}")
 
 def _raw_keys_check(
         field : dict[str, str | dict[str, str]], 
@@ -213,7 +212,7 @@ def _sort_dict(d : dict[str, str]) -> dict[str, str]:
 
 def fetch_keybind_dict(
         field_dict : FieldDictType
-) -> dict[str, str | dict[str, str]]:
+) -> KeybindDictType:
 
     keybind_dict = {}
 
@@ -311,7 +310,7 @@ def build_exchange(curr_list : List[str]) -> dict:
 
 def get_exchange_dict(
         curr_list : List[str],
-        use_cache : bool = False
+        use_cache : bool | None = False
 ) -> ExchangeDictType:
     
     cached_path = _create_exchange_cache()
@@ -362,7 +361,7 @@ def check_currency_list(currency_list : List[str]) -> List[str]:
     return [_currency_type_check(curr) for curr in currency_list]
 
 
-def convert_rgb(color : RGB) -> RGB:
+def convert_rgb(color : RGBType) -> RGBType:
     if not isinstance(color, list | tuple):
         raise TypeError(f"{color=} is not a valid RGB color.")
     if len(color) not in [3, 4]:
@@ -379,7 +378,7 @@ def convert_rgb(color : RGB) -> RGB:
     return res
 
 
-def _cast_color(color: Any) -> RGB | str:
+def _cast_color(color: Any) -> RGBType | str:
     if is_color_like(color):
         return color
     try:
@@ -390,21 +389,21 @@ def _cast_color(color: Any) -> RGB | str:
 
 def _build_color_dict(
         currencies : List[str],
-        colors : List[RGB | str] 
-) -> dict[str, RGB | str]:
+        colors : List[RGBType | str] 
+) -> dict[str, RGBType | str]:
     res = {
         currency : _cast_color(color) 
         for currency, color in zip(currencies, colors) 
     }
     return res
 
-def _ask_color(currency : str) -> Tuple[RGB, str]:
+def _ask_color(currency : str) -> Tuple[RGBType, str]:
     return askcolor(title=f"Pick color for {currency}:")
 
 def check_colors(
         currencies : List[str],
-        colors : List[RGB] | None
-) -> dict[str, RGB | str]:
+        colors : List[RGBType | str] | None
+) -> dict[str, RGBType | str]:
 
     ncolors = len(colors)
     ncurrs = len(currencies)

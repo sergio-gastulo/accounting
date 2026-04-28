@@ -5,7 +5,7 @@ from sqlalchemy.engine import Engine
 from db.model import Record, Session
 from typing import List
 
-from utilities.core_parser import (
+from utilities.parser import (
     parse_arithmetic_operation,
     parse_currency,
     parse_date,

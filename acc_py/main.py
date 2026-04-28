@@ -2,12 +2,12 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-from utilities.miscellanea import print_func_doc
-from context.main import set_context
+from utilities.core import (
+    print_func_doc, 
+    pprint_categories
+)
 from context.context import ctx
-from utilities.miscellanea import pprint_categories
 from datetime import datetime
-
 
 p1 : Callable = None
 p2 : Callable = None
@@ -129,7 +129,7 @@ def load_plot(
         fields_json_path : Path,
         debug : bool
 ) -> None:
-    set_context(config_path, fields_json_path, True)
+    ctx.set(config_path, fields_json_path, True)
     plot(debug)
     if not debug:
         h()
@@ -147,7 +147,7 @@ def main(
         globals()["load"] = db
 
     elif flag == 'db':
-        set_context(config_path, fields_json_path, False)
+        ctx.set(config_path, fields_json_path, False)
         db(debug)
         globals()["load"] = lambda : load_plot(config_path, fields_json_path, debug)
     

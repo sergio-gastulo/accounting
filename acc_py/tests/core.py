@@ -1,16 +1,20 @@
 import unittest
-from unittest.mock import patch, call
+from unittest.mock import patch, call, MagicMock
 
 # general
 from pathlib import Path
 import pandas as pd
 import io
 import json
-import os
-from dotenv import load_dotenv
+from typing import Callable
 
+from tests._shared import (
+    RUN_API_TEST, 
+    TEST_FILE_DIRECTORY, 
+    patch_this,
+)
 
-from utilities.miscellanea import (
+from utilities.core import (
     import_fields,
     pprint_df,
     get_help_dictionary,
@@ -30,9 +34,14 @@ from utilities.miscellanea import (
 )
 
 
-TEST_FILE_DIRECTORY = Path(__file__).parent / "files"
-load_dotenv()
-RUN_API_TEST = os.getenv('RUN_API_TEST').lower() in (1, "true", "yes")
+#region ========================= quick utils ==================================
+
+TEST_MODULE = 'utilities.core'
+
+def _patch_this(f : Callable) -> MagicMock:
+    return patch_this(TEST_MODULE, f)
+
+#endregion =====================================================================
 
 
 class TestFieldImporter(unittest.TestCase):
@@ -64,7 +73,7 @@ class TestFieldImporter(unittest.TestCase):
         ]
         for cat_dict, label in cases:
             with self.subTest(label=label):
-                with patch('utilities.miscellanea._jopen') as mock_jopen:
+                with _patch_this('_jopen') as mock_jopen:
                     mock_jopen.return_value = cat_dict
                     self.assertEqual(
                         import_fields("mocked/path"),
@@ -100,7 +109,7 @@ class TestFieldImporter(unittest.TestCase):
         ]
         for cat_dict, label in cases:
             with self.subTest(label=label):
-                with patch('utilities.miscellanea._jopen') as mock_jopen:
+                with _patch_this('_jopen') as mock_jopen:
                     mock_jopen.return_value = cat_dict
                     with self.assertRaises(ValueError):
                         import_fields("mocked/path")
@@ -448,8 +457,8 @@ class TestExchangeRateFetcher(unittest.TestCase):
     def test_fetch_exchange_rate_memo(self):
         currency = "pen"
         expected = "foo"
-        with patch('utilities.miscellanea.exchange_memo', {currency : expected}):
-            with patch('utilities.miscellanea._fetch_exchange') as mock_fetch_exchange:
+        with patch(f"{TEST_MODULE}.exchange_memo", {currency : expected}):
+            with _patch_this('_fetch_exchange') as mock_fetch_exchange:
                 res = fetch_exchange_rate(currency)
                 mock_fetch_exchange.assert_not_called()
                 self.assertEqual(res, expected)
@@ -495,7 +504,7 @@ class TestExchangeBuilder(unittest.TestCase):
         ]
         for curr_list, expected in cases:
             with self.subTest(curr_list=curr_list):
-                with patch('utilities.miscellanea.get_exchange_rate') as mock_get_exchange:
+                with _patch_this('get_exchange_rate') as mock_get_exchange:
                     mock_get_exchange.return_value = 2.0
                     self.assertEqual(
                         build_exchange(curr_list),
@@ -513,12 +522,12 @@ class TestExchangeDictionaryGetter(unittest.TestCase):
                 "eur" : {"eur" : 1.0, "jpy" : 2.0}
             }
         with (
-            patch('utilities.miscellanea.has_internet') as mock_has_internet,
-            patch('utilities.miscellanea.build_exchange') as mock_build,
-            patch('utilities.miscellanea._currency_type_check') as mock_curr_type,
-            patch('utilities.miscellanea._jdump') as mock_jdump,
-            patch('utilities.miscellanea._jprint') as mock_jprint,
-            patch('utilities.miscellanea._create_exchange_cache') as mock_create_cache,
+            _patch_this('has_internet') as mock_has_internet,
+            _patch_this('build_exchange') as mock_build,
+            _patch_this('_currency_type_check') as mock_curr_type,
+            _patch_this('_jdump') as mock_jdump,
+            _patch_this('_jprint') as mock_jprint,
+            _patch_this('_create_exchange_cache') as mock_create_cache,
         ):
             mock_has_internet.return_value = True
             mock_build.return_value = mocked_build_return
@@ -537,9 +546,9 @@ class TestExchangeDictionaryGetter(unittest.TestCase):
     def test_get_exchange_dict_with_cache(self):
         res = "any"
         with (
-            patch('utilities.miscellanea._jopen') as mock_jopen,
-            patch('utilities.miscellanea._create_exchange_cache') as mock_create_cache,
-            patch('utilities.miscellanea.build_exchange') as mock_build,
+            _patch_this('_jopen') as mock_jopen,
+            _patch_this('_create_exchange_cache') as mock_create_cache,
+            _patch_this('build_exchange') as mock_build,
         ):
             mock_create_cache.return_value.exists.return_value = True
             get_exchange_dict(res, True)
@@ -574,7 +583,7 @@ class TestEditorChecker(unittest.TestCase):
         ]
         for arg in any_args:
             with self.subTest(arg=arg):
-                with patch('utilities.miscellanea._ask_editor') as mock_ask_editor:
+                with _patch_this('_ask_editor') as mock_ask_editor:
                     check_editor(arg)
                     mock_ask_editor.assert_called_once()
 
@@ -654,7 +663,7 @@ class TestColorChecker(unittest.TestCase):
             "eur" : test_color, 
             "usd" : test_color
         }
-        with patch('utilities.miscellanea._ask_color') as mock_ask_color:
+        with _patch_this('_ask_color') as mock_ask_color:
             mock_ask_color.return_value = (0.5, 0.5, 0.5), "hex"
             self.assertEqual(
                 check_colors(currencies, colors),

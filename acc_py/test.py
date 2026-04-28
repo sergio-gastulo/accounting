@@ -14,7 +14,7 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from utilities.core_parser import cast_csv_types
+    from utilities.parser import cast_csv_types
     import pandas as pd
 
     df, dfe, _ =  (

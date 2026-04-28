@@ -25,10 +25,10 @@ def parse_arithmetic_operation (
 ) -> float | int:
     
     if re.match(r'.*[a-zA-Z].*', expr):
-        raise SyntaxError(f"Input can't contain words. Got: {expr=}")
+        raise ValueError(f"Input can't contain words. Got: {expr=}.")
 
     if len(expr) == 0:
-        raise SyntaxError(f"Empty string.")
+        raise ValueError(f"Empty string.")
 
     if expr[0] in ['+', '=', '-']:
         # removing '=' from the beginning of the str
@@ -101,7 +101,7 @@ def parse_double_currency(
 ) -> tuple[float, str]:
     tokens = raw_input.strip().split()
     if not tokens:
-        raise SyntaxError("Empty query.")
+        raise ValueError("Empty query.")
 
     try: 
         currency = parse_currency(tokens[-1])

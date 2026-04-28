@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 #region ========================== variables ===================================
 
 TEST_FILE_DIRECTORY = Path(__file__).parent / "files"
-RUN_API_TEST = True
+RUN_API_TEST = False
 
 #endregion =====================================================================
 

@@ -72,7 +72,7 @@ class TestArithmeticOperationParser(unittest.TestCase):
             ''
         ]
         for expr in malicious:
-            with self.assertRaises(SyntaxError):
+            with self.assertRaises(ValueError):
                 parse_arithmetic_operation(expr)
 
     def test_lower_bound(self):
@@ -185,12 +185,12 @@ class TestDoubleCurrencyPairParser(unittest.TestCase):
         lbound = -9999
         def_curr = 'DEF'
         cases = [
-            ('=5+5 usd usd',        SyntaxError),
+            ('=5+5 usd usd',        ValueError),
             ('5.       5',          ValueError),
             ('2.2 / foo',           ValueError),
-            ('pen',                 SyntaxError),
-            ('',                    SyntaxError),
-            ('               ',     SyntaxError),
+            ('pen',                 ValueError),
+            ('',                    ValueError),
+            ('               ',     ValueError),
         ]
         for raw_input, err in cases:
             with self.subTest(raw_input=raw_input):

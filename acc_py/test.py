@@ -14,16 +14,5 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from utilities.parser import cast_csv_types
-    import pandas as pd
-
-    df, dfe, _ =  (
-                "category, description\n",
-                pd.DataFrame({
-                    "category" : [],
-                    "description" : []
-                }),
-                "empty df"
-            )
-
-    df = cast_csv_types(df)
+    from utilities.prompt import prompt_arithmetic_operation
+    val = prompt_arithmetic_operation()

@@ -3,7 +3,7 @@ import traceback
 from json import dumps
 from sqlalchemy.engine import Engine
 from db.model import Record, Session
-from typing import List
+from typing import List, Callable, Any, Optional
 
 from utilities.parser import (
     parse_arithmetic_operation,
@@ -14,34 +14,52 @@ from utilities.parser import (
 )
 
 
-def prompt_arithmetic_operation(
-        user_input : str | float | int |  None = None, 
-        lower_bound: float = 0.0, 
-        validate_label: str | None = None, 
-        explain : bool = True
-    ) -> float | int :
+#region ============================ utils =====================================
 
-    if isinstance(user_input, int) or isinstance(user_input, float):
+def main_loop(
+        uinput : str | None,
+        prompt : str,
+        parser : Callable,
+        on_error : Callable = print,
+        max_attempts : int = 5,
+        **kwargs
+) -> Any:
+    for _ in range(max_attempts):
+        if uinput is None:
+            uinput = input(prompt)
+        try:
+            value = parser(uinput, **kwargs)
+            return value
+        except (ValueError, TypeError) as e:
+            err_type = type(e).__name__
+            on_error(f"{err_type} : {e}")
+            uinput = None
+    raise RuntimeError(f"No valid input after {max_attempts} attempts.")
+
+
+#endregion =====================================================================
+
+
+
+def prompt_arithmetic_operation(
+        user_input : Optional[str | float | int] = None, 
+        lower_bound: float = 0.0
+) -> float | int :
+
+    if isinstance(user_input, int | float):
         return user_input
 
-    validate_sentence = f"Write '{validate_label}': " if validate_label is not None else "Type valid operation: "
+    if not isinstance(user_input, str) and user_input is not None:
+        raise TypeError(f"Argument {user_input=} is not a valid type.")
 
-    if explain and user_input is None:
-        print(
-            f"To use this parser, you can type a number or use basic arithmetic.\n"
-            f"Example: '=1+1' parses to '2'. Must start with '=', '+', or '-'.\n"
-        )
-
-    while True:
-        if user_input is None:
-            user_input = input(validate_sentence)
-        try: 
-            value = parse_arithmetic_operation(expr=user_input, lower_bound=lower_bound)
-            print(f"Success: '{value}'")
-            return value
-        except Exception as e:
-            print(f"Something went wrong: {e}")
-            user_input = None
+    prompt = "Type valid aithmetic operation: "
+    kwargs = {
+        "prompt" : prompt,
+        "parser" : parse_arithmetic_operation,
+        "lower_bound" : lower_bound
+    }
+    res = main_loop(user_input, **kwargs)
+    return res
 
 
 def prompt_currency(

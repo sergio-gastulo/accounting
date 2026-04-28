@@ -8,10 +8,10 @@ import urllib
 import requests
 from tempfile import gettempdir
 from os import environ
-from tkinter.filedialog import askopenfilename
-from tkinter.colorchooser import askcolor
 from pandas import DataFrame
 
+from tkinter.filedialog import askopenfilename
+from tkinter.colorchooser import askcolor
 from pandas.api.types import is_string_dtype
 from matplotlib.colors import is_color_like
 
@@ -19,6 +19,26 @@ from matplotlib.colors import is_color_like
 RGB = List[int] | List[float] | Tuple[int] | Tuple[float]
 FieldDictType = List[dict[str, str | List[dict[str, str]]]]
 ExchangeDictType = dict[str, dict[str, float | int]]
+
+
+#region ======================= json operations ================================
+
+def _jopen(path : Path) -> dict:
+    with open(path, 'r') as file:
+        res = json.load(file)
+    return res
+
+def _jrepr(d : dict) -> str:
+    return json.dumps(d, indent=4)
+
+def _jprint(d : dict):
+    print(_jrepr(d))
+
+def _jdump(d : dict, path : Path) -> None:
+    with open(path, 'w') as file:
+        json.dump(d, file, indent=4)
+
+#endregion =====================================================================
 
 
 def engine(url : str | Path | None):
@@ -38,11 +58,6 @@ def _raw_keys_check(
                 err_list.append(f"{field=}: {key=} must be string type.")
         else:
             err_list.append(f"{field=} does not contain {key=}.")
-
-def _jopen(path : Path) -> dict:
-    with open(path, 'r') as file:
-        res = json.load(file)
-    return res
 
 def import_fields(
         path : Path
@@ -140,9 +155,6 @@ def get_help_dictionary(
     return res
 
 
-def _raw_print(dictionary : dict):
-    print(json.dumps(dictionary, indent=4))
-
 def pprint_categories(
         categories_dict : dict[str, str],
         fields_dict : List[dict[str | List[dict[str, str]]]],
@@ -150,11 +162,11 @@ def pprint_categories(
 ) -> None:
 
     if not help:
-        _raw_print(categories_dict)
+        _jprint(categories_dict)
         return
     
     help_dict = get_help_dictionary(fields_dict)
-    _raw_print(help_dict)
+    _jprint(help_dict)
 
 
 def get_all_categories(
@@ -286,10 +298,6 @@ def _create_exchange_cache() -> Path:
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     return cache_path
 
-def _jdump(d : dict, path : Path) -> None:
-    with open(path, 'w') as file:
-        json.dump(d, file)
-
 def build_exchange(curr_list : List[str]) -> dict:
     res = {
         curr1 : {
@@ -314,7 +322,7 @@ def get_exchange_dict(
     curr_list = [ _currency_type_check(curr) for curr in curr_list ]
     curr_exchange = build_exchange(curr_list)
     _jdump(curr_exchange, cached_path)
-    _raw_print(curr_exchange)
+    _jprint(curr_exchange)
     exchange_memo.clear()
     return curr_exchange
 

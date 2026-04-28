@@ -23,5 +23,8 @@ class AccountingContext:
     colors: Optional[dict[str, tuple[float, float, float]]] = None
     exchange_dictionary : Optional[dict[str, dict[str, float | int]]] = None
 
+    def foo():
+        pass
+
 
 ctx = AccountingContext

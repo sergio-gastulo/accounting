@@ -18,11 +18,17 @@ from utilities.miscellanea import (
     get_exchange_dict
 )
 
+#region ======================== untested utils ================================
 
 def _set_currency_list(currencies : List[str] | None) -> List[str]:
     if currencies is None:
         return get_full_currencies_list()
     return check_currency_list(currencies)
+
+def _today_period() -> Period:
+    return Period(date.today(), 'M')
+
+#endregion =====================================================================
 
 
 def set_context(
@@ -42,7 +48,7 @@ def set_context(
     if plot:
         ctx.darkmode = config.get('darkmode')
         ctx.bar_color = config.get('bar_color')
-        ctx.period = Period(date.today(), 'M')
+        ctx.period = _today_period()
         ctx.currency_list = _set_currency_list(config.get('currency_list'))
         ctx.colors = check_colors(
             ctx.currency_list, 

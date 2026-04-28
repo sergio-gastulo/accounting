@@ -517,7 +517,7 @@ class TestExchangeDictionaryGetter(unittest.TestCase):
             patch('utilities.miscellanea.build_exchange') as mock_build,
             patch('utilities.miscellanea._currency_type_check') as mock_curr_type,
             patch('utilities.miscellanea._jdump') as mock_jdump,
-            patch('utilities.miscellanea._raw_print') as mock_rprint,
+            patch('utilities.miscellanea._jprint') as mock_jprint,
             patch('utilities.miscellanea._create_exchange_cache') as mock_create_cache,
         ):
             mock_has_internet.return_value = True
@@ -532,7 +532,7 @@ class TestExchangeDictionaryGetter(unittest.TestCase):
             mock_curr_type.assert_has_calls([call('JPY'), call('EUR')])
             mock_build.assert_called_once_with(curr_list_lower)
             mock_jdump.assert_called_once_with(mocked_build_return, "mocked")
-            mock_rprint.assert_called_once()
+            mock_jprint.assert_called_once()
 
     def test_get_exchange_dict_with_cache(self):
         res = "any"

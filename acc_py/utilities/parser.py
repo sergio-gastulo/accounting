@@ -12,16 +12,34 @@ from typing import List
 from sqlalchemy.sql import selectable
 from sqlalchemy import select, true, text
 from sqlalchemy.sql.elements import BinaryExpression, TextClause
+from sqlalchemy import Engine
 
-from db.model import Record
+from db.model import Record, Session
 
 
 DATE_COLUMN_FORMAT = "%Y-%m-%d"
 
+#region ========================== important ===================================
+
+"""
+    convention: parse_(whatever)
+    argument order: 
+        1. expr to parse goes first
+        2. any other necessary arg
+        3. defaults
+    * expr must be provided, no default|None for expr
+    if any variable renaming operation is needed, check prompt as well
+    changing vars? 
+        * check tests.parser
+        * check prompt.py
+"""
+
+#endregion =====================================================================
+
 
 def parse_arithmetic_operation (
-        expr : str | None = None, 
-        lower_bound: float | int = 0.0
+        expr : str, 
+        lbound: float | int = 0.0
 ) -> float | int:
     
     if re.match(r'.*[a-zA-Z].*', expr):
@@ -33,13 +51,16 @@ def parse_arithmetic_operation (
     if expr[0] in ['+', '=', '-']:
         # removing '=' from the beginning of the str
         expr = re.sub('^=', '', expr)
-        value = eval(expr, {"__builtins__": {}}) 
+        try:
+            value = eval(expr, {"__builtins__": {}})
+        except SyntaxError:
+            raise ValueError(f"Expression {expr} could not be parsed.")
     else:
         # assuming a simple float
         value = float(expr)
     
-    if value < lower_bound:
-        raise ValueError(f"{value=} must be >= {lower_bound=}.")
+    if value < lbound:
+        raise ValueError(f"{value=} must be >= {lbound=}.")
 
     return value
 
@@ -95,8 +116,8 @@ def parse_date(date_input : str | int) -> date:
 
 
 def parse_double_currency(
-        default_currency : str,
         raw_input : str, 
+        default_currency : str,
         lower_bound : float = 0.0,
 ) -> tuple[float, str]:
     tokens = raw_input.strip().split()
@@ -386,3 +407,15 @@ def sanitize_df(
     df.date = df.date.dt.strftime(DATE_COLUMN_FORMAT)
 
     return df
+
+
+def parse_record_from_id(
+        id_ : str,
+        engine : Engine
+) -> Record:
+    _id = int(id_)
+    with Session(engine) as session:
+        record = session.get(Record, _id)
+    if record is None:
+        raise ValueError(f"Can't get record with {_id=}.")
+    return record

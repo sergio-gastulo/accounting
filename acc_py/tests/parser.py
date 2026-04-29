@@ -57,7 +57,7 @@ class TestArithmeticOperationParser(unittest.TestCase):
         for expr, expected in cases:
             with self.subTest(expr=expr):
                 self.assertAlmostEqual(
-                    parse_arithmetic_operation(expr, lower_bound=-99999),
+                    parse_arithmetic_operation(expr, -99999),
                     expected,
                     places=4
                 )
@@ -77,7 +77,7 @@ class TestArithmeticOperationParser(unittest.TestCase):
 
     def test_lower_bound(self):
         with self.assertRaises(ValueError):
-            parse_arithmetic_operation('+1+1', lower_bound=3)
+            parse_arithmetic_operation('+1+1', 3)
 
 
 class TestCurrencyParser(unittest.TestCase):
@@ -172,7 +172,7 @@ class TestDoubleCurrencyPairParser(unittest.TestCase):
                         mock_curr.side_effect = [ValueError, e_currency]
                     else:
                         mock_curr.return_value = e_currency
-                    amount, currency = parse_double_currency(def_curr, raw_input, lbound)
+                    amount, currency = parse_double_currency(raw_input, def_curr, lbound)
                     mock_arith.assert_called_once_with(arg_arith, lbound)
                     if use_default:
                         self.assertEqual(mock_curr.call_args_list, [call(arg_curr), call(def_curr)])

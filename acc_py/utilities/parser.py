@@ -19,7 +19,7 @@ from db.model import Record, Session
 
 DATE_COLUMN_FORMAT = "%Y-%m-%d"
 
-#region ========================== important ===================================
+#region ========================== IMPORTANT ===================================
 
 """
     convention: parse_(whatever)
@@ -54,13 +54,13 @@ def parse_arithmetic_operation (
         try:
             value = eval(expr, {"__builtins__": {}})
         except SyntaxError:
-            raise ValueError(f"Expression {expr} could not be parsed.")
+            raise ValueError(f"Expression {expr} failed python parsing.")
     else:
         # assuming a simple float
         value = float(expr)
     
     if value < lbound:
-        raise ValueError(f"{value=} must be >= {lbound=}.")
+        raise ValueError(f"Value {value} must be greater than {lbound=}.")
 
     return value
 
@@ -74,22 +74,22 @@ def parse_currency(currency : str) -> str:
     raise ValueError(f"{currency=} is not a valid currency.")
     
 
+
+def _get_date_tokens(s : str) -> List[str]:
+    tokens = s.replace("'",'').replace('"','')
+    # replace 'int-int' with 'int int' but '-i' remains '-i'
+    tokens = re.sub(r'([\d ]+)(-)([\d ]+)', r'\1 \3', tokens)
+    return tokens.strip().split()
+
 def parse_date(date_input : str | int) -> date:
     
     today = date.today()
-
     if isinstance(date_input, int):
         if date_input <= 0:
             return today + timedelta(days=date_input)
         return today.replace(day=date_input)
 
-    tokens = (date_input
-              .strip()
-              .replace("-"," ")
-              .replace('\'', '')
-              .replace('"','')
-              .split()
-    )
+    tokens = _get_date_tokens(date_input)
     match tokens:
 
         case ['0' | 'today'] | [ ]:
@@ -408,7 +408,7 @@ def sanitize_df(
 
     return df
 
-
+# TODO: add tests 
 def parse_record_from_id(
         id_ : str,
         engine : Engine

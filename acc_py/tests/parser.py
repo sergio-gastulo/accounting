@@ -9,7 +9,7 @@ from db.model import Record
 from sqlalchemy.dialects import sqlite
 from sqlalchemy import text, true, select
 import pandas as pd
-from datetime import date
+from datetime import date, timedelta
 from typing import Callable
 from tests._shared import patch_this
 
@@ -29,6 +29,7 @@ from utilities.parser import (
 #region ============================ utils =====================================
 
 TEST_MODULE = 'utilities.parser'
+
 
 def _patch_this(f : Callable | str) -> MagicMock:
     return patch_this(TEST_MODULE, f)
@@ -116,6 +117,8 @@ class TestDateParser(unittest.TestCase):
         cases = [
             (10,                self.today.replace(day=10)),
             (0,                 self.today),
+            ('-5',              self.today + timedelta(days=-5)),
+            (-5,                self.today + timedelta(days=-5)),
             ('10',              self.today.replace(day=10)),
             ('10 08',           self.today.replace(month=10, day=8)),
             ('  2025-12 31 ',   datetime.date(year=2025, month=12, day=31)), 

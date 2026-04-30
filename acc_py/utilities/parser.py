@@ -27,7 +27,9 @@ DATE_COLUMN_FORMAT = "%Y-%m-%d"
         1. expr to parse goes first
         2. any other necessary arg
         3. defaults
-    * expr must be provided, no default|None for expr
+    * expr must be provided -- expr = None is forbidden.
+    * early exits for right types are allowed, in case these functions are 
+    escalated.
     if any variable renaming operation is needed, check prompt as well
     changing vars? 
         * check tests.parser

@@ -23,6 +23,12 @@ class Record(Base):
             f"amount={self.amount!r}, currency={self.currency!r}, "
             f"description={self.description!r}, category={self.category!r})"
         )
+    
+    def __eq__(self, other : Record):
+        same_type = isinstance(other, Record)
+        if not same_type:
+            return False
+        return (self.id == other.id)
 
     def pretty(self) -> str:
         return (

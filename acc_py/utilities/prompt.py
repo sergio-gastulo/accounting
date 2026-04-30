@@ -1,9 +1,7 @@
 from datetime import date
-import traceback
-from json import dumps
 from sqlalchemy.engine import Engine
-from db.model import Record, Session
-from typing import List, Callable, Any, Optional
+from db.model import Record
+from typing import List, Callable, Any, Optional, Type
 
 from utilities.parser import (
     parse_arithmetic_operation,
@@ -11,16 +9,61 @@ from utilities.parser import (
     parse_date,
     parse_double_currency,
     parse_valid_element_list,
+    parse_record_from_id,
+)
+from utilities.core import (
+    _jprint,
+    KeybindDictType
 )
 
 
 #region ============================ utils =====================================
 
+def _success(*s : str) -> None:
+    if len(s) == 1:
+        res = s[0]
+    else:
+        res = ', '.join(s)
+    print(f"Success: {res}")
+
+
+def _soft_error(e : ValueError | TypeError) -> None:
+    s = f"{type(e).__name__}: {e}"
+    print(s)
+
+
+def ensure(
+        value : Any, 
+        *types : Type[Any], 
+        allow_none : bool = False
+) -> Any:
+    
+    if allow_none and (value is None):
+        return 
+    if type(value) in types:
+        return 
+
+    _get_type_name = lambda t : t.__name__.capitalize()
+    allowed_types = ', '.join(map(_get_type_name, types))
+    vartype = type(value).__name__.capitalize()
+    
+    raise TypeError(
+        f"Argument '{value}' has type '{vartype}'. "
+        f"Type must be in [{allowed_types}]."
+    )
+
+
+def _ensure_str_none(arg : str | None) -> None:
+    ensure(arg, str, allow_none=True)
+
+#endregion =====================================================================
+
+
 def main_loop(
-        uinput : str | None,
+        uinput : Optional[str],
         prompt : str,
         parser : Callable,
-        on_error : Callable = print,
+        on_error : Callable = _soft_error,
         max_attempts : int = 5,
         **kwargs
 ) -> Any:
@@ -31,208 +74,188 @@ def main_loop(
             value = parser(uinput, **kwargs)
             return value
         except (ValueError, TypeError) as e:
-            err_type = type(e).__name__
-            on_error(f"{err_type} : {e}")
+            on_error(e)
             uinput = None
+
     raise RuntimeError(f"No valid input after {max_attempts} attempts.")
-
-
-#endregion =====================================================================
-
 
 
 def prompt_arithmetic_operation(
         user_input : Optional[str | float | int] = None, 
         lower_bound: float = 0.0
 ) -> float | int :
-
+    
     if isinstance(user_input, int | float):
         return user_input
+    ensure(lower_bound, float, int)
+    _ensure_str_none(user_input)
 
-    if not isinstance(user_input, str) and user_input is not None:
-        raise TypeError(f"Argument {user_input=} is not a valid type.")
-
-    prompt = "Type valid aithmetic operation: "
     kwargs = {
-        "prompt" : prompt,
+        "prompt" : "Type valid aithmetic operation: ",
         "parser" : parse_arithmetic_operation,
         "lower_bound" : lower_bound
     }
     res = main_loop(user_input, **kwargs)
+    _success(res)
     return res
 
 
 def prompt_currency(
-        currency_input : str | None = None,
-        silent : bool = True
+        currency_input : Optional[str] = None,
+        quiet : bool = True
 ) -> str:
-    
-    while True: 
-        if currency_input is None:
-            currency_input = input("Write your ISO currency -- 3 characters: ")
-
-        try:
-            currency = parse_currency(currency=currency_input)
-            if not silent:
-                print(f"Success: '{currency}'")
-            return currency
-        except Exception as e: 
-            print(f"'{currency_input}' could not be parsed: {e}")
-            currency_input = None
+    ensure(quiet, bool)
+    _ensure_str_none(currency_input)
+    kwargs = {
+        "prompt" : "Currency in ISO format: ", 
+        "parser" : parse_currency
+    }
+    res = main_loop(currency_input, **kwargs)
+    if not quiet:
+        _success(res)
+    return res
 
 
 def prompt_date_operation(
-        date_str_input : str | None = None, 
-        explain : bool = True
-    ) -> date:
-    
-    if explain and date_str_input is None:
-        print(
-            f"Enter a particular date in 'day', 'day month', 'year month day' format.\n"
-            f"To select basic arithmetic, type '+n' or '-n'. This will operate as follows: today +/- n days.\n"
-            f"To select today, just write '0'.\n"
-        )
+        date_input : Optional[str | date] = None
+) -> date:
+    if isinstance(date_input, date):
+        return date_input
+    _ensure_str_none(date_input)
 
-    while True:
-        if not date_str_input:
-            date_str_input = input("Insert period or day arithmetic: ")
-        try: 
-            return_date = parse_date(date_str_input)
-            print(f"Success: {return_date.strftime("%a %d %b %Y")}")
-            return return_date
-        except Exception as e:
-            print(f"'{date_str_input}' could not be parsed: {e}")
-            date_str_input = None
+    kwargs = {
+        "prompt" : "Insert date operation: ",
+        "parser" : parse_date
+    }
+    res : date = main_loop(date_input, **kwargs)
+    _success(res.strftime("%a %d %b %Y"))
+    return res
 
 
 def prompt_double_currency(
         default_currency : str,
         double_curr_input : str | None = None, 
-        lower_bound : float = 0.0, 
-        explain : bool = True
-    ) -> tuple[float, str]:
+        lower_bound : float = 0.0
+) -> tuple[float, str]:
     
-    if explain and not double_curr_input:
-        print(
-            f"To use this parser, you can do [+|=]operation [usd|eur|pen|...] (empty for default)."
-            f"e.g. =9+9 usd -> (18, 'USD')"
-        )
-
-    while True: 
-        if not double_curr_input:
-            double_curr_input = input("Type your currency operation: ")
-        try:
-            amount, currency = parse_double_currency(
-                default_currency, 
-                double_curr_input, 
-                lower_bound)
-            print(f"Sucess: amount={amount} currency={currency}")
-            return amount, currency
-        except Exception as e:
-            print(f"'{double_curr_input}' could not be parsed as a valid double, currency: {e}")
-            double_curr_input = None
+    _ensure_str_none(double_curr_input)
+    ensure(default_currency, str)
+    ensure(lower_bound, float)
+    kwargs = {
+        "prompt" : "Type double-currency operation: ",
+        "parser" : parse_double_currency,
+        "default_currency" : default_currency,
+        "lower_bound" : lower_bound
+    }
+    amount, currency = main_loop(double_curr_input, **kwargs)
+    _success(str(amount), currency)
+    return amount, currency
 
 
-# as this asks for double input depending on the context, 
-# there is no call fromkeybind core_parser.py
+def get_from_nested_dict(
+        kdict : KeybindDictType, 
+        uinput : Optional[str], 
+        prompt : str
+) -> Optional[dict | str]:
+    
+    _ensure_str_none(uinput)
+    ensure(kdict, dict)
+    ensure(prompt, str)
+
+    if uinput is None:
+        _jprint(kdict)
+        uinput = input(prompt).lower()
+    res = kdict.get(uinput)
+
+    if isinstance(res, str):
+        return res
+    elif isinstance(res, dict):
+        res = get_from_nested_dict(res, None, prompt)
+        return res
+    # soft KeyError
+    print(f"Argument keyinput={uinput} is not a valid key.")
+
+
 def prompt_category_from_keybinds(
-        keybind_dict : dict[str, str | dict[str, str]],
-        category_input : str | None = None
+        keybind_dict : KeybindDictType,
+        keyinput : Optional[str] = None,
+        max_attempts : int = 5
 ) -> str:
-
-    while True:
-        if category_input is None:
-            print(dumps(keybind_dict, indent=4))  # printing entire dict
-            category_input = input("Type the corresponding keybind from the dictionary above: ")
-        category = keybind_dict.get(category_input.lower())
-
-        if not category:
-            print("This is not a valid keybind.")
-            category_input = None
-
-        if isinstance(category, dict):
-            print(dumps(category, indent=4))
-            category_input = input("Your keybind leads to another dict. Select a second keybind: ")
-            sub_category = category.get(category_input)
-            if sub_category:
-                return sub_category
-            else:
-                print("This is not a valid subcategory.")
-                category_input = None
-
-        elif isinstance(category, str):
-            return category
-
-
-def prompt_record_by_id(engine : Engine, id_ : int | None = None) -> Record:
     
-    while True:
-        if id_ is None:
-            # TODO: validate this in a better way?
-            id_ = int(input("Type the id to filter: ")) 
-        
-        with Session(engine) as session:
-            record = session.get(Record, id_)
-        
-        if record is None:
-            print(f"Current id '{id_}' doesn't exist in the db.")
-            id_ = None
-        else:
-            print(
-                f"Record available:\n"
-                f"{record.pretty()}"
-            )
-            return record
+    ensure(keybind_dict, dict)
+    ensure(max_attempts, int)
+    _ensure_str_none(keyinput)
+
+    prompt = "Type the corresponding key from the dictionary above: "
+    category = None
+    counter = 0
+    
+    while category is None and counter < max_attempts:
+        category = get_from_nested_dict(keybind_dict, keyinput, prompt)
+        keyinput = None
+        counter += 1
+    
+    if category is None:
+        raise RuntimeError(f"Only {max_attempts=} are allowed.")
+    
+    _success(category)
+    return category
+
+
+def prompt_record_by_id(
+        engine : Engine, 
+        id_ : Optional[str] = None
+) -> Record:
+    _ensure_str_none(id_)
+    kwargs = {
+        "prompt" : "Type id to be filtered: ",
+        "parser" : parse_record_from_id,
+        "engine" : engine
+    }
+    record : Record = main_loop(id_, **kwargs)
+    _success(record.pretty())
+    return record
 
 
 # ------------------------------------------------------
 # The following function aims to cover the following
 # possibilities
-# string_of_ints (e.g. "1 2 3 4 5" -> column[1], column[2], ...)
 # [categories] (e.g. ['amount', 'description']) // prolly never gonna happen
 # string_with_spaces_initial_of_categories
 #    e.g. "am des cu" -> [amount, description, currency]
 # string_with_spaces_full_column
 #    e.g. "amount description" -> [amount, description]
 # ------------------------------------------------------
+
 def prompt_list_of_fields(
-        user_input : str | None = None,
-        explain : bool = True
+        user_input : Optional[str] = None
 ) -> List[str]:
-    
-    keybind_dict = {
+    _ensure_str_none(user_input)
+    keybinds = {
         "d"     : "date",
         "a"     : "amount",
         "c"     : "currency",
         "desc"  : "description",
         "cat"   : "category" 
     }
-
-    if explain:
-        print(
-            f"Given the following list: \n"
-            f"{keybind_dict.values()}\n"
-            f"You can whether type an elemnt or a corresponding keybind:\n"
-            f"{dumps(keybind_dict, indent=4)}\n"
-            f"e.g. 'd c cat' will be parsed to ['date', 'currency', 'category']"
-        )
-
-    while True:
-        if not user_input:
-            user_input = input("Write valid elements from list: ")
-        try:
-            return [
-                parse_valid_element_list(
-                    user_input=column, 
-                    keybinds=keybind_dict
-                ) 
-                for column in user_input.split()
-            ]
-            
-        except:
-            print(f"'{user_input}' could not be parsed: {traceback.format_exc()}")
-            user_input = None
-
+    def _parser(
+        unsplit_cols : str
+    ) -> List[str]:
+        nonlocal keybinds
+        split = unsplit_cols.strip().split()
+        res =  [    parse_valid_element_list(col, keybinds)
+                    for col in split                        ]
+        return res
+    
+    kwargs = {
+        "prompt" : "Write valid elements from list: ",
+        "parser" : _parser,
+        "keybinds" : keybinds
+    }
+    _jprint(keybinds)
+    res = main_loop(user_input, **kwargs)
+    _success(*res)
+    return res
 
 
 # ------------------------------------------------
@@ -250,23 +273,29 @@ def prompt_list_of_fields(
 #     dict.update( { field : validate(field) } )
 # ------------------------------------------------
 
+def _parse_description(s : str) -> str:
+    if not isinstance(s, str):
+        raise TypeError(f"Invalid string, got {s=}.")
+    if not s:
+        raise ValueError("Got empty string.")
+    return s
+
 def prompt_column_value(
         keybind_dict : dict[str, str],
         fields_str : str | None = None
-) -> dict[str, str | int]:
+) -> dict[str, str | int | float | date]:
     
-    field_func : dict[str, callable] = {
+    field_func : dict[str, Callable] = {
         "date" : prompt_date_operation,
         "amount" : prompt_arithmetic_operation,
         "currency": prompt_currency,
-        "description": lambda : input("Type your new description: "),
+        "description": _parse_description,
         "category": lambda : prompt_category_from_keybinds(keybind_dict)
     }
-    list_fields = prompt_list_of_fields(fields_str)
-    res : dict[str, str | int] = {}
 
-    for field in list_fields:
-        print(f"\nValidating: {field}\n")
+    fields = prompt_list_of_fields(fields_str)
+    res = {}
+    for field in fields:
         val = field_func[field]()
         res.update( { field : val } )
     

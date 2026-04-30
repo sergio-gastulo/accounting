@@ -1,23 +1,22 @@
 # unittest tooling
 import unittest
-from unittest.mock import call, MagicMock
+from unittest.mock import call
 from unittest import TestCase
 
 # generics
 import datetime
-from db.model import Record
 from sqlalchemy.dialects import sqlite
-from sqlalchemy import text, true, select, create_engine
+from sqlalchemy import text, true, select
 import pandas as pd
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Callable
 
-from db.model import Record, Base, Session, Engine
-
+from db.model import Record
 from tests._shared import (
     Patcher, 
-    patch_builtin, 
-    TEST_FILE_DIRECTORY
+    mem_engine,
+    write,
+    TODAY
 )
 
 from utilities.parser import (
@@ -117,24 +116,22 @@ class TestCurrencyParser(TestCase):
 
 class TestDateParser(TestCase):
 
-    today = datetime.date.today()
-
     def test_date(self):
         cases = [
-            (10,                self.today.replace(day=10)),
-            (0,                 self.today),
-            ('-5',              self.today + timedelta(days=-5)),
-            (-5,                self.today + timedelta(days=-5)),
-            ('10',              self.today.replace(day=10)),
-            ('10 08',           self.today.replace(month=10, day=8)),
+            (10,                TODAY.replace(day=10)),
+            (0,                 TODAY),
+            ('-5',              TODAY + timedelta(days=-5)),
+            (-5,                TODAY + timedelta(days=-5)),
+            ('10',              TODAY.replace(day=10)),
+            ('10 08',           TODAY.replace(month=10, day=8)),
             ('  2025-12 31 ',   datetime.date(year=2025, month=12, day=31)), 
             ('2025 12 31',      datetime.date(year=2025, month=12, day=31)), 
             ('25 12 31',        datetime.date(year=2025, month=12, day=31)), 
-            ('today',           self.today),
-            ('0',               self.today),
-            ('',                self.today),
-            ('10-08',           self.today.replace(month=10, day=8)),
-            ('\'10-08\'',       self.today.replace(month=10, day=8))
+            ('today',           TODAY),
+            ('0',               TODAY),
+            ('',                TODAY),
+            ('10-08',           TODAY.replace(month=10, day=8)),
+            ('\'10-08\'',       TODAY.replace(month=10, day=8))
         ]
         for date, expected in cases:
             with self.subTest(date_input=date):
@@ -263,8 +260,6 @@ class TestCoreSemanticFilterParser(TestCase):
         """Replaces x -> compile(core_semantic_filter_parser(x))""" 
         return compile_sql(core_semantic_filter_parse(filter))
 
-    today = datetime.date.today()
-
     def test_id(self):
         cases = [
             ('id range 9 2',            (9-2, 9+2)),
@@ -363,8 +358,8 @@ class TestCoreSemanticFilterParser(TestCase):
         cases = [
             ('date = 2025 10 31',           '2025 10 31',       datetime.date(year=2025, month=10, day=31)),
             ('date equal \'2025 10 31\'',   '\'2025 10 31\'',   datetime.date(year=2025, month=10, day=31)),
-            ('date = -12',                  '-12',              self.today + datetime.timedelta(days=-12)),
-            ('date = 0',                    '0',                self.today)
+            ('date = -12',                  '-12',              TODAY + datetime.timedelta(days=-12)),
+            ('date = 0',                    '0',                TODAY)
         ]
         for semantic_filter, date_call, expected in cases:
             with self.subTest(semantic_filter=semantic_filter):
@@ -554,8 +549,6 @@ class TestSemanticFilterParser(TestCase):
     @staticmethod
     def wrap(sql_expr) : 
         return compile_sql(parse_semantic_filter(sql_expr))
-    
-    today = date.today()
 
     def test_semantic_filter(self):
         cases = [
@@ -567,7 +560,7 @@ class TestSemanticFilterParser(TestCase):
                 'description like test% && date = 2',
                 select(Record).where(
                     Record.description.like('test%'),
-                    Record.date == self.today.replace(day=2)
+                    Record.date == TODAY.replace(day=2)
                 )
             ),
             (
@@ -914,29 +907,13 @@ class TestDataFrameSanitizer(TestCase):
                     sanitize_df(bad_df)
 
 
-class TestRecordFromIDParser(TestCase):
-    @staticmethod
-    def mem_engine() -> Engine:
-        engine = create_engine("sqlite:///:memory:")
-        Base.metadata.create_all(engine)
-        return engine
-    
-    today = date.today()
-
-    @staticmethod
-    def write(engine : Engine, *args, **kwargs) -> Record:
-        with Session(engine) as session:
-            record = Record(*args, **kwargs)
-            session.add(record)
-            session.commit()
-            session.refresh(record)
-        return record
+class TestRecordFromIDParser(TestCase):    
 
     def test_id_success(self):
-        engine = self.mem_engine()
-        record = self.write(
+        engine = mem_engine()
+        record = write(
             engine=engine,
-            date=self.today,
+            date=TODAY,
             amount=0.65,
             currency="foo",
             description="foo",
@@ -948,19 +925,19 @@ class TestRecordFromIDParser(TestCase):
 
     def test_uinput_not_int_parsable(self):
         uinput = "not-int"
-        engine = self.mem_engine()
+        engine = mem_engine()
         with self.assertRaises(ValueError):
             parse_record_from_id(uinput, engine)
 
     def test_int_parsable_but_inexistent(self):
-        engine = self.mem_engine()
+        engine = mem_engine()
         uinput = "99999"
         with self.assertRaises(ValueError):
             parse_record_from_id(uinput, engine)
 
     def test_type_error(self):        
         bad_inputs = [ print, None ]
-        engine = self.mem_engine()
+        engine = mem_engine()
         for uinput in bad_inputs:
             with self.assertRaises(TypeError):
                 parse_record_from_id(uinput, engine)

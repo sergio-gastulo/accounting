@@ -17,5 +17,5 @@ def patch_this(this_module : str, func: Callable | str) -> MagicMock:
     elif isinstance(func, Callable):
         call = func.__name__
     else:
-        raise TypeError
+        raise TypeError(f"Got invalid callable | str from {func=}.")
     return patch(f"{this_module}.{call}")

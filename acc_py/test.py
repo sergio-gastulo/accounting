@@ -14,5 +14,6 @@ if __name__ == "__main__":
         debug=True
     )
 
-    from utilities.prompt import prompt_arithmetic_operation
-    val = prompt_arithmetic_operation()
+    from utilities.prompt import prompt_column_value
+    res = prompt_column_value(ctx.keybinds)
+    print(res)

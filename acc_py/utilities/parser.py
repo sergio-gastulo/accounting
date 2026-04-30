@@ -408,12 +408,16 @@ def sanitize_df(
 
     return df
 
-# TODO: add tests 
+
 def parse_record_from_id(
-        id_ : str,
+        id_ : str | int | float,
         engine : Engine
 ) -> Record:
+    
+    if not isinstance(id_, str | int | float):
+        raise TypeError(f"Argument {id_=} must be String or Numeric type.")
     _id = int(id_)
+
     with Session(engine) as session:
         record = session.get(Record, _id)
     if record is None:

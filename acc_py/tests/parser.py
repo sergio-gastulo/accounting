@@ -1,17 +1,24 @@
 # unittest tooling
 import unittest
 from unittest.mock import call, MagicMock
-
+from unittest import TestCase
 
 # generics
 import datetime
 from db.model import Record
 from sqlalchemy.dialects import sqlite
-from sqlalchemy import text, true, select
+from sqlalchemy import text, true, select, create_engine
 import pandas as pd
 from datetime import date, timedelta
 from typing import Callable
-from tests._shared import patch_this
+
+from db.model import Record, Base, Session, Engine
+
+from tests._shared import (
+    Patcher, 
+    patch_builtin, 
+    TEST_FILE_DIRECTORY
+)
 
 from utilities.parser import (
     parse_period,
@@ -23,16 +30,15 @@ from utilities.parser import (
     parse_semantic_filter,
     parse_valid_element_list,
     cast_csv_types,
-    sanitize_df
+    sanitize_df,
+    parse_record_from_id
 )
 
 #region ============================ utils =====================================
 
 TEST_MODULE = 'utilities.parser'
-
-
-def _patch_this(f : Callable | str) -> MagicMock:
-    return patch_this(TEST_MODULE, f)
+def _patch_this(f: Callable | str, **kwargs) -> Patcher:
+    return Patcher(TEST_MODULE, f, **kwargs)
 
 
 def compile_sql(sql_expr):
@@ -46,7 +52,7 @@ def compile_sql(sql_expr):
 
 
 
-class TestArithmeticOperationParser(unittest.TestCase):
+class TestArithmeticOperationParser(TestCase):
 
     def test_simple_operations(self):
         cases = [
@@ -81,7 +87,7 @@ class TestArithmeticOperationParser(unittest.TestCase):
             parse_arithmetic_operation('+1+1', 3)
 
 
-class TestCurrencyParser(unittest.TestCase):
+class TestCurrencyParser(TestCase):
 
     def test_currency(self):
         cases = [
@@ -109,7 +115,7 @@ class TestCurrencyParser(unittest.TestCase):
                     parse_currency(currency_input)
 
 
-class TestDateParser(unittest.TestCase):
+class TestDateParser(TestCase):
 
     today = datetime.date.today()
 
@@ -151,7 +157,7 @@ class TestDateParser(unittest.TestCase):
                     parse_date(date_input)
 
 
-class TestDoubleCurrencyPairParser(unittest.TestCase):
+class TestDoubleCurrencyPairParser(TestCase):
     
     def test_double_currency(self):
         lbound = -99999
@@ -201,7 +207,7 @@ class TestDoubleCurrencyPairParser(unittest.TestCase):
                     parse_double_currency(def_curr, raw_input, lbound)
 
 
-class TestPeriodParser(unittest.TestCase):
+class TestPeriodParser(TestCase):
 
     test_default = pd.Period(year=2000, month=7, freq='M')
 
@@ -250,7 +256,7 @@ class TestPeriodParser(unittest.TestCase):
                     parse_period(period='', default_period=bad_input)
 
 
-class TestCoreSemanticFilterParser(unittest.TestCase):
+class TestCoreSemanticFilterParser(TestCase):
 
     @staticmethod
     def wrap(filter):
@@ -543,7 +549,7 @@ class TestCoreSemanticFilterParser(unittest.TestCase):
                 self.wrap(invalid)
 
 
-class TestSemanticFilterParser(unittest.TestCase):
+class TestSemanticFilterParser(TestCase):
     
     @staticmethod
     def wrap(sql_expr) : 
@@ -608,7 +614,7 @@ class TestSemanticFilterParser(unittest.TestCase):
                     self.wrap(query)
 
 
-class TestValidElementFromListParser(unittest.TestCase):
+class TestValidElementFromListParser(TestCase):
     def test_parse_valid_element_list(self):
         keybinds = {
             "key" : "value",
@@ -648,11 +654,11 @@ class TestValidElementFromListParser(unittest.TestCase):
 
 
 @unittest.skip("TODO: not implemented yet -- a simple open call")
-class TestCSVRecordParser(unittest.TestCase):
+class TestCSVRecordParser(TestCase):
     pass
 
 
-class TestCastCSVTypes(unittest.TestCase):
+class TestCastCSVTypes(TestCase):
 
     def test_cast_csv_types(self):
         cases = [
@@ -741,7 +747,7 @@ class TestCastCSVTypes(unittest.TestCase):
                     cast_csv_types(bad_str)
 
 
-class TestDataFrameSanitizer(unittest.TestCase):
+class TestDataFrameSanitizer(TestCase):
 
     category_list = ["category" + str(i) for i in range(10)]
 
@@ -906,6 +912,58 @@ class TestDataFrameSanitizer(unittest.TestCase):
             with self.subTest(input=bad_df):
                 with self.assertRaises(TypeError):
                     sanitize_df(bad_df)
+
+
+class TestRecordFromIDParser(TestCase):
+    @staticmethod
+    def mem_engine() -> Engine:
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        return engine
+    
+    today = date.today()
+
+    @staticmethod
+    def write(engine : Engine, *args, **kwargs) -> Record:
+        with Session(engine) as session:
+            record = Record(*args, **kwargs)
+            session.add(record)
+            session.commit()
+            session.refresh(record)
+        return record
+
+    def test_id_success(self):
+        engine = self.mem_engine()
+        record = self.write(
+            engine=engine,
+            date=self.today,
+            amount=0.65,
+            currency="foo",
+            description="foo",
+            category = "foo")
+        inputs = [ "1", 1.0, 1 ]
+        for uinput in inputs:
+            with self.subTest(uinput=uinput):
+                self.assertEqual(record, parse_record_from_id(uinput, engine))
+
+    def test_uinput_not_int_parsable(self):
+        uinput = "not-int"
+        engine = self.mem_engine()
+        with self.assertRaises(ValueError):
+            parse_record_from_id(uinput, engine)
+
+    def test_int_parsable_but_inexistent(self):
+        engine = self.mem_engine()
+        uinput = "99999"
+        with self.assertRaises(ValueError):
+            parse_record_from_id(uinput, engine)
+
+    def test_type_error(self):        
+        bad_inputs = [ print, None ]
+        engine = self.mem_engine()
+        for uinput in bad_inputs:
+            with self.assertRaises(TypeError):
+                parse_record_from_id(uinput, engine)
 
 
 

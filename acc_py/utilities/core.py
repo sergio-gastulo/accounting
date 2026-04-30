@@ -232,8 +232,7 @@ def fetch_keybind_dict(
     return _sort_dict(keybind_dict)
 
 
-def _fetch_exchange(currency : str) :
-    
+def _fetch_exchange(currency : str) :    
     # https://github.com/fawazahmed0/exchange-api
     url_bases = [
         "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/",

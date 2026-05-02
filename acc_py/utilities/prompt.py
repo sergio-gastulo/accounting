@@ -204,9 +204,9 @@ def prompt_category_from_keybinds(
 
 def prompt_record_by_id(
         engine : Engine, 
-        id_ : Optional[str] = None
+        id_ : Optional[str | int] = None
 ) -> Record:
-    _ensure_str_none(id_)
+    ensure(id_, int, str, allow_none=True)
     kwargs = {
         "prompt" : "Type id to be filtered: ",
         "parser" : parse_record_from_id,
@@ -249,8 +249,7 @@ def prompt_list_of_fields(
     
     kwargs = {
         "prompt" : "Write valid elements from list: ",
-        "parser" : _parser,
-        "keybinds" : keybinds
+        "parser" : _parser
     }
     _jprint(keybinds)
     res = main_loop(user_input, **kwargs)
@@ -286,11 +285,11 @@ def prompt_column_value(
 ) -> dict[str, str | int | float | date]:
     
     field_func : dict[str, Callable] = {
-        "date" : prompt_date_operation,
-        "amount" : prompt_arithmetic_operation,
-        "currency": prompt_currency,
-        "description": _parse_description,
-        "category": lambda : prompt_category_from_keybinds(keybind_dict)
+        "date"          :   prompt_date_operation,
+        "amount"        :   prompt_arithmetic_operation,
+        "currency"      :   prompt_currency,
+        "description"   :   _parse_description,
+        "category"      :   lambda : prompt_category_from_keybinds(keybind_dict)
     }
 
     fields = prompt_list_of_fields(fields_str)

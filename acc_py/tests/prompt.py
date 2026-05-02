@@ -476,7 +476,7 @@ class TestRecordByIDPrompt(TestCase):
             description="foo",
             category="foo"
         )
-        uinputs = [ "1", None ]
+        uinputs = [ "1", None, 1]
         for uinput in uinputs:
             with self.subTest(uinput=uinput):
                 with (
@@ -528,7 +528,6 @@ class TestListOfFieldsPrompt(TestCase):
         self.assertEqual(arg[0], uinput)
         self.assertIn("parser", kwargs)
         self.assertEqual(prompt, kwargs["prompt"])
-        self.assertEqual(keybinds, kwargs["keybinds"])
         self.assertEqual(res, expected_from_parser)
 
     def test_bad_input(self):
@@ -555,7 +554,6 @@ class TestListOfFieldsPrompt(TestCase):
         self.assertEqual(arg[0], uinput)
         self.assertIn("parser", kwargs)
         self.assertEqual(prompt, kwargs["prompt"])
-        self.assertEqual(keybinds, kwargs["keybinds"])
         self.assertEqual(res, expected_from_parser)
 
     def test_typeerr(self):

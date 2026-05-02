@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import String, Date, Numeric, MetaData
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
 from sqlalchemy.engine.base import Engine
+from typing import Any
 
 Base = declarative_base()
 
@@ -24,7 +25,7 @@ class Record(Base):
             f"description={self.description!r}, category={self.category!r})"
         )
     
-    def __eq__(self, other : Record):
+    def __eq__(self, other : Any):
         same_type = isinstance(other, Record)
         if not same_type:
             return False

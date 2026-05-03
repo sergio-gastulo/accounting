@@ -251,8 +251,8 @@ function Test-AccountingHealth
         return
     }
     
-    $fieldsJSONPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
-    if(Test-Path $fieldsJSONPath)
+    $fieldsPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
+    if(Test-Path $fieldsPath)
     {
         Write-Host "config.json successfully found." -ForegroundColor Blue
     }
@@ -292,7 +292,6 @@ function Test-AccountingHealth
     - The function is aliasable with 'acccli' for convenience.
 
 #>
-
 function AccountingCommandLineInterface 
 {
     [alias("acccli")]
@@ -300,19 +299,29 @@ function AccountingCommandLineInterface
     (
         [Parameter(Mandatory=$true)]
         [ValidateSet("backup", "db", "help", "plot", "sql")]
-        [string]$action
+        [string]$action,
+        [switch]$spawn
     )
 
     # configuration and paths update
     $configPath = Join-Path -Path $PSScriptRoot -ChildPath ".\config.json"
-    $fieldsJSONPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
+    $fieldsPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
     $databasePath = (Get-Content $configPath -Raw | ConvertFrom-Json).db_path
     $pyScriptPath = Join-Path -Path $PSScriptRoot -ChildPath ".\acc_py\main.py"
 
-    switch ($action) 
+
+    $pyArgs = "-i $pyScriptPath $configPath $fieldsPath $action"
+    if ( $spawn ) {
+        $task = { Start-Process python.exe -ArgumentList $pyArgs }
+    }
+    else {
+        $task = { python.exe $pyArgs }
+    }
+
+    switch ($action)
     {
-        'plot'      { python -i $pyScriptPath $configPath $fieldsJSONPath 'plot' }
-        'db'        { python -i $pyScriptPath $configPath $fieldsJSONPath 'db' }
+        'plot'      { $task.Invoke() }
+        'db'        { $task.Invoke() }
         'help'      { Get-Help AccountingCommandLineInterface }
         'sql'       { sqlite3.exe $databasePath }
         'backup'

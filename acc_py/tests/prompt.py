@@ -266,7 +266,7 @@ class TestDoubleCurrencyPrompt(TestCase):
             mock_main.side_effect = [ expected ]
             amount, currency = prompt_double_currency(default, uinput, lbound)
         mock_main.assert_called_once()
-        mock_success.assert_called_once_with(str(expected[0]), expected[1])
+        mock_success.assert_called_once_with(*expected)
         self.assertEqual((amount, currency), expected)
         _, kwargs = mock_main.call_args
         self.assertEqual(kwargs["prompt"], "Type double-currency operation: ")

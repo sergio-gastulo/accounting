@@ -1,13 +1,18 @@
+"""
+First file that is run.
+Should not import **ANY** hand-written acccli-related code.
+It contains a variety of functions that are used in context.py, parser.py and prompt.py
+"""
 import inspect
-from typing import List, Tuple, Any
-from pathlib import Path, WindowsPath
+from typing import List, Tuple, Any, Type
+from pathlib import Path
 import json
 import socket
 import urllib
 import requests
-from tempfile import gettempdir
 from os import environ
 from pandas import DataFrame
+import hashlib
 
 from tkinter.filedialog import askopenfilename
 from tkinter.colorchooser import askcolor
@@ -23,6 +28,17 @@ ExchangeDictType = dict[str, dict[str, float | int]]
 KeybindDictType = dict[str, str | dict[str, str]]
 
 #endregion =====================================================================
+
+
+# --- directories to save files to ---
+DATA_DIR_NAME = ".data-acccli"
+APPLICATION_DIRECTORY = Path().home() / DATA_DIR_NAME
+APPLICATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
+# --- cached directory that can be deleted directly ---
+CACHE = "cached"
+APPLICATION_CACHED_DIRECTORY = APPLICATION_DIRECTORY / CACHE
+APPLICATION_CACHED_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
 #region ======================= json operations ================================
@@ -45,12 +61,33 @@ def _jdump(d : dict, path : Path) -> None:
 #endregion =====================================================================
 
 
+def ensure(
+        value : Any, 
+        *types : Type[Any], 
+        allow_none : bool = False
+) -> Any:
+    
+    if allow_none and (value is None):
+        return 
+    if type(value) in types:
+        return 
+
+    _get_type_name = lambda t : t.__name__.capitalize()
+    allowed_types = ', '.join(map(_get_type_name, types))
+    vartype = type(value).__name__.capitalize()
+    
+    raise TypeError(
+        f"Argument '{value}' has type '{vartype}'. "
+        f"Type must be in [{allowed_types}]."
+    )
+
+
 def _raw_keys_check(
-        field : dict[str, str | dict[str, str]], 
+        field : KeybindDictType, 
         keys : List[str],
         err_list : List
 ) -> None:
-
+    """Checks all keys are of str type."""
     for key in keys:
         if field.get(key):
             if not isinstance(field[key], str):
@@ -60,8 +97,8 @@ def _raw_keys_check(
 
 def import_fields(
         path : Path
-) -> List[dict[str | List[dict[str, str]]]]: 
-    
+) -> FieldDictType: 
+    """Loads from fields_path."""
     field_dict = _jopen(path)
     errs = []
     keys_ensure = ['key', 'shortname', 'description']
@@ -77,7 +114,6 @@ def import_fields(
                 _raw_keys_check(item, keys_ensure, errs)
     if errs:
         raise ValueError(f"Invalid field dictionary. Errors: {errs}.")    
-
     return field_dict
 
 
@@ -113,7 +149,6 @@ def pprint_df(
             f"{header}\n"
             f"{print_df}"
         )
-        
     print(print_df)
 
 
@@ -290,29 +325,24 @@ def get_exchange_rate(
     raise ValueError(f"{currency_2=} does not exist in exchange dictionary for {currency_1=}.")
 
 
-def _create_exchange_cache() -> Path:
-    cache_path = Path(gettempdir())
-    cache_path = cache_path / "acccli" / "cached" / "exchange-cached.json"
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    return cache_path
-
 def build_exchange(curr_list : List[str]) -> dict:
-    res = {
-        curr1 : {
-            curr2 : get_exchange_rate(curr1, curr2)
-            for curr2 in curr_list  
-        }
-        for curr1 in curr_list
+    res = { 
+        curr1 : {   curr2 : get_exchange_rate(curr1, curr2)
+                        for curr2 in curr_list                  }
+        for curr1 in curr_list                              
     }
     return res
 
 
+# delete quiet? refactor tests.core.TestExchangeDictionaryGetter
 def get_exchange_dict(
         curr_list : List[str],
-        use_cache : bool | None = False
+        use_cache : bool | None = False,
+        quiet : bool = False
 ) -> ExchangeDictType:
     
-    cached_path = _create_exchange_cache()
+    name = "exchange.json"
+    cached_path = APPLICATION_CACHED_DIRECTORY / name
     if (use_cache and cached_path.exists()) or (not has_internet()):
         res = _jopen(cached_path)
         return res
@@ -320,7 +350,8 @@ def get_exchange_dict(
     curr_list = [ _currency_type_check(curr) for curr in curr_list ]
     curr_exchange = build_exchange(curr_list)
     _jdump(curr_exchange, cached_path)
-    _jprint(curr_exchange)
+    if not quiet:
+        _jprint(curr_exchange)
     exchange_memo.clear()
     return curr_exchange
 
@@ -345,7 +376,7 @@ def check_editor(editor_path : Path | str | None) -> Path:
     if isinstance(editor_path, str):
         editor_path = Path(editor_path)
     
-    if isinstance(editor_path, Path | WindowsPath):
+    if isinstance(editor_path, Path):
         if editor_path.exists() and editor_path.suffix == ".exe":
             return editor_path
         return _ask_editor()
@@ -421,3 +452,15 @@ def check_colors(
     
     else:
         return _build_color_dict(currencies, colors)
+
+
+# https://www.geeksforgeeks.org/python/python-program-to-find-hash-of-file/
+def sha256(file_path : Path) -> str:
+    """Compute sha256 of file."""
+    hash_func = hashlib.sha256()
+    chunksize = 65536
+    with open(file_path, 'rb') as file:
+        while chunk := file.read(chunksize):
+            hash_func.update(chunk)
+    
+    return hash_func.hexdigest()

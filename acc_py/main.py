@@ -127,9 +127,10 @@ def db(debug : bool = False) -> None:
 def load_plot(
         config_path : Path,
         fields_json_path : Path,
-        debug : bool
+        debug : bool = False
 ) -> None:
-    ctx.set(config_path, fields_json_path, True)
+    ctx.set(config_path, fields_json_path)
+    ctx.set_plot()
     plot(debug)
     if not debug:
         h()
@@ -143,11 +144,11 @@ def main(
 ) -> None:
 
     if flag == 'plot':
-        load_plot(config_path, fields_json_path, True)
+        load_plot(config_path, fields_json_path)
         globals()["load"] = db
 
     elif flag == 'db':
-        ctx.set(config_path, fields_json_path, False)
+        ctx.set(config_path, fields_json_path)
         db(debug)
         globals()["load"] = lambda : load_plot(config_path, fields_json_path, debug)
     

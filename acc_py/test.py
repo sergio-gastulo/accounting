@@ -13,7 +13,3 @@ if __name__ == "__main__":
         flag='db',
         debug=True
     )
-
-    from utilities.prompt import prompt_column_value
-    res = prompt_column_value(ctx.keybinds)
-    print(res)

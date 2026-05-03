@@ -6,20 +6,6 @@
             "PEN",
             "USD"
         ],
-        "month_es": [
-            "Enero",
-            "Febrero",
-            "Marzo",
-            "Abril",
-            "Mayo",
-            "Junio",
-            "Julio",
-            "Agosto",
-            "Septiembre",
-            "Octubre",
-            "Noviembre",
-            "Diciembre"            
-        ],
         "rgb_colors": [
             [128, 128, 255], 
             [26, 255, 163], 

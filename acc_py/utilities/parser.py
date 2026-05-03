@@ -1,3 +1,9 @@
+"""
+Parsers lie here. 
+Some parsers import Record and Session from db.model: be careful.
+Basic functionality: take user input and return what is documented.
+All parsers should raise, and try as much as possible.
+"""
 import re
 from datetime import date, timedelta
 from pandas import Period
@@ -43,32 +49,35 @@ def parse_arithmetic_operation (
         expr : str, 
         lbound: float | int = 0.0
 ) -> float | int:
-    
+    """
+    Parses '+6.8 - 4.5' to int | float. Relies on regex to remove any 
+    python injection, checks that is non-empty, and evals with no builtins.
+    Checks lower bounds too.
+    """
+    # --- prevent python injection ---
     if re.match(r'.*[a-zA-Z].*', expr):
         raise ValueError(f"Input can't contain words. Got: {expr=}.")
-
     if len(expr) == 0:
         raise ValueError(f"Empty string.")
 
+    # --- removing '=' from the beginning of the str ---
     if expr[0] in ['+', '=', '-']:
-        # removing '=' from the beginning of the str
         expr = re.sub('^=', '', expr)
         try:
             value = eval(expr, {"__builtins__": {}})
         except SyntaxError:
             raise ValueError(f"Expression {expr} failed python parsing.")
+    # --- assuming a simple float if above fails ---
     else:
-        # assuming a simple float
         value = float(expr)
-    
+
     if value < lbound:
         raise ValueError(f"Value {value} must be greater than {lbound=}.")
-
     return value
 
 
 def parse_currency(currency : str) -> str:
-    """Accepts str and returns 3 digit upper case str. """
+    """Accepts str and returns 3 digit **UPPERCASE** str. """
     currency = currency.strip().upper()
     if re.match(r'^[A-Z]{3}$', currency):
         return currency.upper()
@@ -78,14 +87,21 @@ def parse_currency(currency : str) -> str:
 
 
 def _get_date_tokens(s : str) -> List[str]:
+    """
+    Gets date_tokens from string to list for pattern matching.
+    Example: '2026-08' changes to '2026 08' but '-5' remains '-5'
+    """
     tokens = s.replace("'",'').replace('"','')
-    # replace 'int-int' with 'int int' but '-i' remains '-i'
     tokens = re.sub(r'([\d ]+)(-)([\d ]+)', r'\1 \3', tokens)
     return tokens.strip().split()
 
 def parse_date(date_input : str | int) -> date:
-    
+    """
+    Parses dates in the following formats: '[+|-]int', 'year[-| ]month[-|]day'.
+    Further parsing can be found on tests.parser.
+    """
     today = date.today()
+    # --- handle int case properly ---
     if isinstance(date_input, int):
         if date_input <= 0:
             return today + timedelta(days=date_input)
@@ -122,16 +138,23 @@ def parse_double_currency(
         default_currency : str,
         lower_bound : float = 0.0,
 ) -> tuple[float, str]:
+    """
+    Takes str and parses it to (amount, currency).
+    Example: '+9.54 usd' -> (9.54, 'USD'). Relies on their respective 
+    2 different parsers. 
+    """
     tokens = raw_input.strip().split()
     if not tokens:
         raise ValueError("Empty query.")
 
-    try: 
-        currency = parse_currency(tokens[-1])
-        raw_op = ' '.join(tokens[:-1])  
+    try:
+        # --- check if last splitted string is currency ---
+        currency    =   parse_currency(tokens[-1])
+        raw_op      =   ' '.join(tokens[:-1])  
     except ValueError:
-        currency = parse_currency(default_currency)
-        raw_op = ' '.join(tokens)
+        # --- if above fails, more likely it was a single arith op ---
+        currency    =   parse_currency(default_currency)
+        raw_op      =   ' '.join(tokens)
     amount = parse_arithmetic_operation(raw_op, lower_bound)
     return amount, currency
     
@@ -140,31 +163,35 @@ def parse_period(
         period : str | int | pd.Period | None, 
         default_period : Period,
     ) -> Period:
-
+    """
+    Parses string and return valid pandas.Period class.
+    """
+    # --- type checking for default period---
     if not isinstance(default_period, Period):
         raise TypeError(f"Invalid {default_period=}.")
 
+    # --- handle types properly ---
     if isinstance(period, int):
         return default_period + period
-    
     if period is None:
         return default_period
-    
     if isinstance(period, Period):
         return period
-
     if not isinstance(period, str):
         raise TypeError(f"Period must be str, int, Period or None.")
 
+    # --- stripping and checking if null before passing to pandas ---
+    # --- pandas can't handle empty strings ---
     if not (period := period.strip()):
         return default_period
     
-    # handle year-month with no spaces
+    # --- handle year-month with no spaces: rely on pandas parser ---
     try: 
         return Period(period, freq='M')
     except (ValueError, TypeError):
         pass
 
+    # --- handle tokenized string ---
     tokens = period.split()
     match tokens:
         case [increment] :
@@ -184,10 +211,14 @@ def parse_period(
 def core_semantic_filter_parse(
         semantic_filter : str
 ) -> BinaryExpression[bool]:
-    
+    """
+    Meant to parse a single stmt into a semantically-valid SQL query.
+    **IMPORTANT** the query is not necessarily valid, it can't be known until 
+    runtime. 
+    """
     match semantic_filter.split():
 
-        # id filter
+        # ---------------------------- id filtering ----------------------------
         case ["id", "range", id_, bounds]:
             id_, bounds = map(int, [id_, bounds])
             return Record.id.between(id_ - bounds, id_ + bounds)
@@ -197,7 +228,7 @@ def core_semantic_filter_parse(
             return Record.id.between(id_1, id_2)
 
 
-        # amount filters
+        # --------------------------- amount filters ---------------------------
         case (
 			    [("amount" | "am"), ("between" | "b"), lower_bound, "and", upper_bound] | 
 			    [lower_bound, ("<" | "<=") , "amount", ("<" | "<="), upper_bound] | 
@@ -220,7 +251,7 @@ def core_semantic_filter_parse(
             upper_bound = float(upper_bound)
             return Record.amount <= upper_bound
 
-        # dates filters
+        # ---------------------------- date filters ----------------------------
         case ["date", "like", *date_wildcard]:
             date_ = ' '.join(date_wildcard).replace('"','').replace("'","")
             return Record.date.like(date_)
@@ -232,7 +263,7 @@ def core_semantic_filter_parse(
         case ["date", ("r" | "regex" | "regexp"), date_regex]:
             return Record.date.regexp_match(date_regex)
 
-        # category filters
+        # -------------------------- category filters --------------------------
         case ["category" | "cat", "like", category_wildcard]:
             category_wildcard = (category_wildcard
                                  .replace('\'', '')
@@ -248,7 +279,7 @@ def core_semantic_filter_parse(
             category_ = category_.replace('\'', '').replace('\"', '').upper()
             return Record.category == category_
         
-        # currency match
+        # --------------------------- currency match ---------------------------
         case (
             [ "currency" | "cur" | "curr", "=", currency_ ] |
             [ "currency" | "cur" | "curr", currency_]
@@ -256,7 +287,7 @@ def core_semantic_filter_parse(
             currency_ = currency_.replace("'", "").replace('"', '').upper()
             return Record.currency == currency_
 
-        # description match
+        # ------------------------- description match -------------------------
         case [ "description" | "desc", "like", *wildcard]:
             if len(wildcard) == 0:
                 raise ValueError("Invalid description filter.")
@@ -275,10 +306,11 @@ def core_semantic_filter_parse(
             description_regex = ' '.join(description_regex)
             return Record.description.regexp_match(description_regex)
         
-        # true match
+        # ----------------------------- true match -----------------------------
         case [  ] | [ "true" | "True" ]:
             return true()
         
+        # ------------------------ could not parse this ------------------------
         case _:
             raise ValueError(
                 f"Invalid input."
@@ -289,10 +321,16 @@ def core_semantic_filter_parse(
 def parse_semantic_filter(
         general_filter : str
 )-> selectable.Select | TextClause:
-    
+    """
+    Runs parse_core_semantic_filter splitted by 'and'. 
+    At the moment, no support for other boolean concatenators.
+    It allows raw SQL select statement via 'sql: select ...'.
+    Prevents update, insert, drop statements too.
+    """
     general_filter = general_filter.strip()
+    # --- allow raw sql select ---
     if re.match('^sql: select.*', general_filter, re.IGNORECASE):
-        # user could concatenate queries.
+        # --- but prevent query concatenation ---
         if re.match('update|insert|drop', general_filter, re.IGNORECASE):
             raise ValueError(f"UPDATE, INSERT and DROP are not allowed.")
         return text(general_filter.replace("sql: ", ""))

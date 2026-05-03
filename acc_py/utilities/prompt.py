@@ -1,7 +1,7 @@
 from datetime import date
 from sqlalchemy.engine import Engine
 from db.model import Record
-from typing import List, Callable, Any, Optional, Type
+from typing import List, Callable, Optional
 
 from utilities.parser import (
     parse_arithmetic_operation,
@@ -13,47 +13,30 @@ from utilities.parser import (
 )
 from utilities.core import (
     _jprint,
-    KeybindDictType
+    KeybindDictType,
+    ensure,
 )
 
 
 #region ============================ utils =====================================
 
 def _success(*s : str) -> None:
+    """Quick success function that wraps repr on all args."""
     if len(s) == 1:
         res = s[0]
     else:
-        res = ', '.join(s)
+        res = ', '.join(map(repr, s))
     print(f"Success: {res}")
 
 
 def _soft_error(e : ValueError | TypeError) -> None:
+    """Simple exception printer. Same style as raise, does not raise anything."""
     s = f"{type(e).__name__}: {e}"
     print(s)
 
 
-def ensure(
-        value : Any, 
-        *types : Type[Any], 
-        allow_none : bool = False
-) -> Any:
-    
-    if allow_none and (value is None):
-        return 
-    if type(value) in types:
-        return 
-
-    _get_type_name = lambda t : t.__name__.capitalize()
-    allowed_types = ', '.join(map(_get_type_name, types))
-    vartype = type(value).__name__.capitalize()
-    
-    raise TypeError(
-        f"Argument '{value}' has type '{vartype}'. "
-        f"Type must be in [{allowed_types}]."
-    )
-
-
 def _ensure_str_none(arg : str | None) -> None:
+    """Quick str | None ensurer."""
     ensure(arg, str, allow_none=True)
 
 #endregion =====================================================================
@@ -66,7 +49,7 @@ def main_loop(
         on_error : Callable = _soft_error,
         max_attempts : int = 5,
         **kwargs
-) -> Any:
+):
     for _ in range(max_attempts):
         if uinput is None:
             uinput = input(prompt)
@@ -104,6 +87,11 @@ def prompt_currency(
         currency_input : Optional[str] = None,
         quiet : bool = True
 ) -> str:
+    """
+    Parses currency_input to a valid currency.
+    Relies on parse_currency.
+    Returns upper-3-word-length ISO currency.
+    """
     ensure(quiet, bool)
     _ensure_str_none(currency_input)
     kwargs = {
@@ -148,7 +136,7 @@ def prompt_double_currency(
         "lower_bound" : lower_bound
     }
     amount, currency = main_loop(double_curr_input, **kwargs)
-    _success(str(amount), currency)
+    _success(amount, currency)
     return amount, currency
 
 

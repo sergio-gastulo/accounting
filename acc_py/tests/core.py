@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, call, MagicMock
+from unittest.mock import patch, call
 
 # general
 from pathlib import Path
@@ -11,7 +11,7 @@ from typing import Callable
 from tests._shared import (
     RUN_API_TEST, 
     TEST_FILE_DIRECTORY, 
-    patch_this,
+    Patcher,
 )
 
 from utilities.core import (
@@ -38,8 +38,8 @@ from utilities.core import (
 
 TEST_MODULE = 'utilities.core'
 
-def _patch_this(f : Callable) -> MagicMock:
-    return patch_this(TEST_MODULE, f)
+def _patch_this(f: Callable | str, **kwargs) -> Patcher:
+    return Patcher(TEST_MODULE, f, **kwargs)
 
 #endregion =====================================================================
 
@@ -555,6 +555,31 @@ class TestExchangeDictionaryGetter(unittest.TestCase):
             mock_jopen.assert_called_once_with(mock_create_cache.return_value)
             mock_build.assert_not_called()
     
+    def test_quiet(self):
+        quiet = True
+        curr_list = [ "JPY", "EUR" ]
+        mocked_build_return = {
+                "jpy" : {"jpy" : 1.0, "eur" : 3.0},
+                "eur" : {"eur" : 1.0, "jpy" : 2.0}
+            }
+        with (
+            _patch_this('has_internet') as mock_has_internet,
+            _patch_this('build_exchange') as mock_build,
+            _patch_this('_currency_type_check') as mock_curr_type,
+            _patch_this('_jprint') as mock_jprint,
+            _patch_this('_create_exchange_cache') as mock_create_cache,
+        ):
+            mock_has_internet.return_value = True
+            mock_build.return_value = mocked_build_return
+            mock_curr_type.side_effect = lambda s : s.lower()
+            mock_create_cache.return_value = "mocked"
+            self.assertEqual(
+                get_exchange_dict(curr_list, quiet=quiet),
+                mocked_build_return
+            )
+            mock_jprint.assert_not_called()
+
+
 
 class TestEditorChecker(unittest.TestCase):
 

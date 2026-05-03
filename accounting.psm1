@@ -299,8 +299,7 @@ function AccountingCommandLineInterface
     (
         [Parameter(Mandatory=$true)]
         [ValidateSet("backup", "db", "help", "plot", "sql")]
-        [string]$action,
-        [switch]$spawn
+        [string]$action
     )
 
     # configuration and paths update
@@ -309,15 +308,9 @@ function AccountingCommandLineInterface
     $databasePath = (Get-Content $configPath -Raw | ConvertFrom-Json).db_path
     $pyScriptPath = Join-Path -Path $PSScriptRoot -ChildPath ".\acc_py\main.py"
 
-
+    
     $pyArgs = "-i $pyScriptPath $configPath $fieldsPath $action"
-    if ( $spawn ) {
-        $task = { Start-Process python.exe -ArgumentList $pyArgs }
-    }
-    else {
-        $task = { python.exe $pyArgs }
-    }
-
+    $task = { Start-Process python.exe -ArgumentList $pyArgs }
     switch ($action)
     {
         'plot'      { $task.Invoke() }

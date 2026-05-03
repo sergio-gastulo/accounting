@@ -563,6 +563,53 @@ class TestListOfFieldsPrompt(TestCase):
 
 
 
+class TestColumnValuePrompt(TestCase):
+    def test_simple_routine(self):
+        # foobarbaz dictionary
+        keybinds = { "a" : "arroz", "b" : "bueno"}
+        
+        # stands for description, currency
+        uinput = "d c"
+        res_mocked_prompt_list_fields = [ "description", "currency" ]
+        
+        # asking which description, which currency
+        res_mocked_description = "any description"
+        res_mocked_currency = "cur"
+
+        expected = {
+            "description" : res_mocked_description,
+            "currency" : res_mocked_currency
+        }
+        with (
+            _patch_this(prompt_list_of_fields) as mock_prompt,
+            _patch_this('_parse_description') as mock_description,
+            _patch_this(prompt_currency) as mock_currency
+        ):
+            mock_prompt.return_value = res_mocked_prompt_list_fields
+            mock_currency.return_value = res_mocked_currency
+            mock_description.return_value = res_mocked_description
+            res = prompt_column_value(keybinds, uinput)
+        mock_prompt.assert_called_once_with(uinput)
+        mock_currency.assert_called_once()
+        mock_description.assert_called_once()
+        self.assertEqual(res, expected)
+
+    def test_type_err_on_input(self):
+        keybinds = { "a" : "arroz", "b" : "bueno" }
+        badinputs = [ print, aiter, 1.0, {"a" : "b"}]
+        for bad in badinputs:
+            with self.subTest(bad=bad):
+                with self.assertRaises(TypeError):
+                    prompt_column_value(keybinds, bad)
+
+    def test_type_err_on_keybinds(self):
+        badinputs = [ print, aiter, 1.0, "not-dictionary"]
+        for bad in badinputs:
+            with self.subTest(bad=bad):
+                with self.assertRaises(TypeError):
+                    prompt_column_value(bad, None)
+
+
 
 if __name__ == "__main__":
     unittest.main()

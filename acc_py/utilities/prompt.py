@@ -280,11 +280,13 @@ def _parse_description(s : str) -> str:
     return s
 
 def prompt_column_value(
-        keybind_dict : dict[str, str],
+        keybind_dict : KeybindDictType,
         fields_str : str | None = None
 ) -> dict[str, str | int | float | date]:
-    
-    field_func : dict[str, Callable] = {
+
+    ensure(keybind_dict, dict)
+    _ensure_str_none(fields_str)    
+    field_func = {
         "date"          :   prompt_date_operation,
         "amount"        :   prompt_arithmetic_operation,
         "currency"      :   prompt_currency,

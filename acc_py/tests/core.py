@@ -22,7 +22,7 @@ from utilities.core import (
     get_all_categories,
     fetch_category_dictionary,
     fetch_keybind_dict,
-    fetch_exchange_rate,
+    fetch_exchange_rates,
     get_exchange_rate,
     exchange_memo,
     get_exchange_dict,
@@ -432,7 +432,7 @@ class TestExchangeRateFetcher(unittest.TestCase):
         ]
         for currency in cases:
             with self.subTest(currency=currency):
-                res = fetch_exchange_rate(currency)
+                res = fetch_exchange_rates(currency)
                 self.assertIsInstance(
                     res,
                     dict
@@ -442,7 +442,7 @@ class TestExchangeRateFetcher(unittest.TestCase):
                         self.assertIsInstance(curr, str)
                         self.assertIsInstance(exchange, float | int)
 
-    def test_fetch_exchange_rate_err(self):
+    def test_fetch_from_bad_currency(self):
         bad_cases = [
             ("any-currency",    ValueError),
             (print,             TypeError),
@@ -452,14 +452,14 @@ class TestExchangeRateFetcher(unittest.TestCase):
         for bad_currency, err in bad_cases:
             with self.subTest(bad_currency=bad_currency):
                 with self.assertRaises(err):
-                    fetch_exchange_rate(bad_currency)
+                    fetch_exchange_rates(bad_currency)
 
     def test_fetch_exchange_rate_memo(self):
         currency = "pen"
         expected = "foo"
         with patch(f"{TEST_MODULE}.exchange_memo", {currency : expected}):
             with _patch_this('_fetch_exchange') as mock_fetch_exchange:
-                res = fetch_exchange_rate(currency)
+                res = fetch_exchange_rates(currency)
                 mock_fetch_exchange.assert_not_called()
                 self.assertEqual(res, expected)
 
@@ -669,6 +669,7 @@ class TestColorChecker(unittest.TestCase):
         )
 
     def test_check_colors_dimensions_1(self):
+        """more colors than currencies"""
         currencies = [ "per" ]
         colors = ["red", "blue", [1.0, 0.5, 0.5]]
         expected = {
@@ -680,6 +681,7 @@ class TestColorChecker(unittest.TestCase):
         )
 
     def test_check_colors_dimensions_2(self):
+        """more currencies than colors"""
         currencies = [ "per", "eur", "usd" ]
         colors = [ "red" ]
         test_color = (0.5, 0.5, 0.5)
@@ -701,6 +703,15 @@ class TestColorChecker(unittest.TestCase):
         colors = [ "red", "not-a-color" ]
         with self.assertRaises(ValueError):
             check_colors(currencies, colors)
+
+    def test_none_type(self):
+        currencies = [ "per", "eur" ]
+        colors = [ "red", None ]
+        with self.assertRaises(ValueError):
+            check_colors(currencies, colors)
+
+
+
 
 
 if __name__ == "__main__":

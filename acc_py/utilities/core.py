@@ -4,7 +4,7 @@ Should not import **ANY** hand-written acccli-related code.
 It contains a variety of functions that are used in context.py, parser.py and prompt.py
 """
 import inspect
-from typing import List, Tuple, Any, Type
+from typing import List, Tuple, Any, Type, TypeVar
 from pathlib import Path
 import json
 import socket
@@ -44,17 +44,21 @@ APPLICATION_CACHED_DIRECTORY.mkdir(parents=True, exist_ok=True)
 #region ======================= json operations ================================
 
 def _jopen(path : Path) -> dict:
+    """Load json from path."""
     with open(path, 'r', encoding='utf8') as file:
         res = json.load(file)
     return res
 
 def _jrepr(d : dict) -> str:
+    """Get nice pprint str from dictionary."""
     return json.dumps(d, indent=4)
 
 def _jprint(d : dict):
+    """Equivalent of `pprint`"""
     print(_jrepr(d))
 
 def _jdump(d : dict, path : Path) -> None:
+    """Save dict to path."""
     with open(path, 'w') as file:
         json.dump(d, file, indent=4)
 
@@ -65,8 +69,8 @@ def ensure(
         value : Any, 
         *types : Type[Any], 
         allow_none : bool = False
-) -> Any:
-    
+) -> None:
+    """Simple type-checker. `raise` instead of `soft_err`."""
     if allow_none and (value is None):
         return 
     if type(value) in types:
@@ -98,7 +102,10 @@ def _raw_keys_check(
 def import_fields(
         path : Path
 ) -> FieldDictType: 
-    """Loads from fields_path."""
+    """
+    Loads ctx.fields from fields_path, ensuring str types and that 'key',
+    'shortname' and 'description' are in every field item.
+    """
     field_dict = _jopen(path)
     errs = []
     keys_ensure = ['key', 'shortname', 'description']
@@ -117,7 +124,9 @@ def import_fields(
     return field_dict
 
 
+# TODO: test this
 def print_func_doc(func: callable) -> None:
+    """Nice documentation printer."""
     cyan_str = '\033[96m'
     end_str = '\033[0m'
 
@@ -134,7 +143,7 @@ def pprint_df(
         df : DataFrame,
         header : str | None = None
 ) -> None | str:
-    
+    """Pretty df printer."""    
     if "description" in df.columns:
         if is_string_dtype(df.description):
             df.description = df.description.str[:100]
@@ -158,6 +167,7 @@ def has_internet(
         port : int = 443, 
         timeout : int = 3
 ) -> bool:
+    """Check if internet is available."""
     try:
         socket.setdefaulttimeout(timeout)
         socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
@@ -170,20 +180,23 @@ def has_internet(
 def get_help_dictionary(
         fields_dict : FieldDictType
 ) -> dict[str, str]:
-    
-    # TODO: improve type checking here ...
+    """Returns help-dictionary from fields_dict."""
+
+    # TODO: assert FieldDictType clearly
     if not isinstance(fields_dict, List):
-        raise TypeError("Field dictionary has no valid type.")
+        raise TypeError(f"{fields_dict} is not a list of dictionaries.")
 
     res = {}
     for category_item in fields_dict:
         res.update(
-            # no need to check for shortname, they're checked at ctx construction
+            # --- no need to check for shortname they're checked at 
+            # --- ctx construction (import_fields)
             { category_item['shortname'] : category_item.get('help', '') }
         )
         subcategory_item = category_item.get('subcategories')
         if subcategory_item:
             for item in subcategory_item:
+                # --- no need for type-checking here neither ---
                 res.update( { item['shortname'] : item.get('help', '')} )
     
     return res
@@ -191,10 +204,13 @@ def get_help_dictionary(
 
 def pprint_categories(
         categories_dict : dict[str, str],
-        fields_dict : List[dict[str | List[dict[str, str]]]],
+        fields_dict : FieldDictType,
         help : bool = False
 ) -> None:
-
+    """
+    Pretty categories printer. If help is asked, then get_help_dictionary is 
+    called. 
+    """
     if not help:
         _jprint(categories_dict)
         return
@@ -204,18 +220,17 @@ def pprint_categories(
 
 
 def get_all_categories(
-        category_dict : dict[str, dict[str, str] | str]
+        fields_dict : FieldDictType
 ) -> List[str] : 
-    
+    """Retrieves a list of all categories in fields_dict."""
     res = []
-
-    for item in category_dict:
-        # shortname guaranteed in the ctx parser
+    for item in fields_dict:
+        # --- shortname guaranteed in the ctx parser ---
         res.append(item['shortname']) 
         collection = item.get('subcategories')
         if collection:
             for subitem in collection:
-                # sub-items' shortnames are checked in the parser too 
+                # --- sub-items' shortnames are checked in the parser too ---
                 res.append(subitem.get('shortname'))
 
     return res
@@ -224,34 +239,37 @@ def get_all_categories(
 def fetch_category_dictionary(
         field_dict: FieldDictType
 ) -> dict[str, str]:
-    shortname_descript_dict = {}
-
+    """
+    Fetches category_dict ({"category" : "description"}) from fields_dict.
+    """
+    res = {}
     for item_dict in field_dict:
         subcategories = item_dict.get("subcategories")
-        # both shortname-description guaranteed in the ctx parser
+        # --- both shortname-description guaranteed in the ctx parser ---
         if subcategories:
             for item in subcategories:
-                shortname_descript_dict.update(
-                    {item["shortname"]: item["description"]}
+                res.update(
+                    { item["shortname"] : item["description"] }
                 )
         else:
-            shortname_descript_dict.update(
-                {item_dict["shortname"]: item_dict["description"]}
+            # --- here too ---
+            res.update(
+                { item_dict["shortname"] : item_dict["description"] }
             )
+    return res
 
-    return shortname_descript_dict
 
-
-def _sort_dict(d : dict[str, str]) -> dict[str, str]:
+def _sort_dict(d : dict[str, Any]) -> dict[str, Any]:
+    """Simple sorter-by-key."""
     return { key : d[key] for key in sorted(d) }
 
 def fetch_keybind_dict(
         field_dict : FieldDictType
 ) -> KeybindDictType:
-
+    """Constructs keybind dict from fields_dict."""
     keybind_dict = {}
 
-    # key checking in body of import_fields
+    # --- no KeyErrors since field_dict is first ensured on import_fields ---
     for item_dict in field_dict:
         subcategories = item_dict.get("subcategories")
         if subcategories:
@@ -267,8 +285,11 @@ def fetch_keybind_dict(
     return _sort_dict(keybind_dict)
 
 
-def _fetch_exchange(currency : str) :    
-    # https://github.com/fawazahmed0/exchange-api
+def _fetch_exchange(currency : str) -> dict[str, int | float]:
+    """
+    Fetch full list of currency exchanges associated to currency.
+    """
+    # --- https://github.com/fawazahmed0/exchange-api ---
     url_bases = [
         "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/",
         "https://latest.currency-api.pages.dev/v1/currencies/" 
@@ -280,29 +301,47 @@ def _fetch_exchange(currency : str) :
         url_request = urllib.parse.urljoin(url, endpoint)
         response = requests.get(url_request)
         if response.ok :
+            # --- res example: https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/pen.json ---
             res = json.loads(response.content)
             res = res[currency]
             return res
             
+    # TODO: we should probably test this properly
     if response.status_code == 404:
-        raise ValueError(f"{currency=} does not exist.")
+        raise ValueError(
+            f"Arguement '{currency}' is an invalid currency. "
+            f"Full response: {response.text}."
+        )
+    else:
+        raise RuntimeError(f"Unkown state. Full response: {response.text}.")
 
 def _currency_type_check(currency : str) -> str:
+    """Simple currency type check."""
     if not isinstance(currency, str):
         raise TypeError(f"{currency=} is not string type.")
     if len(currency) != 3:
         raise ValueError(f"{currency=} is not in valid ISO format.")
     return currency.lower()
 
+def check_currency_list(currency_list : List[str]) -> List[str]:
+    """Threads over currency_list and validates currency type."""
+    return [_currency_type_check(curr) for curr in currency_list]
+
+
 exchange_memo = {}
-def fetch_exchange_rate(
+def fetch_exchange_rates(
         currency : str
 ) -> dict : 
-    
+    """
+    Fetch exchange rate**S** from a given currency and update to exchange_memo if
+    non-existent. Type checks are included. 
+    """
     currency = _currency_type_check(currency)
+    # --- if memoized, call it ---
     if currency in exchange_memo:
         return exchange_memo[currency]
 
+    # --- if not, then update exchange_memo ---
     res = _fetch_exchange(currency)
     exchange_memo.update( { currency : res } )
     return res
@@ -311,21 +350,32 @@ def fetch_exchange_rate(
 def get_exchange_rate(
         currency_1 : str,
         currency_2 : str
-)-> float:
-    
+)-> float | int:
+    """
+    Gets exchange rate between curr_1 and curr_2. Calls fetch_exchange_rate
+    under the hood. Type checks are implemented.
+    """    
+    # --- type checking ---
     currency_1 = _currency_type_check(currency_1)
     currency_2 = _currency_type_check(currency_2)
+
+    # --- unnecessary fetch is prevented ---
     if currency_1 == currency_2:
         return 1.0
 
-    res = fetch_exchange_rate(currency_1)
-    exchange = res.get(currency_2)
-    if exchange:
-        return exchange
+    # --- fetch full exchange rates, if curr_2 does not exist, raise err ---
+    res = fetch_exchange_rates(currency_1)
+    if currency_2 in res:
+        return res[currency_2]
     raise ValueError(f"{currency_2=} does not exist in exchange dictionary for {currency_1=}.")
+    
 
 
-def build_exchange(curr_list : List[str]) -> dict:
+def build_exchange(curr_list : List[str]) -> ExchangeDictType:
+    """
+    Builds exchange dictionary from a list of currencies. 
+    Check tests for a full check of coverage.
+    """
     res = { 
         curr1 : {   curr2 : get_exchange_rate(curr1, curr2)
                         for curr2 in curr_list                  }
@@ -334,21 +384,30 @@ def build_exchange(curr_list : List[str]) -> dict:
     return res
 
 
-# delete quiet? refactor tests.core.TestExchangeDictionaryGetter
+# NOTE: delete quiet? refactor tests.core.TestExchangeDictionaryGetter
 def get_exchange_dict(
         curr_list : List[str],
         use_cache : bool | None = False,
         quiet : bool = False
 ) -> ExchangeDictType:
+    """
+    Builds exchange dictionary from curr_list. However, first tries to load 
+    from cache. If failure, it type-checks curr_list and builds ex-dict from it.
+    """
     
+    # --- try to load from cache: whenever no internet is available or
+    # --- explicitely passed as option
     name = "exchange.json"
     cached_path = APPLICATION_CACHED_DIRECTORY / name
     if (use_cache and cached_path.exists()) or (not has_internet()):
         res = _jopen(cached_path)
         return res
 
-    curr_list = [ _currency_type_check(curr) for curr in curr_list ]
+    # --- ensure type check and build exchange dict ---
+    curr_list = check_currency_list(curr_list)
     curr_exchange = build_exchange(curr_list)
+    
+    # --- load to cache and print if asked ---
     _jdump(curr_exchange, cached_path)
     if not quiet:
         _jprint(curr_exchange)
@@ -357,10 +416,12 @@ def get_exchange_dict(
 
 
 def _ask_editor() -> Path:
+    """Asks for a valid file editor."""
     program_files = environ['ProgramFiles']
     title = "Select your preferred text editor."
     allowed = [("Exe", "*.exe")]
     
+    # --- you ain't leaving unless a valid .exe is provided ---
     while not editor_path:
         print("An editor file is mandatory for editing, please pick one.")
         editor_path = askopenfilename(
@@ -372,11 +433,14 @@ def _ask_editor() -> Path:
     return Path(editor_path)
 
 def check_editor(editor_path : Path | str | None) -> Path:
-    
+    """Check if path is a valid .exe"""
+
+    # --- wrap Path type ---
     if isinstance(editor_path, str):
         editor_path = Path(editor_path)
-    
+
     if isinstance(editor_path, Path):
+        # --- check if it's a valid executable ---
         if editor_path.exists() and editor_path.suffix == ".exe":
             return editor_path
         return _ask_editor()
@@ -386,41 +450,50 @@ def check_editor(editor_path : Path | str | None) -> Path:
 
     raise TypeError(f"{editor_path=} is not a valid argument.")
 
-
-def check_currency_list(currency_list : List[str]) -> List[str]:
-    return [_currency_type_check(curr) for curr in currency_list]
-
+def _single_cord_converter(c : int | float) -> int | float:
+    """Quick try-to-convert for a single int | float."""
+    
+    # --- 8 bit base integer check ---
+    if isinstance(c, int) and 0 <= c <= 255:
+        return c / 255.
+    # --- [0, 1]^3 check ---
+    elif isinstance(c, float) and 0 <= c <= 1:
+        return c
+    raise ValueError(f"Component {c=} failed RGB conversion.")
 
 def convert_rgb(color : RGBType) -> RGBType:
+    """
+    Takes RGB-convertable argument and converts it into a valid matplotlib 
+    recognizable color. 
+    """
     if not isinstance(color, list | tuple):
-        raise TypeError(f"{color=} is not a valid RGB color.")
+        raise TypeError(f"{color=} is not a list or tuple.")
     if len(color) not in [3, 4]:
-        raise ValueError(f"{color=} is not a valid RGB color.")
+        raise ValueError(f"{color=} is not a 3 or 4-dimensional object.")
 
-    res = ()
-    for c in color:
-        if isinstance(c, int) and (0 <= c <= 255):
-            res += (c / 255, ) 
-        elif isinstance(c, float) and 0 <= c <= 1:
-            res += (c, )
-        else:
-            raise ValueError(f"{color=} can't be casted to RGB.")
-    return res
+    return tuple(_single_cord_converter(c) for c in color)
 
 
 def _cast_color(color: Any) -> RGBType | str:
+    """Checks if color is a valid color. Relies on matplotlib.colors parser."""
     if is_color_like(color):
         return color
     try:
-        c = convert_rgb(color)
-        return c
-    except TypeError:
-        raise ValueError(f"Unsupported conversion for {color=}.")
+        return convert_rgb(color)
+    except TypeError as e:
+        # --- Translating TypeError to ValueError
+        # --- Think about it: "not a color" is technically a valid type since
+        # --- matplotlib actually accepts strings as colors e.g. 'red'
+        # --- However, it is unparsable -> what happens when can't be parsed?
+        # --- ValueError! (error message is preserved though)
+        raise ValueError(repr(e))
+
 
 def _build_color_dict(
         currencies : List[str],
         colors : List[RGBType | str] 
 ) -> dict[str, RGBType | str]:
+    """Builds color dictionary: {"curr1" : "color1", ...}."""
     res = {
         currency : _cast_color(color) 
         for currency, color in zip(currencies, colors) 
@@ -428,30 +501,34 @@ def _build_color_dict(
     return res
 
 def _ask_color(currency : str) -> Tuple[RGBType, str]:
+    """askcolor wrapper. Returns both rgb and hex representation."""
     return askcolor(title=f"Pick color for {currency}:")
 
 def check_colors(
         currencies : List[str],
         colors : List[RGBType | str] | None
 ) -> dict[str, RGBType | str]:
-
+    """
+    Main color checker. Threads over currencies and colors. 
+    Type-check safety for colors only. Currencies type-check is trusted.
+    """
     ncolors = len(colors)
     ncurrs = len(currencies)
 
+    # --- numer of excesive colors is simply ignored ---
     if ncolors > ncurrs:
-        # numer of excesive colors is simply ignored
         return _build_color_dict(currencies, colors[:ncurrs])
     
+    # --- more colors must be passed ---
     elif ncolors < ncurrs:
-        # more colors must be passed
         res = _build_color_dict(currencies[:ncolors], colors)
         for currency in currencies[ncolors:]:
             color, _hex_color = _ask_color(currency)
             res.update( { currency : _cast_color(color) } )
         return res
     
-    else:
-        return _build_color_dict(currencies, colors)
+    # --- same len? just thread! ---
+    return _build_color_dict(currencies, colors)
 
 
 # https://www.geeksforgeeks.org/python/python-program-to-find-hash-of-file/

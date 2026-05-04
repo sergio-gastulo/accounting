@@ -325,7 +325,7 @@ def parse_semantic_filter(
     Runs parse_core_semantic_filter splitted by 'and'. 
     At the moment, no support for other boolean concatenators.
     It allows raw SQL select statement via 'sql: select ...'.
-    Prevents update, insert, drop statements too.
+    Prevents update, insert and drop statements from evaluation.
     """
     general_filter = general_filter.strip()
     # --- allow raw sql select ---
@@ -346,12 +346,17 @@ def parse_valid_element_list(
         user_input : str,
         keybinds : dict[str, str]
 ) -> str:
+    """
+    Takes key or value from a given dictionary and returns said associated value.
+    e.g. keybinds : {"a":"aa", "b":"bb"}, both "aa", "a" evaluate to "aa".
+    Raises ValueError if value could not be found.
+    """
     if not isinstance(user_input, str):
         raise TypeError(f"Argument {user_input=} is not a valid string.")
     
+    # --- check key-value belonging ---
     if user_input in keybinds:
         return keybinds[user_input]
-    
     if user_input in keybinds.values():
         return user_input
 
@@ -361,7 +366,9 @@ def parse_valid_element_list(
 def cast_csv_types(
         csv_content : str
 ) -> pd.DataFrame:
-    
+    """
+    Converts csv_content to a valid Record-like dataframe.
+    """
     df = pd.read_csv(
         StringIO(csv_content), 
         encoding='utf-8',
@@ -377,25 +384,27 @@ def cast_csv_types(
         "category" :    "str"
     }
     
-    # ensure uncorrupted columns before moving on
+    # --- ensure uncorrupted columns before moving on ---
     if not set(df.columns).issubset(type_mapping.keys()):
         raise ValueError("Dataframe columns are not valid.")
-
     if not isinstance(df.index, pd.RangeIndex):
         raise ValueError("Dataframe contains more columns than expected.")
 
+    # --- type mapping on existent columns ---
     type_cols = {
         key : val 
         for key, val in type_mapping.items() 
         if key in df.columns
     }
-
     return df.astype(type_cols)
 
 
 def parse_csv_record(
         path : Path
 ) -> pd.DataFrame:
+    """
+    Simple cast_csv_types wrapper. Reads content from path. 
+    """
     with open(path, 'r', encoding='utf-8') as file:
         text = file.read() 
     return cast_csv_types(text)
@@ -405,7 +414,10 @@ def sanitize_df(
         df : pd.DataFrame, 
         category_list : List[str]
     ) -> pd.DataFrame:
-
+    """
+    Check that the dataframe is properly santized. Type-checks, and even 
+    transforming functions are applied to respective columns.
+    """
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"Argument {df=} is not a valid df.")
 
@@ -413,48 +425,42 @@ def sanitize_df(
     must_exist_columns = {
         "date", "amount", "currency", "description", "category"
     }
+
+    # --------------------- type checking before moving on ---------------------
     errors : List[str] = []
-
     if not must_exist_columns.issubset(df.columns):
-        raise ValueError(f"DataFrame does not have the columns {must_exist_columns=}.")
-
+        raise ValueError(f"DataFrame must contain the following columnts: {must_exist_columns}.")
     if is_numeric_dtype(df.amount):
         if not (df.amount > 0).all():
-            errors.append("DataFrame has a negative value in one (or more) of its rows.")
+            errors.append("df.amount contains a (or more) negatives values.")
     else:
-        errors.append("Dataframe does not contain numeric amount column.")
-
+        errors.append("df.amount is non-numeric.")
     if not is_string_dtype(df.currency):
-        errors.append("DataFrame does not have proper currency column.")
-
+        errors.append("df.currency is non-string.")
     if not is_string_dtype(df.description):
-        errors.append("Description is not string type.")
-
+        errors.append("df.description is non-string.")
     if not df.category.map(check_category).all():
-        errors.append("An invalid category has been found, please check.")
-
+        errors.append(f"df.category contains a category that is not in {category_list}.")
     if not (is_string_dtype(df.date) or is_datetime(df.date)):
-        errors.append("DataFrame's date column must be string or datetime-like.")
-
+        errors.append("df.date is non-string and non-datetime-like.")
     if errors:
-        raise ValueError(f"Following errors found: {errors}.")
+        raise ValueError(f"Dataframe's columns failed type-check: {errors}.")
 
-    # conversions after checking dtypes
+    # -------------------- conversions after checking dtypes --------------------
     df.currency = df.currency.str.upper()
     if is_string_dtype(df.date):
         df.date = pd.to_datetime(df.date)
-    # datetime uniformization
+    # --- datetime uniformization ---
     df.date = df.date.dt.strftime(DATE_COLUMN_FORMAT)
-
     return df
 
 
 def parse_record_from_id(
-        id_ : str | int | float,
+        id_ : str | int,
         engine : Engine
 ) -> Record:
-    
-    if not isinstance(id_, str | int | float):
+    """Takes str | int and returns a record from it."""
+    if not isinstance(id_, str | int):
         raise TypeError(f"Argument {id_=} must be String or Numeric type.")
     _id = int(id_)
 

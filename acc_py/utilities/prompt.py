@@ -21,7 +21,7 @@ from utilities.core import (
 #region ============================ utils =====================================
 
 def _success(*s : str) -> None:
-    """Quick success function that wraps repr on all args."""
+    """Quick success printer that wraps `repr` on `*s`."""
     if len(s) == 1:
         res = s[0]
     else:
@@ -30,13 +30,13 @@ def _success(*s : str) -> None:
 
 
 def _soft_error(e : ValueError | TypeError) -> None:
-    """Simple exception printer. Same style as raise, does not raise anything."""
+    """Simple exception printer. Same style as raise -- does not raise anything."""
     s = f"{type(e).__name__}: {e}"
     print(s)
 
 
 def _ensure_str_none(arg : str | None) -> None:
-    """Quick str | None ensurer."""
+    """Quick `str` | `None` ensurer."""
     ensure(arg, str, allow_none=True)
 
 #endregion =====================================================================
@@ -50,6 +50,12 @@ def main_loop(
         max_attempts : int = 5,
         **kwargs
 ):
+    """
+    Main loop event. Asks for valid `uinput` until parser returns success or
+    `max_attempts` is reached (in which case `RuntimeError` is raised). 
+    Quietly prints `ValueError` and `TypeError` to let end-user know that 
+    `uinput` is effectively wrong. Any other error is raised and loop is broken.
+    """
     for _ in range(max_attempts):
         if uinput is None:
             uinput = input(prompt)
@@ -67,7 +73,11 @@ def prompt_arithmetic_operation(
         user_input : Optional[str | float | int] = None, 
         lower_bound: float = 0.0
 ) -> float | int :
-    
+    """
+    Asks for arithmetic operation as `str`. 
+    Relies on `parse_arithmetic_operation`.
+    """
+    # --- type checking ---
     if isinstance(user_input, int | float):
         return user_input
     ensure(lower_bound, float, int)
@@ -88,12 +98,13 @@ def prompt_currency(
         quiet : bool = True
 ) -> str:
     """
-    Parses currency_input to a valid currency.
-    Relies on parse_currency.
+    Parses `currency_input` to a valid currency. Relies on `parse_currency`.
     Returns upper-3-word-length ISO currency.
     """
+    # --- type checking ---
     ensure(quiet, bool)
     _ensure_str_none(currency_input)
+
     kwargs = {
         "prompt" : "Currency in ISO format: ", 
         "parser" : parse_currency
@@ -107,6 +118,8 @@ def prompt_currency(
 def prompt_date_operation(
         date_input : Optional[str | date] = None
 ) -> date:
+    """Converts `str` into `datetime.date` type."""
+    # --- type checking ---
     if isinstance(date_input, date):
         return date_input
     _ensure_str_none(date_input)
@@ -125,10 +138,12 @@ def prompt_double_currency(
         double_curr_input : str | None = None, 
         lower_bound : float = 0.0
 ) -> tuple[float, str]:
-    
+    """Converts `str` into valid amount, currency pair."""
+    # --- type checking ---
     _ensure_str_none(double_curr_input)
     ensure(default_currency, str)
     ensure(lower_bound, float)
+    
     kwargs = {
         "prompt" : "Type double-currency operation: ",
         "parser" : parse_double_currency,

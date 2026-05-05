@@ -20,7 +20,7 @@ from sqlalchemy import select, true, text
 from sqlalchemy.sql.elements import BinaryExpression, TextClause
 from sqlalchemy import Engine
 
-from db.model import Record, Session
+from db.model import Record, Session, Conversion
 
 
 DATE_COLUMN_FORMAT = "%Y-%m-%d"
@@ -77,10 +77,10 @@ def parse_arithmetic_operation (
 
 
 def parse_currency(currency : str) -> str:
-    """Accepts str and returns 3 digit **UPPERCASE** str. """
+    """Accepts `str` and returns **UPPERCASE** str. """
     currency = currency.strip().upper()
     if re.match(r'^[A-Z]{3}$', currency):
-        return currency.upper()
+        return currency
 
     raise ValueError(f"{currency=} is not a valid currency.")
     
@@ -455,17 +455,19 @@ def sanitize_df(
     return df
 
 
+# TODO : test this whenever possible
 def parse_record_from_id(
         id_ : str | int,
-        engine : Engine
-) -> Record:
+        engine : Engine,
+        entity : Record | Conversion
+) -> Record | Conversion:
     """Takes str | int and returns a record from it."""
     if not isinstance(id_, str | int):
         raise TypeError(f"Argument {id_=} must be String or Numeric type.")
     _id = int(id_)
 
     with Session(engine) as session:
-        record = session.get(Record, _id)
-    if record is None:
-        raise ValueError(f"Can't get record with {_id=}.")
-    return record
+        entity = session.get(entity, _id)
+    if entity is None:
+        raise ValueError(f"Can't get entity with {_id=}.")
+    return entity

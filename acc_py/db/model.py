@@ -1,13 +1,47 @@
 import datetime
-from sqlalchemy import String, Date, Numeric, MetaData
+from sqlalchemy import String, Date, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
-from sqlalchemy.engine.base import Engine
+from sqlalchemy import Engine
 from typing import Any
+from utilities.core import ensure
+
 
 Base = declarative_base()
 
 
-class Record(Base):
+class Mutuals:
+
+    def pretty(self) -> str:
+        """Default class prettier. Returns all attributes with indentation."""
+        cols = self.__table__.columns.keys()
+        values = {col: getattr(self, col) for col in cols}
+        attrs = "\n".join(f"  {k}={v}" for k, v in values.items())
+        self_type = type(self).__name__
+        wrap = f"{self_type}(\n{attrs}\n)" 
+        return wrap
+
+    def pprint(self) -> None:
+        """Default pretty printer, prints self.pretty()"""
+        print(self.pretty())
+
+    def write(self, engine : Engine) -> None:
+        """
+        General default writer. Checks engine type. Does not ask for commit.
+        """
+        # --- Important: type(ctx.engine) in Engine works
+        # --- but isinstance(ctx.engine, Engine) is false
+        # --- ensurer works for this case 
+        ensure(engine, Engine)
+
+        # --- write ---
+        with Session(engine) as session:
+            session.add(self)
+            session.commit()
+            print("Following record was added to database:")
+            self.pprint()
+
+
+class Record(Mutuals, Base):
 
     __tablename__ = "cuentas"
     
@@ -31,22 +65,8 @@ class Record(Base):
             return False
         return (self.id == other.id)
 
-    def pretty(self) -> str:
-        return (
-            f"Record(\n"
-            f"\tid={self.id!r},\n"
-            f"\tdate={self.date!r},\n"
-            f"\tamount={self.amount!r},\n"
-            f"\tcurrency={self.currency!r},\n"
-            f"\tdescription={self.description!r},\n"
-            f"\tcategory={self.category!r}\n)"
-        )
 
-    def pprint(self) -> None:
-        print(self.pretty())
-
-
-class Conversion(Base):
+class Conversion(Mutuals, Base):
 
     __tablename__ = "conversions"
 
@@ -70,16 +90,18 @@ class Conversion(Base):
             f"description={self.description!r})"
         )
     
-    def pretty(self) -> str:
-        exchange : float = self.base_amount / self.target_amount
+    def pretty(self, inverted : bool = True) -> str:
+        """Overridden class prettier to show exchange rate as well."""
+        ensure(inverted, bool)
+        rate = self.target_amount / self.base_amount
+        if inverted:
+            rate = 1 / rate
         return (
-            f"conv_{self.id}: {self.base_amount} {self.base_currency} "
-            f"->(x{exchange:.2f}) {self.target_amount} {self.target_currency}"
-            f"\ndescription: {self.description!r}"
+            f"{self.base_amount:,.2f} {self.base_currency}"
+            f" -> {self.target_amount:,.2f} {self.target_currency}"
+            f" @ {rate:.4f} {self.base_currency}/{self.target_currency}"
+            f"\n         {self.description}"
         )
-    
-    def pprint(self) -> None:
-        print(self.pretty())
 
 
 

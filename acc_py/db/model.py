@@ -3,7 +3,7 @@ from sqlalchemy import String, Date, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
 from sqlalchemy import Engine
 from typing import Any
-from utilities.core import ensure
+from utilities.core import ensure, soft_warning
 
 
 Base = declarative_base()
@@ -39,6 +39,17 @@ class Mutuals:
             session.commit()
             print("Following record was added to database:")
             self.pprint()
+
+    def delete(self, engine : Engine) -> None:
+        """
+        General default deleter. Checks engine type and does not ask for commit. 
+        Prints warning message.
+        """
+        ensure(engine, Engine)
+        soft_warning("Warning: you may lose data permanently.")
+        with Session(engine) as session:
+            session.delete(self)
+            session.commit()
 
 
 class Record(Mutuals, Base):

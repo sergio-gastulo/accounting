@@ -6,33 +6,16 @@ from utilities.core import (
     print_func_doc, 
     pprint_categories
 )
+from db.model import Record, Conversion
 from context.context import ctx
 from datetime import datetime
 
-p1 : Callable = None
-p2 : Callable = None
-p3 : Callable = None
-sp : Callable = None
-e : Callable = None
-d : Callable = None
-w : Callable = None
-wl : Callable = None
-wdf : Callable = None
-wc : Callable = None
-rc : Callable = None
-r : Callable = None
-el : Callable = None
-h : Callable = None
-load : Callable = None
+
+#region ==================== interface-independent  ============================
+
+
+DOCS_DIR  = Path(__file__).resolve().parent / "templates"
 now : Callable = lambda : datetime.now().strftime('%H:%M:%S')
-
-
-#region ########################### interface-independent ######################
-
-DOCS_DIR : Path = (
-    Path(__file__).resolve().parent 
-    / "templates"
-)
 
 
 def pc(help : bool = False) -> None:
@@ -78,90 +61,76 @@ def custom_help(arg : str, func : Callable | None = None) -> None:
     path = DOCS_DIR / f"{arg}_help.txt"
     if path.exists():
         help_message = path.read_text()
-        print(help_message) 
+        print(help_message)
     else:
         print(f"Something went wrong while loading {DOCS_DIR=}.")
         return
 
 
-#endregion ######################### interface-independent #####################
+#endregion =====================================================================
 
 
-def plot(debug : bool = False) -> None:
+def load_db_api_module(*args) -> None:    
+    import db.db_api as da
+    exposed = {
+        "br"    : da.build_record,
+        "bc"    : da.build_conversion,
+        "bdf"   : da.build_df,
+        "e"     : da.edit,
+        "fetch" : da.fetch,
+        "d"     : da.delete,
+        "r"     : da.read,
+        "wr"    : da.write_record,
+        "wc"    : da.write_conversion,
+        "wdf"   : da.write_df,
+        "h_db"  : lambda f=None : custom_help(arg='db', func=f),
+        "load"  : load_plot_module
+    }
+
+    # --- actions ---
+    ctx.set(*args)
+    globals().update(exposed)
+
+
+def load_plot_module(*args) -> None:
     import plot.plot as pp
     pp.darkmode()
-    global p1, p2, p3, p4, sp, h
-    p1 = pp.categories_per_period
-    p2 = pp.expenses_time_series
-    p3 = pp.category_time_series
-    sp = pp.savings_plot
-    if h:
-        print("Setting db.h as h_db")
-        globals()["h_db"] = h
-    h  = lambda f=None : custom_help(arg='plot', func=f)
-    globals()["load"] = db
-    if not debug:
-        h()
-
-
-def db(debug : bool = False) -> None:    
-    import db.db_api as da
-    global e, d, w, wl, wc, rc, r, el, h, wdf
-    e  = da.edit
-    d  = da.delete
-    w  = da.write
-    wl = da.write_list
-    wdf = lambda : da.write_list(return_dataframe=True)
-    wc = da.write_conversion
-    rc = da.read_conversion
-    r  = da.read
-    el = da.edit_list
-    if h:
-        globals()["h_plot"] = h
-    h  = lambda f=None : custom_help(arg='db', func=f)
-    globals()["load"] = plot
-    if not debug:
-        h()
-
-
-def load_plot(
-        config_path : Path,
-        fields_json_path : Path,
-        debug : bool = False
-) -> None:
-    ctx.set(config_path, fields_json_path)
-    ctx.set_plot()
-    plot(debug)
-    if not debug:
-        h()
+    exposed = {
+        "p1"    : pp.categories_per_period, 
+        "p2"    : pp.expenses_time_series, 
+        "p3"    : pp.category_time_series, 
+        "sp"    : pp.savings_plot, 
+        "h_p"   : lambda f=None : custom_help(arg='plot', func=f),
+        "load"  : load_db_api_module,
+    }
+    # --- actions ---
+    ctx.set(*args)
+    ctx.set_plot(*args)
+    globals().update(exposed)
 
 
 def main(
         config_path : Path,
-        fields_json_path : Path,
+        fields_path : Path,
         flag : str,
         debug : bool
 ) -> None:
-
-    if flag == 'plot':
-        load_plot(config_path, fields_json_path)
-        globals()["load"] = db
-
-    elif flag == 'db':
-        ctx.set(config_path, fields_json_path)
-        db(debug)
-        globals()["load"] = lambda : load_plot(config_path, fields_json_path, debug)
-    
+    if flag == 'db':
+        load_db_api_module(config_path, fields_path)
+    elif flag == 'plot':
+        load_plot_module(config_path, fields_path)
     else:
-        raise ValueError(f"'{flag}' is not a valid flag.")
+        raise ValueError(f"Invalid {flag=}. Must be 'plot' or 'db'")
+    if not debug:
+        custom_help(flag)
 
 
 if __name__ == "__main__":
     import sys
-    sys.ps1 = "(acccli) >>> "
+    sys.ps1 = f"(acccli) >>> "
     main(
         config_path = sys.argv[1],
-        fields_json_path = sys.argv[2],
+        fields_path = sys.argv[2],
         flag = sys.argv[3],
         debug=False
     )

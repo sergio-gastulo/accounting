@@ -12,5 +12,8 @@ config.json
 fields.json
 config-test.json
 
+# playground
+acc_py/tmp.py
+
 # exceptions
 !acc_py/tests/files

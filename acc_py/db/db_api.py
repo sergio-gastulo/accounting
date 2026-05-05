@@ -1,619 +1,472 @@
+"""
+Database API, allows user to write to DB using sqlalchemy as query wrapper.
+Heavily relies on both parser.py and py
+"""
+# --- generics ---
+from typing import List, Optional, Type, Any
+from datetime import date
+import pandas as pd
+from jinja2 import Template
+from pathlib import Path
+import subprocess
+
+# --- sqlalchemy wrappers ---
 from sqlalchemy import (
     inspect, 
     select,
     desc,
-    MetaData,
-    Table,
-    Connection
 )
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.elements import TextClause
-from sqlalchemy.dialects.sqlite import insert as insert_sqlite
 
-import datetime
-import pandas as pd
-from jinja2 import Template
-from pathlib import Path
-from tempfile import gettempdir
-import subprocess
-from typing import List
-
-from utilities.core import pprint_df
+# --- hand-coded stuff in .utilities and .context ---
+from context.context import ctx
+from utilities.core import (
+    APPLICATION_DIRECTORY,
+    pprint_df,
+    ensure,
+    confirm_action
+)
 from utilities.parser import (
     parse_semantic_filter,
     parse_csv_record,
-    parse_arithmetic_operation,
-    sanitize_df
+    sanitize_df,
 )
-from utilities import prompt
-from context.context import ctx
+from utilities.prompt import (
+    prompt_date_operation,
+    prompt_double_currency,
+    prompt_category_from_keybinds,
+    prompt_column_value,
+    prompt_entity_by_id,
+    prompt_arithmetic_operation,
+    prompt_currency,
+)
 from db.model import (
     Record,
-    Conversion    
+    Conversion,
 )
 
 
-TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
+#region ============================ utils  ====================================
+
+RECORD_TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
+TODAY = date.today()
+
+def ensure_or_none(value : Any, *args : Type[Any]):
+    ensure(value, *args, allow_none=True)
+
+#endregion =====================================================================
 
 
-def confirm_commit(connection : Connection | Session) -> None:
-    while True:
-        confirm : str = input("Confirm your commit [y/N]: ")
-        if confirm.lower() in ('y', 'yes'):
-            connection.commit()
-            print("Actions commited.")
-            return
-        elif not confirm or confirm.lower() in ('n', 'no'):
-            print("Change uncomitted.")
-            return         
-        else:
-            print("Could not parse your query, please try again.")
-
-
-# ----------------------------------------------------
-# current support: 
-# write() -> prompts for each record (mandatory)
-# write(field=value) -> specify some fields beforehand
-# ----------------------------------------------------
-def write(
-        df : pd.DataFrame | None = None,
-        date : datetime.date | None = None,
-        operation_str : str | None = None,
-        description : str | None = None,
-        category : str | None = None
-) -> None:
-    # yes, documentation from ChatGPT because I'm lazy
+def build_record(
+        date_ : Optional[date] = None,
+        amount : Optional[int | float] = None,
+        currency : Optional[str] = None,
+        operation_str : Optional[str] = None,
+        description : Optional[str] = None,
+        category : Optional[str] = None
+) -> Record:
     """
-    Create a new Record.
-
-    This function writes a Record to the database. Any field not provided
-    as an argument is be interactively prompted from the user.
+    Create and write a new Record to the database.
+    Omitted arguments are prompted interactively.
 
     Parameters
     ----------
-    date : datetime.date | None, optional
-        The date of the operation. If omitted -> prompted.
-    amount : float | None, optional
-        The amount of the operation. If omitted and `operation_str` = False
-        -> prompted.
-    currency : str | None, optional
-        The currency code (e.g., "USD", "EUR"). If omitted and `operation_str`
-        = False -> prompted
-    operation_str : str | None, optional
-        Shortcut to provide both `amount` and `currency` simultaneously. 
-    description : str | None, optional
-        Brief description of the record. omited? -> prompted
-    category : str | None, optional
-        The category of the record. omited? -> prompted.
+    `date_`
+        Operation date.
+    amount      
+        Operation amount. Ignored if `operation_str` is set.
+    currency    
+        Currency code (e.g. "USD"). Ignored if `operation_str` is set.
+    operation_str 
+        Shorthand to set both `amount` and `currency` at once.
+    description 
+        Brief description of the record.
+    category    
+        Record category.
 
     Notes
     -----
-    - Prompts are delegated to functions in the `prompt` module.
-    - The new `Record` is created, added to the current session, committed,
-    and then printed via `Record.pprint()`.
+    Record is committed automatically and printed via `Record.pprint()`.
     """
 
-    if df is not None and isinstance(df, pd.DataFrame):
-        write_from_dataframe(df)
-        return
+    # -------------------- Type checking (None are allowed) --------------------
+    
+    # --- date type-check ---
+    ensure_or_none(date_, date)
+    date_ = prompt_date_operation(date_)
 
-    date = prompt.prompt_date_operation(date)
-    amount, currency = prompt.prompt_double_currency(ctx.default_currency, operation_str)
-    if not description:
+    # --- if amount and currency are not specified, then prompt for pair ---
+    if amount is None and currency is None:
+        ensure_or_none(operation_str, str)
+        amount, currency = prompt_double_currency(
+            ctx.default_currency, operation_str)
+    else:
+        # --- if any of (amount, currency) is not None, then 
+        # --- individual prompt for each is forced
+        ensure_or_none(amount, int, float)
+        amount = prompt_arithmetic_operation(amount)
+        ensure_or_none(currency, str)
+        currency = prompt_currency(currency)
+    
+    # --- description type-check ---
+    ensure_or_none(description, str)
+    if description is None:
+        # --- could be empty, one can rely on edit() to change it ---
         description = input("Type your description: ")
-    category = prompt.prompt_category_from_keybinds(ctx.keybinds, category)
 
-    with Session(ctx.engine) as session:
-        record = Record(
-            date=date, amount=amount, 
-            currency=currency, description=description, 
-            category=category
-        )
-        session.add(record)
-        session.commit()
-        print("Record written to database: ")
-        record.pprint()
+    # --- category type-check ---
+    ensure_or_none(category, str)
+    category = prompt_category_from_keybinds(ctx.keybinds, category)
+
+    # --- build and return ---
+    record = Record(
+        date=date_, amount=amount, 
+        currency=currency, description=description, 
+        category=category)
+    return record
 
 
-# ------------------------------------------------------
-# This function aims to support the following:
-# [fields] = ask-for-list-of-columns
-# for field in fields
-#    validate field
-# opens a tmp file with contents:
-# ----------------------------
-# field1 : value1
-# field2 : value2
-# ...
-# not-fixed1, not-fixed2, ...
-# value1, value2, ...
-# value1, value2, ...
-# ...
-# ----------------------------
-# then parses a list of records and writes them all
-# ------------------------------------------------------
-def write_list(
-        fixed_fields : dict[str, str | int] | None = None,
-        return_dataframe : bool = False
-) -> None:
+def write_record(rec : Optional[Record] = None) -> None:
     """
-    Create multiple Records and write to db.
+    Simple record writer wrapper. Relies on `build_record` to 
+    retrieve fields.
 
-    This function generates a temporary CSV template file containing both fixed
-    and non-fixed fields. The user fills in the missing values using a text
-    editor. After editing, the CSV is parsed into a DataFrame, converted to
-    records, and inserted into the database in bulk.
+    Arguments
+    ---------
+    rec
+        Record that will be written to db. If None is passed, then 
+        `build_record` is passed.
+    """
+    ensure_or_none(rec, Record)
+    if rec is None:
+        rec = build_record()
+    rec.write(ctx.engine)
+
+
+def build_df(
+        fixed_fields : Optional[dict[str, str | int |float | date]] = None
+) -> pd.DataFrame:
+    """
+    Create multiple Records in dataframe form.
+    Omitted `fixed_fields` are prompted interactively.
 
     Parameters
     ----------
-    fixed_fields : dict[str, str | int] | None, optional
+    fixed_fields
         A dictionary mapping column names to fixed values 
         (e.g., {"category": "Food"}).
-        These fields will be pre-populated and applied to all records. If not
-        provided, the user is prompted interactively to supply them.
 
     Notes
     -----
-    - The CSV template is expected at `templates/csv_metadata.j2`.
     - Temporary files are cleaned up after execution.
-    - Commit confirmation is explicit: only "y" or "yes" will commit.
-    - All other responses default to *not committing*.
     """
 
-    fixed_fields = prompt.prompt_column_value(ctx.keybinds, fixed_fields)
+    # --- type checking ---
+    ensure_or_none(fixed_fields, dict)
+    fixed_fields = prompt_column_value(ctx.keybinds, fixed_fields)
 
-    template_str = (
-        Path(__file__).parent.parent 
-        / "templates"
-        / "csv_metadata.j2"
-    ).resolve().read_text()
+    # --- construct template path and content retrieval ---
+    template_fname  = "csv_metadata.j2"
+    template_dir    = "templates"
+    template        = Path(__file__).parent.parent / template_dir / template_fname
+    content         = template.read_text()
     
-    complement = set(fixed_fields.keys()).union(["id"])
-    cols_to_write = sorted(set(TABLE_COLUMNS) - complement)
-    as_csv = ", ".join(cols_to_write)
-    text_template = Template(template_str).render( 
-        cols=as_csv
-    )
+    # --- construction of unfixed columns to be populated on template ---
+    excluded        = set(fixed_fields) | {"id"}
+    dynamic_cols    = ', '.join(sorted(set(RECORD_TABLE_COLUMNS) - excluded))
+    text_template   = Template(content).render(cols=dynamic_cols)
 
-    today_str = datetime.date.today().strftime("%Y-%m-%d")
-    editor = ctx.editor
-    temp_file = Path(gettempdir()) / f"csv_{today_str}.csv"
-
+    # --- set file template ---
+    today_str = TODAY.strftime("%Y-%m-%d")
+    temp_file =  APPLICATION_DIRECTORY / f"csv_{today_str}.csv"
     with open(temp_file, 'w') as file:
         file.write(text_template)
-    print(f"Launching {temp_file}.")
-    subprocess.call([editor, temp_file])
-
-    df = parse_csv_record(temp_file)
     
+    # --- call editor ---
+    print(f"Launching {temp_file}.")
+    subprocess.call([ctx.editor, temp_file])
+
+    # -------------------------- dataframe management --------------------------
+    df = parse_csv_record(temp_file)
     for column, value in fixed_fields.items():
         df[column] = value
     df.date = pd.to_datetime(df.date)
     
-    if return_dataframe:
-        return df
-    else:
-        write_from_dataframe(df)
+    # --- if parse was successful, remove file and return ---
     temp_file.unlink(missing_ok=True)
+    return df
 
 
-def write_conversion(
-        date : datetime.date | None = None,
-        base_operation_str : str | None = None,
-        target_operation_str : str | None = None,
-        description : str | None = None
+def write_df(df : pd.DataFrame) -> None:
+    """
+    Writes **record** dataframe to database. Performs type-checking, column type
+    checking, and if df contains index, then it updates each record accordingly.
+    Otherwise, df is appeneded to database.
+    
+    Arguments
+    ---------
+    df
+        DataFrame to be passed to database. 
+    """
+
+    # --- sanitize dataframe before writing to it ---
+    table_name = "cuentas"
+    category_list = list(ctx.categories_dict.keys())
+    df = sanitize_df(df, category_list)
+
+    # --- check if id is in columns or if it's the index name ---
+    is_index_id = (df.index.name == 'id')
+    if not ('id' in df.columns) and not is_index_id:
+        # --- if that is not the case, just append to db ---
+        df.to_sql(
+            name=table_name, con=ctx.engine, 
+            if_exists='append', index=False
+        )
+        pprint_df(df=df, header="Changes have been commited.")
+        return
+
+    # --- if there is index, reset it so orient=records preserves it ---
+    if is_index_id:
+        df = df.reset_index()
+    to_dict = df.to_dict(orient='records')
+
+    def _action():
+        nonlocal to_dict
+        with Session(ctx.engine) as session:
+            session.bulk_update_mappings(Record, to_dict)
+            session.commit()
+
+    confirm_action(_action)
+
+
+def build_conversion(
+        date_ : Optional[date] = None,
+        base_operation_str : Optional[str] = None,
+        target_operation_str : Optional[str] = None,
+        description : Optional[str] = None
 ) -> None:
     """
-    Prompt the user for a currency conversion and save it to the database.
+    Prompts the user for a currency conversion and returns it.
 
-    Interactively collects base and target currency amounts (and optionally a
-    description) from the user, creates a Conversion record, and commits it
-    to the database using the current SQLAlchemy session.
-
-    Args:
-        date (datetime.date | None): The date of the conversion. If None, the user is prompted.
-        base_operation_str (str | None): Optional preset string for the base operation.
-        target_operation_str (str | None): Optional preset string for the target operation.
-        description (str | None): Description of the conversion. If None, the user is prompted.
-
-    Returns:
-        None
+    Arugments:
+    ---------
+        date
+            The date of the conversion. If None, the user is prompted.
+        base_operation_str
+            base operation (what you start with), if None -> prompted.
+        target_operation_str
+            target operation (what you get), if None -> prompted.
+        description
+            brief description of the conversion. If None, the user is prompted.
     """
-    date = prompt.prompt_date_operation(date)
-    print("Prompting base.\n")
-    base_amount, base_currency = prompt.prompt_double_currency(base_operation_str, explain=False)
-    
-    print("Prompting target.\n")
-    target_amount, target_currency = prompt.prompt_double_currency(target_operation_str, explain=False)
-    
+
+    # --- type checking and prompters ---
+    ensure_or_none(date_, date)
+    date_ = prompt_date_operation(date_)
+    ensure_or_none(base_operation_str, str)
+    print("Base operation: what you start with.")
+    base_amount, base_currency = prompt_double_currency(base_operation_str)
+    print("Target operation: what you get.")
+    ensure_or_none(target_operation_str, str)
+    target_amount, target_currency = prompt_double_currency(target_operation_str)
+    ensure_or_none(description, str)
     if not description:
         description = input("Type your description: ")
     
-    with Session(ctx.engine) as session:
-        conv = Conversion(
-            date=date, base_currency=base_currency,
-            base_amount=base_amount,target_currency=target_currency,
-            target_amount=target_amount,description=description
-        )
-        session.add(conv)
-        session.commit()
-        print("Conversion written to database: ")
-        conv.pprint()
+    # --- build and return ---
+    conv = Conversion(
+        date=date_, base_currency=base_currency,
+        base_amount=base_amount,target_currency=target_currency,
+        target_amount=target_amount,description=description
+    )
+    return conv
 
 
-# ------------------------------------------------------
-# This function aims to provide the following interface
-# edit(id | record, [categories_list])
-# record = get_by_id(id)
-# for cat in categories_list
-#     record.cat = input("whatever bro", until_validated=True)
-# print(record)
-# sure = you sure bro?
-# if sure: commit
-# else: print(rolled_back)
-# calls structure:
-#    edit()
-#    edit(id)
-#    edit(id, 'd a c')
-# ------------------------------------------------------
+def write_conversion(conv : Optional[Conversion] = None) -> None:
+    """
+    Write conversion wrapper. Relies on `build_conversion` to write.
+    
+    Arguments
+    --------
+    conv
+        Conversion to write to Database. If None is passed then 
+        `build_conversion` is called to the rescue.
+    """
+
+    ensure_or_none(conv, Conversion)
+    if conv is None:
+        conv = build_conversion()
+    conv.write(ctx.engine)
+
 
 def edit(
-        id : int | None = None,
-        record : Record | None = None,
-        fields : str | None = None
+        entity_type : Record | Conversion = Record,
+        id_ : Optional[int] = None,
+        entity : Optional[Record | Conversion] = None,
+        fields : Optional[str] = None
 ) -> None:
     """
-    Edit a Record interactively.
-
-    This function loads a record (either from its ID or directly via a
-    `Record` object), prompts the user to modify selected fields, and then
-    commits or rolls back the changes based on confirmation.
+    Edit a Record or Conversion interactively.
+    By default, Record is going to be edited.
+    Looks for a record by ID or directly passed, asks for fields to edit and
+    commits or rolls back.
 
     Parameters
     ----------
-    id : int | None, optional
-        The ID of the record to edit. Ignored if `record` is provided.
-    record : Record | None, optional
-        An existing record object to edit directly. If not provided,
-        the record is retrieved by ID via user prompt.
-    fields : str | None, optional
-        A space-separated list of fields to edit. If not provided, the
-        user is prompted to choose fields.
-
-    Notes
-    -----
-    - Field values are collected interactively using functions from the
-    `prompt` module.
-    - The modified record is displayed for confirmation before committing.
-    - Only "y" or "yes" confirms the commit. Any other response cancels it.
+    entity
+        Defaults to `Record`, it checks whether the entity to be edited is `Record` or 
+        `Conversion`.
+    `id_`
+        The ID of the record to edit. Ignored if `entity` is provided.
+    entity
+        An existing `Record` | `Conversion` object to edit directly. Passed if 
+        not provided, fetched via `prompt_entity_by_id`.
+    fields
+        A space-separated list of fields to edit (`prompt_column_value`).
     """
 
-    if not record:
-        record = prompt.prompt_record_by_id(ctx.engine, id)
-    
-    edit_dictionary = prompt.prompt_column_value(
-        ctx.keybinds, 
-        fields_str=fields
-    )
-    
-    for column, new_attribute in edit_dictionary.items():
-        setattr(record, column, new_attribute)
-    
-    record.pprint() 
+    # --- ensure that entity is correctly retrieved ---
+    if type(entity) is not Record and type(entity) is not Conversion:
+        ensure_or_none(id_, int)
+        entity = prompt_entity_by_id(ctx.engine, entity_type, id_)
 
-    with Session(ctx.engine) as session:
-        session.add(record)
-        session.commit()
-    print("Record commited.")
+    # --- build editable dictionary and replace in entity ---
+    editables = prompt_column_value(ctx.keybinds, fields_str=fields)    
+    for column, new_val in editables.items():
+        setattr(entity, column, new_val)
+
+    # --- write and print ---
+    entity.pprint() 
+    entity.write(ctx.engine)
 
 
-# ------------------------------------------------
-# This function aims to cover the following cases:
-# delete()
-# - prompts for id -
-# pprints record
-# you sure? y/N
-# commit / rollback
-# delete(id)
-# ------------------------------------------------
 def delete(
-        id : int | None = None, 
-        record : Record | None = None
+        entity_type : Record | Conversion = Record,
+        id_ : Optional[int] = None,
+        entity : Optional[Record | Conversion] = None,
 ) -> None:
     """
-    Delete a Record interactively.
-
-    This function removes a Record from db, either by ID or by
-    passing an existing `Record` object. The user is prompted for confirmation
-    before the deletion is committed.
-
-    Parameters
-    ----------
-    id : int | None, optional
-        The ID of the record to delete. Ignored if `record` is provided.
-    record : Record | None, optional
-        An existing record object to delete directly. If not provided,
-        the record is retrieved by ID via user prompt.
+    Delete a Record or Conversion interactively.
+    By default, Record is going to be deleted. 
+    
+    Arguments
+    ---------
+    entity
+        Defaults to `Record`, it checks whether the entity to be edited is `Record` or 
+        `Conversion`.
+    `id_`
+        The ID of the record to edit. Ignored if `entity` is provided.
+    entity
+        An existing `Record` | `Conversion` object to delete directly. Passed if 
+        not provided, fetched via `prompt_entity_by_id`.
 
     Notes
     -----
     - A warning message is shown before deletion to highlight that the
     operation is irreversible.
-    - The record is committed only if the user explicitly confirms with
-    "y" or "yes".
-    - If the user responds with "n", "no", or presses Enter, the deletion
-    is rolled back.
-    - Any unrecognized input repeats the confirmation prompt.
     """
 
-    print("\nWarning. You can lose data permanently.\n")
-    record = prompt.prompt_record_by_id(ctx.engine, id)
+    # --- ensure that entity is correctly retrieved ---
+    if type(entity) is not Record and type(entity) is not Conversion:
+        ensure_or_none(id_, int)
+        entity = prompt_entity_by_id(ctx.engine, entity_type, id_)
+    else:
+        # TODO: ensure that entity effectively exists in database.
+        pass
 
-    while True:
-        confirm : str = input("Confirm your commit [y/N]: ")
-
-        if confirm.lower() in ('y', 'yes'):
-            with Session(ctx.engine) as session:
-                session.delete(record)
-                session.commit()
-            print("Record commited.")
-            return 
-        
-        elif not confirm or confirm.lower() in ('n', 'no'):
-            print("Change uncomitted.")
-            return 
-        
-        else:
-            print("Could not parse your query, please try again.")
+    action = lambda : entity.delete(ctx.engine)
+    confirm_action(action)
 
 
-
-# ---------------------------------------------------
-# This function aims to provide the following syntax:
-# >>> read(10)
-# Type column to filter (none for empty): col_i
-# cols = col.split(',')
-# for col in cols:
-#     Type the {col} filter: 2025-08%
-# >>> print(filtered results)
-# 
-# Another case:
-# >>> read(10, 'amount between 10, 25')
-# >>> read(10, 'date between date_1, date_2')
-# >>> read(10, 'category comida-salida')
-# >>> read(10, 'currency eur')
-# >>> read(10, 'description like "wildcard"')
-# >>> read(10, 'id = 123')
-# ---------------------------------------------------
-
-def read(
-        n_lines : int | None = 20,
-        semantic_filter : str | None = None,
-        filter_today : bool = True,
-        verbose : bool = True
-) -> pd.DataFrame | None:
+def fetch(
+        semantic_filter : Optional[str] = None,
+        max_lines : int = 20,
+) -> pd.DataFrame:
     """
-    Query and optionally display records from the database.
-
-    Retrieves records from the database, applies an optional semantic filter,
-    and prints the result as a Markdown table. By default, results are limited
-    to entries dated on or before today.
+    Fetches records from database.
+    Relies on `parse_semantic_filter` to approve parsing.
 
     Parameters
     ----------
-    n_lines : int | None, optional
-        Maximum number of records to return.
-    semantic_filter : str | None, optional
+    max_lines
+        Maximum number of records to return. Defaults to 20.
+    semantic_filter
         A textual filter expression. Supported patterns:
-        
-        - **str columns**: exact match, `LIKE` wildcard, or regex  
-        - **int columns**: exact match or numeric range  
-        - **float columns**: numeric range only
-    filter_today : bool, default=True
-        If True, restricts results to records dated up to today.
-    print_flag : bool, default=True
-        If True, prints the resulting table in Markdown format.
+        - str columns: exact match, `LIKE` wildcard, or regex
+        - int columns: exact match or numeric range
+        - float columns: numeric range only
 
     Notes
     -----
-    - Filter expressions are parsed by `parse_semantic_filter`.
     - When `semantic_filter` is omitted, the user may be prompted interactively.
-    - Results are ordered by `Record.id` and limited by `n_lines`.
-    - To use SQL, use "sql: SELECT ..." (only SELECT statements are supported).
+    - Results are ordered by `Record.id` (desc) and limited by `max_lines`.
+    - To use SQL, use `sql: SELECT ...` (only SELECT statements are supported).
     """
+    
+    # --- type checking ---
+    ensure(max_lines, int)
+    ensure_or_none(semantic_filter, str)
 
-    today = datetime.date.today()
+    # --- ask for semantic filter and parse it ---
     if semantic_filter is None:
         semantic_filter = input("Type your semantic filter: ")
-
+    
+    # --- query constructor ---
     stmt = parse_semantic_filter(semantic_filter)
+    stmt = stmt.limit(max_lines).order_by(desc(Record.id))
 
-	# check this, not insinstance seems to be evaluating to true
-    if not isinstance(stmt, TextClause):
-        if filter_today:
-            stmt = stmt.where(Record.date <= today)
-        if n_lines:
-            stmt = stmt.limit(n_lines)
-        stmt = stmt.order_by(desc(Record.id))
-    
-    df = pd.read_sql(stmt, ctx.engine, index_col='id')
-
-    if verbose:
-        pprint_df(df)
-    else:
+    try:
+        df = pd.read_sql(stmt, ctx.engine, index_col='id')
         return df
+    # https://pandas.pydata.org/docs/reference/api/pandas.errors.DatabaseError.html
+    except pd.errors.DatabaseError:
+        raise ValueError(f"Database error found. More likely wrong query: {stmt=}.")
 
 
-def read_conversion(
-    print_flag : bool = True
-) -> pd.DataFrame | None:
-    
-    stmt = select(Conversion)
-    df = pd.read_sql(stmt, ctx.engine, index_col='id')
-
-    if print_flag:
-        pprint_df(df)
-    else:
-        return df
-
-
-# ---------------------------------------------------
-# This function aims to provide the following syntax:
-# edit_list([int1, int2]):
-# opens csv with records ranging from int1 to \
-# int2 *inclusive*
-# problem: how does user know what id to chose? 
-# he can use r()
-# this reduces the amount of records to be able to 
-# edit but provides secure parsing
-# ---------------------------------------------------
-def edit_list(
-        *ids : int,
-        as_range : bool = True
+def _read_conversion(
+        max_lines : int = 20,
 ) -> None:
-    """
-    Edit multiple Records interactively via a 'CSV' file.
+    """Simple conversion reader."""
+    ensure(max_lines, int)
+    stmt = select(Conversion).limit(max_lines)
+    df = pd.read_sql(stmt, ctx.engine, index_col='id')
+    pprint_df(df)
 
-    This function allows the user to edit one or more records by ID, or a
-    contiguous range of IDs, by exporting them to a temporary CSV file,
-    opening it in a text editor, and then re-importing the changes.
+
+def read(
+        entity_type : Conversion | Record = Record,
+        semantic_filter : Optional[str] = None,
+        max_lines : int = 20,
+):
+    """
+    Reads records from database.
+    Relies on `fetch` to fetch records, and select true() on Conversions.
 
     Parameters
     ----------
-    *ids : int
-        One or more record IDs to edit. If `as_range` is True and exactly
-        two IDs are provided, they are treated as a 'between' query.
-    as_range : bool, default=False
-        Whether to treat two IDs as the start and end of a range of records
-        to edit. Ignored if more or fewer than two IDs are provided.
+    entity_type
+        Which table to fetch objects from. Defaults to `Record`.
+    max_lines
+        Maximum number of records to return. Defaults to 20.
+    semantic_filter
+        A textual filter expression. Supported patterns:
+        - str columns: exact match, `LIKE` wildcard, or regex
+        - int columns: exact match or numeric range
+        - float columns: numeric range only
 
     Notes
     -----
-    - The CSV file includes a header listing all columns; the `id` column
-    should not be modified.
-    - Users can delete lines from the CSV to skip editing certain records.
-    - After editing, the CSV is parsed and changes are applied to the database.
-    - Amount fields can include arithmetic expressions (e.g., "+10", "*2")
-    which will be parsed automatically.
-    - A temporary CSV file is created and opened with the default editor
-    (`notepad++.exe` by default) and removed after processing.
-    - Use this function in combination with `r()` or other listing functions
-    to identify record IDs before editing.
+    - When `semantic_filter` is omitted, the user may be prompted interactively.
+    - Results are ordered by `Record.id` (desc) and limited by `max_lines`.
+    - To use SQL, use `sql: SELECT ...` (only SELECT statements are supported).
     """
-
-    # unclear if user wants to edit as_range 
-    if len(ids) == 2 and as_range:
-        stmt = select(Record).where(Record.id.between(ids[0], ids[1]))
+    if entity_type == Record:
+        pprint_df(fetch(semantic_filter, max_lines))
+    elif entity_type == Conversion:
+        _read_conversion(max_lines)
     else:
-        stmt = select(Record).where(Record.id.in_(list(ids)))
+        raise TypeError(f"Invalid {entity_type=}. Must be Conversion or Record.")
 
-    # file control
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    editor = ctx.editor
-    temp_file = Path(gettempdir()) / f"csv_{today}.csv"
-    header = (
-        f"# -----------------------------------------------------------------\n"
-        f"# Do not modify id! \n"
-        f"# However, for performance, you can delete the line you won't edit.\n"
-        f"# -----------------------------------------------------------------\n"
-        f"{", ".join(TABLE_COLUMNS)}\n"
-    )
-    n_skip_rows_ = len(header.split('\n')) - 1
 
-    with open(temp_file, 'w') as file:
-        file.write(header)
 
-    # write records to csv for editing.
-    (
-        pd
-        .read_sql(sql=stmt, con=ctx.engine, index_col='id')
-        .to_csv(temp_file, mode='a', header=False)
-    )
-    subprocess.call([editor, temp_file])
     
-    # retrieve from file
-    try:
-        df = pd.read_csv(
-            temp_file, 
-            skiprows=n_skip_rows_, 
-            names=TABLE_COLUMNS,
-            encoding='utf-8')
-    except:
-        print(
-            f"Could not parse the csv."
-            f"Please try to copy its content and re-write again."
-        )
-        return
-
-    df = df.astype({
-        "id" : "int",
-        "date" : "datetime64[ns]",
-        "amount" : "str",
-        "currency" : "str",
-        "description" : "str",
-        "category" : "str"
-    })
-    
-    df["date"] = df["date"].dt.date
-    
-    def cleaner(string : str) -> float | int:
-        op = "=" + string if "=" not in string else string 
-        return parse_arithmetic_operation(op, quiet=True)
-
-    df.amount = df.amount.map(cleaner)
-
-    # replace data
-    with Session(ctx.engine) as session:
-        session.bulk_update_mappings(
-            Record,
-            df.to_dict(orient='records')
-        )
-        print(
-            f"Current records being updated to database:\n"
-            f"{df.to_markdown()}"
-        )   
-        confirm_commit(connection=session)
-
-    # removing file after execution
-    temp_file.unlink(missing_ok=True)
-
-
-def get_full_currencies_list() -> List[str]:
-    query_currencies = select(Record.currency.distinct())    
-    with Session(ctx.engine) as session:
-        return list(session.scalars(query_currencies))
-
-
-def write_from_dataframe(df : pd.DataFrame) -> None:
-    table_name = "cuentas"
-    category_list = list(ctx.categories_dict.keys())
-    df = sanitize_df(df, category_list)
-
-    if not 'id' in df.columns and df.index.name != 'id':
-        pprint_df(df=df, header="Changes will be commited.")
-        df.to_sql(
-            name=table_name,
-            con=ctx.engine,
-            if_exists='append',
-            index=False
-        )
-        return
-
-    if df.index.name == 'id':
-        df = df.reset_index()
-
-    md = MetaData()
-    table_insert = Table(table_name, md, autoload_with=ctx.engine)
-
-    with ctx.engine.connect() as con:
-        stmt = insert_sqlite(table_insert)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=['id'],
-            set_={
-                c : stmt.excluded[c] 
-                for c in df.columns.to_list() if c != "id"
-            }
-        )
-        con.execute(stmt, df.to_dict(orient="records"))
-        pprint_df(df=df)
-        confirm_commit(connection=con)

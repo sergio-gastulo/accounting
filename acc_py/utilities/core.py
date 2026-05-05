@@ -4,7 +4,7 @@ Should not import **ANY** hand-written acccli-related code.
 It contains a variety of functions that are used in context.py, parser.py and prompt.py
 """
 import inspect
-from typing import List, Tuple, Any, Type, TypeVar
+from typing import List, Tuple, Any, Type, Callable
 from pathlib import Path
 import json
 import socket
@@ -30,6 +30,8 @@ KeybindDictType = dict[str, str | dict[str, str]]
 #endregion =====================================================================
 
 
+#region ======================= global-variables ===============================
+
 # --- directories to save files to ---
 DATA_DIR_NAME = ".data-acccli"
 APPLICATION_DIRECTORY = Path().home() / DATA_DIR_NAME
@@ -39,6 +41,22 @@ APPLICATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 CACHE = "cached"
 APPLICATION_CACHED_DIRECTORY = APPLICATION_DIRECTORY / CACHE
 APPLICATION_CACHED_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
+# --- color dictionary to print nicely ---
+# --- https://gist.github.com/minism/1590432 ---
+class fg:
+    black   = '\033[30m'
+    red     = '\033[31m'
+    green   = '\033[32m'
+    yellow  = '\033[33m'
+    blue    = '\033[34m'
+    magenta = '\033[35m'
+    cyan    = '\033[36m'
+    white   = '\033[37m'
+    reset   = '\033[39m'
+
+#endregion =====================================================================
+
 
 
 #region ======================= json operations ================================
@@ -62,7 +80,15 @@ def _jdump(d : dict, path : Path) -> None:
     with open(path, 'w') as file:
         json.dump(d, file, indent=4)
 
+
 #endregion =====================================================================
+
+
+#region ======================== general-utils  ================================
+
+def soft_warning(s : str) -> None:
+    """Print soft warning."""
+    print(f"{fg.red}{s}{fg.end}")
 
 
 def ensure(
@@ -84,6 +110,27 @@ def ensure(
         f"Argument '{value}' has type '{vartype}'. "
         f"Type must be in [{allowed_types}]."
     )
+
+
+def confirm_action(
+        action : Callable,
+        max_attempts : int = 3
+) -> None:
+    for i in range(max_attempts):
+        confirm = input("Confirm your commit [y/N]: ")
+        if confirm.lower() in ('y', 'yes'):
+            action()
+            print("Actions commited.")
+            return
+        elif not confirm or confirm.lower() in ('n', 'no'):
+            print("Action cancelled.")
+            return         
+        else:
+            print(f"Attempt {i}: str '{confirm}' could not be understood.")
+    raise RuntimeError(f"Max attempts reached: {max_attempts}. Action cancelled.")
+
+
+#endregion =====================================================================
 
 
 def _raw_keys_check(
@@ -127,16 +174,16 @@ def import_fields(
 # TODO: test this
 def print_func_doc(func: callable) -> None:
     """Nice documentation printer."""
-    cyan_str = '\033[96m'
-    end_str = '\033[0m'
+    cyan_str = fg.cyan
+    reset_str = fg.reset
 
-    print(f'{cyan_str}Function name:{end_str}\n{func.__name__}\n')
+    print(f'{cyan_str}Function name:{reset_str}\n{func.__name__}\n')
 
     sig = inspect.signature(func)
-    print(f'{cyan_str}Arguments:{end_str} {sig}\n')
+    print(f'{cyan_str}Arguments:{reset_str} {sig}\n')
 
     doc = func.__doc__
-    print(f'{cyan_str}Documentation:{end_str}\n{doc}')
+    print(f'{cyan_str}Documentation:{reset_str}\n{doc}')
 
 
 def pprint_df(
@@ -219,6 +266,7 @@ def pprint_categories(
     _jprint(help_dict)
 
 
+# TODO: is this really being used somewhere?
 def get_all_categories(
         fields_dict : FieldDictType
 ) -> List[str] : 

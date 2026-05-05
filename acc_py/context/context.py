@@ -1,3 +1,7 @@
+"""
+Main data manager for acccli. Relies heavily on utilities.core.
+"""
+
 from dataclasses import dataclass
 from sqlalchemy.engine.base import Engine
 from sqlalchemy import create_engine
@@ -184,7 +188,7 @@ class AccountingContext:
         """Sets plot configurations for styling."""
 
         # --- ensure that 'set' is ran before this --- 
-        if not self.config_path:
+        if not self.config_path and not self.fields_path:
             raise FileNotFoundError("Run 'set' before setting 'plot' constructor.")
 
         # --- proceed to load remaining attrs --- 

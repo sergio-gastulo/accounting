@@ -5,16 +5,14 @@ from numpy import atleast_1d
 from typing import List
 from typing import Literal
 
-from db.model import Record
 from sqlalchemy import select, not_, case
 from sqlalchemy.sql import functions, func
 from sqlalchemy.orm import Session
 
+from db.model import Record
 from utilities.core import pprint_df
 from utilities.parser import parse_period
 from utilities.prompt import prompt_category_from_keybinds
-
-# fine to have ctx tbh, loads lots of configs
 from context.context import ctx
 
 
@@ -309,10 +307,10 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
     for currency in ctx.currency_list:
         color = ctx.colors[currency]
         df_currency = df.loc[
-            df.currency == currency, 
+            df.currency == currency.upper(), 
             ['period', 'total_amount']
         ].set_index('period')
-        core(df_currency, currency, ax=ax, fig=fig, color=color)
+        core(df_currency, currency.upper(), ax=ax, fig=fig, color=color)
     
     fig.suptitle("Spendings as a Time Series per Currency")
     plt.show()
@@ -321,17 +319,14 @@ def expenses_time_series(period: str | pd.Period | None = None) -> None:
 # alias: p3
 def category_time_series(
         category: str | None = None,
-        freq : Literal["w", "weekly", "m", "monthly"] = "w",
-        log : bool = False
-        ) -> None:
+        freq : Literal["w", "weekly", "m", "monthly"] = "m",
+) -> None:
     """
     Plot a time series for the given category.
     Useful for categories that should stay around an average (e.g. INGRESOS).
     """
-
-    # ensuring a valid category
-    if category is None or (category := category.upper()) not in ctx.categories_dict:
-        category = prompt_category_from_keybinds(ctx.keybinds, category)
+    # --- ensure category by default ---
+    category = prompt_category_from_keybinds(ctx.keybinds, category)
 
     if freq.lower() in ["w", "weekly"]:
         period_column = func.strftime('%Y %W', Record.date).label('period')
@@ -392,11 +387,9 @@ def category_time_series(
         ax.plot(
             df_currency.index,
             df_currency.values,
-            color=ctx.colors[currency], marker='o', label=currency
+            color=ctx.colors[currency.lower()], marker='o', label=currency
         )
 
-    if log:
-        ax.set_yscale('log')
     ax.set_title(f"{category} Time Series Plot")
     ax.set_xlabel("Spendings")
     ax.set_ylabel("Dates")
@@ -446,7 +439,7 @@ def savings_plot():
     fig, ax = plt.subplots()
     for currency in ctx.currency_list:
         color = ctx.colors[currency]
-        core(df[currency],label=currency, color=color, ax=ax, fig=fig)
+        core(df[currency.upper()],label=currency, color=color, ax=ax, fig=fig)
 
     # combining savings into a single column for plotting purposes    
     combined = df.apply(
@@ -461,7 +454,7 @@ def savings_plot():
     color = [255 / 255, 99 / 255, 71 / 255]         # redish orange
     core(
         df_currency=combined, 
-        label=f"comb-{ctx.default_currency}",
+        label=f"comb-{ctx.default_currency.upper()}",
         color=color, 
         ax=ax, fig=fig
     )

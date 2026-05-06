@@ -115,7 +115,7 @@ class AccountingContext:
     darkmode : bool                                     = None
     bar_color : Optional[RGBType | str]                 = None
     period: Optional[Period]                            = None
-    currency_list : Optional[List]                      = None
+    currency_list : Optional[List[str]]                 = None
     colors: Optional[CurrencyColorDictionary]           = None
     exchange_dictionary : Optional[ExchangeDictType]    = None
 

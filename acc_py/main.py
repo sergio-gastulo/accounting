@@ -97,7 +97,6 @@ def load_db_api_module(*args) -> None:
 
 def load_plot_module(*args) -> None:
     import plot.plot as pp
-    pp.darkmode()
     exposed = {
         "p1"    : pp.categories_per_period,
         "p2"    : pp.expenses_time_series,
@@ -105,6 +104,7 @@ def load_plot_module(*args) -> None:
         "sp"    : pp.savings_plot,
         "h_p"   : lambda f=None : custom_help(arg='plot', func=f),
         "load"  : lambda : load_db_api_module(*args),
+        "dark"  : pp.darkmode
     }
     # --- actions
     try:

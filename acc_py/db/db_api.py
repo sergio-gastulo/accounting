@@ -32,6 +32,7 @@ from utilities.parser import (
     sanitize_df,
 )
 from utilities.prompt import (
+    FixedColumnsType,
     prompt_date_operation,
     prompt_double_currency,
     prompt_category_from_keybinds,
@@ -135,7 +136,7 @@ def write_record(rec : Optional[Record] = None) -> None:
     ---------
     rec
         Record that will be written to db. If None is passed, then 
-        `build_record` is passed.
+        `build_record` is called to build one and automatically write to db.
     """
     ensure_or_none(rec, Record)
     if rec is None:
@@ -144,7 +145,7 @@ def write_record(rec : Optional[Record] = None) -> None:
 
 
 def build_df(
-        fixed_fields : Optional[dict[str, str | int |float | date]] = None
+        fixed_fields : Optional[FixedColumnsType] = None
 ) -> pd.DataFrame:
     """
     Create multiple Records in dataframe form.
@@ -159,6 +160,7 @@ def build_df(
     Notes
     -----
     - Temporary files are cleaned up after execution.
+    - No support for Conversion yet.
     """
 
     # --- type checking ---
@@ -210,7 +212,7 @@ def write_df(df : pd.DataFrame) -> None:
     """
 
     # --- sanitize dataframe before writing to it ---
-    table_name = "cuentas"
+    table_name = Record.__tablename__
     category_list = list(ctx.categories_dict.keys())
     df = sanitize_df(df, category_list)
 
@@ -236,6 +238,8 @@ def write_df(df : pd.DataFrame) -> None:
             session.bulk_update_mappings(Record, to_dict)
             session.commit()
 
+    # --- print dataframe and confirm user validation ---        
+    pprint_df(df)
     confirm_action(_action)
 
 
@@ -264,11 +268,11 @@ def build_conversion(
     ensure_or_none(date_, date)
     date_ = prompt_date_operation(date_)
     ensure_or_none(base_operation_str, str)
-    print("Base operation: what you start with.")
-    base_amount, base_currency = prompt_double_currency(base_operation_str)
-    print("Target operation: what you get.")
+    print("Base operation: what you start with / got converted.")
+    base_amount, base_currency = prompt_double_currency(ctx.default_currency, base_operation_str)
+    print("Target operation: what you get / have now.")
     ensure_or_none(target_operation_str, str)
-    target_amount, target_currency = prompt_double_currency(target_operation_str)
+    target_amount, target_currency = prompt_double_currency(ctx.default_currency, target_operation_str)
     ensure_or_none(description, str)
     if not description:
         description = input("Type your description: ")
@@ -296,12 +300,13 @@ def write_conversion(conv : Optional[Conversion] = None) -> None:
     ensure_or_none(conv, Conversion)
     if conv is None:
         conv = build_conversion()
-    conv.write(ctx.engine)
+    label = "The following Conversion entity has been added to database: "
+    conv.write(ctx.engine, label)
 
 
 def edit(
-        entity_type : Record | Conversion = Record,
         id_ : Optional[int] = None,
+        entity_type : Record | Conversion = Record,
         entity : Optional[Record | Conversion] = None,
         fields : Optional[str] = None
 ) -> None:
@@ -326,17 +331,16 @@ def edit(
     """
 
     # --- ensure that entity is correctly retrieved ---
-    if type(entity) is not Record and type(entity) is not Conversion:
+    if not isinstance(entity, Conversion | Record):
         ensure_or_none(id_, int)
         entity = prompt_entity_by_id(ctx.engine, entity_type, id_)
 
     # --- build editable dictionary and replace in entity ---
     editables = prompt_column_value(ctx.keybinds, fields_str=fields)    
-    for column, new_val in editables.items():
-        setattr(entity, column, new_val)
+    for attr, new_val in editables.items():
+        setattr(entity, attr, new_val)
 
-    # --- write and print ---
-    entity.pprint() 
+    # --- write ---
     entity.write(ctx.engine)
 
 
@@ -367,11 +371,11 @@ def delete(
     """
 
     # --- ensure that entity is correctly retrieved ---
-    if type(entity) is not Record and type(entity) is not Conversion:
+    if not isinstance(entity, Record | Conversion):
         ensure_or_none(id_, int)
         entity = prompt_entity_by_id(ctx.engine, entity_type, id_)
     else:
-        # TODO: ensure that entity effectively exists in database.
+        # TODO: ensure that entity effectively exists in database
         pass
 
     action = lambda : entity.delete(ctx.engine)
@@ -411,7 +415,7 @@ def fetch(
     if semantic_filter is None:
         semantic_filter = input("Type your semantic filter: ")
     
-    # --- query constructor ---
+    # --- query constructor -- by design, there is no prompter for this ---
     stmt = parse_semantic_filter(semantic_filter)
     stmt = stmt.limit(max_lines).order_by(desc(Record.id))
 
@@ -426,9 +430,9 @@ def fetch(
 def _read_conversion(
         max_lines : int = 20,
 ) -> None:
-    """Simple conversion reader."""
+    """Simple conversion reader. No support for df return yet."""
     ensure(max_lines, int)
-    stmt = select(Conversion).limit(max_lines)
+    stmt = select(Conversion).limit(max_lines).order_by(desc(Conversion.date))
     df = pd.read_sql(stmt, ctx.engine, index_col='id')
     pprint_df(df)
 

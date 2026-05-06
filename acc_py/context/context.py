@@ -52,6 +52,8 @@ def _get_bar_color(color):
 def _engine(url : str | Path | None) -> Engine:
     if url is None:
         return create_engine("sqlite://")
+    if 'sqlite' in url:
+        return create_engine(url)
     return create_engine(f"sqlite:///{url}")
 
 
@@ -66,7 +68,7 @@ def _path_exists(p : str | Path) -> Path:
         p = Path(p)
     if p.exists():
         return p
-    raise ValueError(f"Path {p} does not exist.")
+    raise FileNotFoundError(f"Path {p} does not exist.")
 
 
 # https://stackoverflow.com/a/49782093/29272030
@@ -129,12 +131,12 @@ class AccountingContext:
         name        = "state.json"
         state_path  = APPLICATION_CACHED_DIRECTORY / name
         _path_exists(state_path)
-        cached_dict = _jopen(state_path)
-        data        =   cached_dict["data"]
-
-        # --- compute current sha ---
-        current_config_sha = sha256(data["config_path"])
-        current_fields_sha = sha256(data["fields_path"])
+        
+        # --- compute current sha and fetch data ---
+        cached_dict         =   _jopen(state_path)
+        data                =   cached_dict["data"]
+        current_config_sha  =   sha256(data["config_path"])
+        current_fields_sha  =   sha256(data["fields_path"])
 
         # --- ensure sha256 match ---
         err = []
@@ -146,7 +148,7 @@ class AccountingContext:
             raise SHA256Error(f"Mismatches: {err}.")
         
         # --- load to self and wrap attrs ---
-        self                =   AccountingContext(**data)
+        self.__dict__.update(data)
         self.config_path    =   Path(self.config_path)
         self.fields_path    =   Path(self.fields_path)
         self.editor         =   Path(self.editor)
@@ -165,11 +167,13 @@ class AccountingContext:
             config_path : Path, 
             fields_path : Path
     ) -> None:
-        """Sets minimal configurations to run acccli."""
+        """Sets minimal configurations to run acccli in db mode."""
         # --- try to fetch from cache ---
         try:
             self.load_from_cache()
-        except SHA256Error as e:
+            print("Sucessfully loaded ctx.fields from cache.")
+            return
+        except (SHA256Error, FileNotFoundError) as e:
             print(f"Could not load from cache in '{APPLICATION_CACHED_DIRECTORY}'.")
             print(e)
 
@@ -189,7 +193,13 @@ class AccountingContext:
 
         # --- ensure that 'set' is ran before this --- 
         if not self.config_path and not self.fields_path:
-            raise FileNotFoundError("Run 'set' before setting 'plot' constructor.")
+            raise RuntimeError("Run 'set' before setting 'plot' constructor.")
+
+        # --- if the attrs below exist, more likely ctx's attrs have been fetched
+        # --- via load_from_cache(), skipping this...
+        if self.exchange_dictionary and self.period:
+            print("More likely ctx's attrs have been fetched from load_from_cache. Skipping...")
+            return
 
         # --- proceed to load remaining attrs --- 
         config                      =   _jopen(self.config_path)
@@ -213,7 +223,7 @@ class AccountingContext:
         save_dict = self.__dict__.copy()
 
         # --- manually update unserializable ---
-        save_dict["engine"]         =   self.engine.url
+        save_dict["engine"]         =   str(self.engine.url)
         save_dict["editor"]         =   str(self.editor)
         save_dict["period"]         =   str(self.period)
         save_dict["config_path"]    =   str(self.config_path)

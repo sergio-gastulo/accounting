@@ -114,7 +114,8 @@ def ensure(
 
 def confirm_action(
         action : Callable,
-        max_attempts : int = 3
+        max_attempts : int = 3,
+        label : str = "Confirm your action: [y/N]",
 ) -> None:
     for i in range(max_attempts):
         confirm = input("Confirm your commit [y/N]: ")
@@ -189,7 +190,7 @@ def print_func_doc(func: callable) -> None:
 def pprint_df(
         df : DataFrame,
         header : str | None = None
-) -> None | str:
+) -> None:
     """Pretty df printer."""    
     if "description" in df.columns:
         if is_string_dtype(df.description):

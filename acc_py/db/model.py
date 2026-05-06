@@ -2,14 +2,14 @@ import datetime
 from sqlalchemy import String, Date, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
 from sqlalchemy import Engine
-from typing import Any
+from typing import Any, Optional
 from utilities.core import ensure, soft_warning
 
 
 Base = declarative_base()
 
 
-class Mutuals:
+class Entity:
 
     def pretty(self) -> str:
         """Default class prettier. Returns all attributes with indentation."""
@@ -24,9 +24,10 @@ class Mutuals:
         """Default pretty printer, prints self.pretty()"""
         print(self.pretty())
 
-    def write(self, engine : Engine) -> None:
+    def write(self, engine : Engine, label : Optional[str] = None) -> None:
         """
-        General default writer. Checks engine type. Does not ask for commit.
+        General default writer. Checks engine type. Does not ask for commit. 
+        Pretty prints entity before commit.
         """
         # --- Important: type(ctx.engine) in Engine works
         # --- but isinstance(ctx.engine, Engine) is false
@@ -34,10 +35,12 @@ class Mutuals:
         ensure(engine, Engine)
 
         # --- write ---
+        if label is None:
+            label = "The following record has been added to database:"
         with Session(engine) as session:
             session.add(self)
             session.commit()
-            print("Following record was added to database:")
+            print(label)
             self.pprint()
 
     def delete(self, engine : Engine) -> None:
@@ -52,7 +55,7 @@ class Mutuals:
             session.commit()
 
 
-class Record(Mutuals, Base):
+class Record(Entity, Base):
 
     __tablename__ = "cuentas"
     
@@ -77,7 +80,7 @@ class Record(Mutuals, Base):
         return (self.id == other.id)
 
 
-class Conversion(Mutuals, Base):
+class Conversion(Entity, Base):
 
     __tablename__ = "conversions"
 
@@ -92,12 +95,12 @@ class Conversion(Mutuals, Base):
     def __repr__(self) -> str:
         return (
             f"Conversion("
-            f"id={self.id!r}"
-            f"date={self.date!r},"
-            f"base_currency={self.base_currency!r},"
-            f"base_amount={self.base_amount!r},"
-            f"target_currency={self.target_currency!r},"
-            f"target_amount={self.target_amount!r},"
+            f"id={self.id!r}, "
+            f"date={self.date!r}, "
+            f"base_currency={self.base_currency!r}, "
+            f"base_amount={self.base_amount!r}, "
+            f"target_currency={self.target_currency!r}, "
+            f"target_amount={self.target_amount!r}, "
             f"description={self.description!r})"
         )
     

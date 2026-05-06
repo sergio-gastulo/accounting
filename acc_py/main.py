@@ -6,7 +6,6 @@ from utilities.core import (
     print_func_doc, 
     pprint_categories
 )
-from db.model import Record, Conversion
 from context.context import ctx
 from datetime import datetime
 
@@ -72,19 +71,23 @@ def custom_help(arg : str, func : Callable | None = None) -> None:
 
 def load_db_api_module(*args) -> None:    
     import db.db_api as da
+    from db.model import Record, Conversion
     exposed = {
-        "br"    : da.build_record,
-        "bc"    : da.build_conversion,
-        "bdf"   : da.build_df,
-        "e"     : da.edit,
-        "fetch" : da.fetch,
-        "d"     : da.delete,
-        "r"     : da.read,
-        "wr"    : da.write_record,
-        "wc"    : da.write_conversion,
-        "wdf"   : da.write_df,
-        "h_db"  : lambda f=None : custom_help(arg='db', func=f),
-        "load"  : load_plot_module
+        "br"            :   da.build_record,
+        "bc"            :   da.build_conversion,
+        "bdf"           :   da.build_df,
+        "e"             :   da.edit,
+        "fetch"         :   da.fetch,
+        "d"             :   da.delete,
+        "r"             :   da.read,
+        "wr"            :   da.write_record,
+        "wc"            :   da.write_conversion,
+        "wdf"           :   da.write_df,
+        "h_db"          :   lambda f=None : custom_help(arg='db', func=f),
+        "load"          :   lambda : load_plot_module(*args),
+        # --- expose Record | Conversion for context management ---
+        "Record"        :   Record,
+        "Conversion"    :   Conversion,
     }
 
     # --- actions ---
@@ -96,16 +99,21 @@ def load_plot_module(*args) -> None:
     import plot.plot as pp
     pp.darkmode()
     exposed = {
-        "p1"    : pp.categories_per_period, 
-        "p2"    : pp.expenses_time_series, 
-        "p3"    : pp.category_time_series, 
-        "sp"    : pp.savings_plot, 
+        "p1"    : pp.categories_per_period,
+        "p2"    : pp.expenses_time_series,
+        "p3"    : pp.category_time_series,
+        "sp"    : pp.savings_plot,
         "h_p"   : lambda f=None : custom_help(arg='plot', func=f),
-        "load"  : load_db_api_module,
+        "load"  : lambda : load_db_api_module(*args),
     }
-    # --- actions ---
-    ctx.set(*args)
-    ctx.set_plot(*args)
+    # --- actions
+    try:
+        ctx.set_plot()
+    except RuntimeError:
+        # --- if set_plot raises RuntimeError, more likely ctx.set() hasn't 
+        # --- been called
+        ctx.set(*args)
+        ctx.set_plot()
     globals().update(exposed)
 
 

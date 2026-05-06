@@ -20,6 +20,8 @@ from utilities.core import (
 
 #region ============================ utils =====================================
 
+FixedColumnsType = dict[str, str | int | float | date]
+
 def _success(*s : str) -> None:
     """Quick success printer that wraps `repr` on `*s`."""
     if len(s) == 1:
@@ -312,7 +314,7 @@ def _parse_description(s : str) -> str:
 def prompt_column_value(
         keybind_dict : KeybindDictType,
         fields_str : str | None = None
-) -> dict[str, str | int | float | date]:
+) -> FixedColumnsType:
     """
     Asks which columns you'd like to set values to, and runs the corresponding 
     parsers. Example:

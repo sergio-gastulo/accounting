@@ -10,17 +10,22 @@ from pathlib import Path, WindowsPath
 from datetime import date
 from pandas import Period
 
-from utilities.prompt import prompt_currency
+from utilities.prompt import (
+    prompt_currency,
+    prompt_category_from_keybinds
+)
 from utilities.core import (
     _jopen,
     _jrepr,
     _cast_color,
+    soft_warning,
+    confirm_action,
+    ensure,
     FieldDictType,
     KeybindDictType,
     ExchangeDictType,
     RGBType,
     APPLICATION_CACHED_DIRECTORY,
-    ensure,
     import_fields,
     fetch_keybind_dict,
     fetch_category_dictionary,
@@ -30,6 +35,13 @@ from utilities.core import (
     get_exchange_dict,
     sha256,
 )
+
+#region ========================== new types ===================================
+
+StrDict = dict[str, str]
+CurrencyColorDictionary = dict[str, RGBType | str]
+
+#endregion =====================================================================
 
 
 #region ======================== untested utils ================================
@@ -84,40 +96,44 @@ def _rmdir(directory : Path) -> None:
 class SHA256Error(Exception):
     pass
 
+
+def _validate_categories(categories : List[str], keybinds : StrDict) -> List[str]:
+    res = [
+        prompt_category_from_keybinds(keybinds, category, quiet_success=True)
+        for category in categories 
+    ]
+    return res
+
 #endregion =====================================================================
-
-
-
-#region ========================== new types ===================================
-
-StrDict = dict[str, str]
-CurrencyColorDictionary = dict[str, RGBType | str]
-
-#endregion =====================================================================
-
 
 
 
 @dataclass
 class AccountingContext:
 
-    # they're set latter
+    # ------------------------- main db configurations -------------------------
+    # --- fetched from config.json ---
     config_path : Optional[Path]                = None
     fields_path : Optional[Path]                = None
-    engine: Optional[Engine]                    = None 
-    keybinds : Optional[KeybindDictType]        = None
+    engine: Optional[Engine]                    = None
+    editor : Optional[Path]                     = None
     fields : Optional[FieldDictType]            = None
     default_currency : Optional[str]            = None 
-    editor : Optional[Path]                     = None
+    # --- built at runtime if not fetched from cache ---
+    keybinds : Optional[KeybindDictType]        = None
     categories_dict: Optional[StrDict]          = None
 
-    # only necessary for plotting:
-    darkmode : bool                                     = None
-    bar_color : Optional[RGBType | str]                 = None
-    period: Optional[Period]                            = None
+    # ----------------- plot configurations, not needed for db -----------------
+    # --- fetched from config.json ---
     currency_list : Optional[List[str]]                 = None
+    savings_colors : Optional[RGBType]                  = None
+    bar_color : Optional[RGBType | str]                 = None
+    inflow_categories : Optional[List[str]]             = None
+    # --- fetched but later built ---
     colors: Optional[CurrencyColorDictionary]           = None
+    # --- built at runtime ---
     exchange_dictionary : Optional[ExchangeDictType]    = None
+    period: Optional[Period]                            = None
 
 
     def load_from_cache(
@@ -156,9 +172,11 @@ class AccountingContext:
         self.engine         =   _engine(self.engine)
 
 
-    def remove_cached_files(self):
+    def delete_cache(self):
         """Removes all files in APPLICATION_CACHED_DIRECTORY."""
-        _rmdir(APPLICATION_CACHED_DIRECTORY)
+        soft_warning("Warning: you will lose these files completely.")
+        action = lambda : _rmdir(APPLICATION_CACHED_DIRECTORY)
+        confirm_action(action)
         print(f"All files in {APPLICATION_CACHED_DIRECTORY} have been removed.")
 
 
@@ -181,10 +199,10 @@ class AccountingContext:
         self.config_path            =   _path_exists(config_path)
         self.fields_path            =   _path_exists(fields_path)
         self.engine                 =   _engine(config.get('db_path'))
-        self.fields                 =   import_fields(fields_path)
-        self.keybinds               =   fetch_keybind_dict(self.fields)
-        self.default_currency       =   prompt_currency(config.get('default_currency'), quiet=True)
         self.editor                 =   check_editor(config.get("editor_path"))
+        self.fields                 =   import_fields(fields_path)
+        self.default_currency       =   prompt_currency(config.get('default_currency'), quiet=True)
+        self.keybinds               =   fetch_keybind_dict(self.fields)
         self.categories_dict        =   fetch_category_dictionary(self.fields)
 
 
@@ -203,12 +221,13 @@ class AccountingContext:
 
         # --- proceed to load remaining attrs --- 
         config                      =   _jopen(self.config_path)
-        self.darkmode               =   bool(config.get('darkmode'))
-        self.bar_color              =   _get_bar_color(config.get('bar_color'))
-        self.period                 =   _today_period()
         self.currency_list          =   _set_currency_list(config.get('currency_list'))
+        self.savings_colors         =   _cast_color(config.get('savings_color'))
+        self.bar_color              =   _get_bar_color(config.get('bar_color'))
+        self.inflow_categories      =   _validate_categories(config.get('inflow-categories'), self.keybinds)
         self.colors                 =   check_colors(self.currency_list, config.get('rgb_colors'))
         self.exchange_dictionary    =   get_exchange_dict(self.currency_list, config.get('use_cache'), quiet=True)
+        self.period                 =   _today_period()
         
 
     def save(self) -> None:

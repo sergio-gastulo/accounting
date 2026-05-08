@@ -2,112 +2,67 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from numpy import atleast_1d
-from typing import List
-from typing import Literal
+from typing import List, Literal
 
-from sqlalchemy import select, not_, case
+from sqlalchemy import select, not_, case, extract, ColumnElement
 from sqlalchemy.sql import functions, func
 from sqlalchemy.orm import Session
 
 from db.model import Record
+from context.context import ctx
+
 from utilities.core import pprint_df
 from utilities.parser import parse_period
 from utilities.prompt import prompt_category_from_keybinds
-from context.context import ctx
 
 
-#region ========================== Global constants ============================
+#region ========================== global constants ============================
 
 
-INCOMES_CATEGORIES = ['INGRESO', 'BLIND', 'INTERESES']
-INCLUDING_INCOMES = Record.category.in_(INCOMES_CATEGORIES)
+INCLUDING_INFLOW = Record.category.in_(ctx.inflow_categories)
 PERIOD_COL = func.strftime('%Y-%m', Record.date).label("period")
 TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
-
+CurrencyAmountType = dict[str, float]
 
 #endregion =====================================================================
 
 
-#region ======================= Helper functions ===============================
-
-
-def get_currency_list_by_period(
-        period : str
-) -> List[str]: 
-    
-    query_currencies = select(
-        Record.currency.distinct()
-        ).where(
-            Record.date.like(period + "%"),
-            not_(INCLUDING_INCOMES)
-        )
-    
-    with Session(ctx.engine) as session:
-        return list(session.scalars(query_currencies))
-
-
-def filter_by_period_category_currency(
-        period : str,
-        category : str,
-        currency : str
-) -> pd.DataFrame:
-
-    query_printable =  select(
-            Record.id, 
-            Record.date, 
-            Record.amount, 
-            Record.description
-        ).where(
-            Record.date.like(period + "%"),
-            Record.category == category,
-            Record.currency == currency
-        ).order_by(
-            Record.amount.desc(),
-            Record.date.desc()
-        )
-
-    return pd.read_sql(query_printable, con=ctx.engine, index_col='id')
-
+#region ======================= helper functions ===============================
 
 def darkmode() -> None:
-    if ctx.darkmode:
-        plt.style.use('dark_background')
-        plt.rcParams['font.family'] = 'monospace'
-        plt.rcParams['font.size'] = 12
+    """Sets matplotlib darkmode at evaluation time."""
+    plt.style.use('dark_background')
+    plt.rcParams['font.family'] = 'monospace'
+    plt.rcParams['font.size'] = 12
 
 
-# ---------------------------------
-# this function aims to provide support for:
-#   args:
-#   {
-#       "eur" : x,
-#       "usd" : y,
-#       "pen" : z
-#   }
-#   |->
-#   (
-#       "eur" : x * fetch_currency(eur, eur) +
-#               y * fetch_currency(usd, eur) +
-#               z * fetch_currency(pen, eur),
-#       "usd" : x * fetch_currency(eur, usd) +
-#               y * fetch_currency(usd, usd) +
-#               z * fetch_currency(pen, usd)
-#   )
-# ---------------------------------
 def sum_currencies(
-        curr_amount_dict : dict[str, float | int]
-) -> dict[str, str]:
+        amounts : CurrencyAmountType
+) -> CurrencyAmountType:
+    """
+    Convert a multi-currency portfolio into each target currency.
+    Each output is the sum of every input amount converted to each input amount.
 
+    Arguments
+    --------
+    amounts
+        A dictionary with currencies and keys and their respective amounts as 
+        floats.
+
+    Example
+    -------
+        >>> convert_currencies({"eur": 1, "usd": 1, "pen": 1})
+        {'eur': 1.92, 'usd': 2.10, 'pen' : 7.23}
+    """
+
+    currencies = [curr.lower() for curr in amounts]
     res_dict = {}
-    curr_list = [curr.lower() for curr in list(curr_amount_dict)] 
-    for curr in curr_list:
-        res_sum = sum([
-                curr_amount_dict[key] * ctx.exchange_dictionary[key][curr] 
-                for key in curr_list
-            ])
-        res_dict.update({
-            curr : round(res_sum, 2)
-        })
+    for curr1 in currencies:
+        res_sum = 0
+        for curr2 in currencies:
+            exchange = ctx.exchange_dictionary[curr2][curr1]
+            res_sum += amounts[curr2] * exchange
+        res_dict.update({ curr1 : round(res_sum, 2) })
 
     return res_dict
 
@@ -115,42 +70,70 @@ def sum_currencies(
 #endregion =====================================================================
 
 
+def _by_period(period : pd.Period) -> tuple[ColumnElement[bool]]:
+    return (
+        extract('year', Record.date) == period.year,
+        extract('month', Record.date) == period.month
+    )
+
+def get_currency_list_by_period(
+        period : pd.Period
+) -> List[str]:
+    q = select(Record.currency.distinct())
+    q = q.where(*_by_period(period))
+    
+    with Session(ctx.engine) as session:
+        return list(session.scalars(q))
+
+
 #region ====================== Plotting functions ==============================
+
+
+def _quick_filter(
+        period : pd.Period,
+        category : str,
+        currency : str
+) -> pd.DataFrame:
+    q = select(Record.id, Record.date, Record.amount, Record.description)
+    q = q.where(
+        *_by_period(period), 
+        Record.category == category, 
+        Record.currency == currency
+    )
+    q = q.order_by(Record.amount.desc(), Record.date.desc())
+    return pd.read_sql(q, ctx.engine, 'id')
 
 
 # alias: p1
 def categories_per_period(period: str | int | pd.Period | None = None) -> None:
     """
-    Plot database records grouped by category and currency for the given period.
+    Displays a barchart from database records grouped by category and 
+    currency for the given period.
 
+    Arguments
+    ---------
+    period
+        Defaults to ctx.period, which is this months' period. Allows period
+        arithmetic from `parse_period`.
+
+    Notes
+    -----
     Clicking on a bar:
         - Highlights it in red. 
         - Prints the related records (date, description, amount).
     """
+    # --- ensure valid period, maybe change to prompter? ---
+    period = parse_period(period, ctx.period)
 
-    period = parse_period(period, default_period=ctx.period)
-    period_str = str(period)
-
-    query_totals = (
-        select(
-            Record.currency, 
-            Record.category, 
-            TOTAL_AMOUNT_COL
-        ).where(
-            Record.date.like(period_str + "%"),
-            not_(INCLUDING_INCOMES)
-        ).group_by(
-            Record.currency, 
-            Record.category
-        )
-    )
+    # --- retrieve data ---
+    q = select(Record.currency, Record.category, TOTAL_AMOUNT_COL)
+    q = q.where(*_by_period(period), not_(INCLUDING_INFLOW))
+    q = q.group_by(Record.currency, Record.category)    
+    df = pd.read_sql(q, ctx.engine)
     
-    df = pd.read_sql(query_totals, con=ctx.engine)
-    currency_list = get_currency_list_by_period(period_str)
-
+    currency_list = get_currency_list_by_period(period)
     bars_per_ax = []
     store_totals = {}
-
     def core(df: pd.DataFrame, currency: str, ax=None, fig=None) -> None:            
         values = df.total_amount
         max_value = max(values)
@@ -177,11 +160,11 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
                 fontsize=10, color=color
             )
 
-        vals = values.sum()
-        store_totals.update({currency.lower() : vals})
+        totals = values.sum()
+        store_totals.update({currency.lower() : totals})
         ax.text(
             0.90, 0.95, 
-            f'{currency} {vals:.2f}', 
+            f'{currency} {totals:.2f}', 
             transform=ax.transAxes, 
             ha="left", va="top", 
             fontsize=12
@@ -195,8 +178,8 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
                     contains, _ = bar.contains(event)
                     if contains:
                         bar.set_color(ctx.bar_color)
-                        df_category = filter_by_period_category_currency(
-                                period=period_str, 
+                        df_category = _quick_filter(
+                                period=period, 
                                 category=label, 
                                 currency=currency
                         )
@@ -238,46 +221,34 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
 # alias: p2
 def expenses_time_series(period: str | pd.Period | None = None) -> None:
     """
-    Plot spendings as a time series grouped by period.
+    Plot spendings (complement of `inflow_categories`) as a time series grouped 
+    by given `period`.
 
-    - The given period is highlighted in red.
-    - If no period is provided, defaults to ctx.period.
-    - If the period is outside the data, nothing is highlighted.
+    Arguments
+    ---------
+    period
+        The given period that will be highlighted in the plot. Defaults to 
+        ctx.period. Allows period arithmetic.
     """
 
-    if period:
-        period = pd.Period(period, 'M')
-    else: 
-        period = ctx.period
+    period = parse_period(period, ctx.period)
 
-    query = (
-        select(
-            Record.currency,
-            PERIOD_COL,
-            TOTAL_AMOUNT_COL,
-        )
-        .where(
-            not_(INCLUDING_INCOMES)
-        )
-        .group_by(
-            Record.currency,
-            PERIOD_COL,
-        )
-    )
-
+    q = select(Record.currency, PERIOD_COL, TOTAL_AMOUNT_COL)
+    q = q.where(not_(INCLUDING_INFLOW))
+    q = q.group_by(Record.currency, PERIOD_COL)
     df = pd.read_sql(
-        query, con=ctx.engine, 
+        q, ctx.engine, 
         parse_dates={"period": {"format" : "%Y-%m"}}
     )
     df.period = df.period.dt.to_period('M')
-    currency_list_in_period = get_currency_list_by_period(period=str(period))
+    currency_list_in_period = get_currency_list_by_period(period)
 
     def core(
             df: pd.DataFrame, 
             currency: str, 
             color: str, 
             ax = None, fig = None
-        ) -> None:
+    ) -> None:
         
         ax.plot(
             df.index.to_timestamp(), 
@@ -407,7 +378,7 @@ def savings_plot():
         Record.currency,
         functions.sum(
             case(
-                (Record.category.in_(INCOMES_CATEGORIES), +1),
+                (Record.category.in_(ctx.inflow_categories), +1),
                 else_=-1
             ) * Record.amount
         ).label('savings')

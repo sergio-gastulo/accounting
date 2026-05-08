@@ -14,11 +14,8 @@ from pandas.api.types import is_datetime64_any_dtype as is_datetime
 from pandas.api.types import is_string_dtype, is_numeric_dtype
 from typing import List
 
-
-from sqlalchemy.sql import selectable
-from sqlalchemy import select, true, text
-from sqlalchemy.sql.elements import BinaryExpression, TextClause
-from sqlalchemy import Engine
+from sqlalchemy import Select, select, true, text, Engine
+from sqlalchemy.sql.elements import ColumnElement
 
 from db.model import Record, Session, Conversion
 
@@ -210,7 +207,7 @@ def parse_period(
 
 def core_semantic_filter_parse(
         semantic_filter : str
-) -> BinaryExpression[bool]:
+) -> tuple[ColumnElement[bool]]:
     """
     Meant to parse a single stmt into a semantically-valid SQL query.
     **IMPORTANT** the query is not necessarily valid, it can't be known until 
@@ -320,7 +317,7 @@ def core_semantic_filter_parse(
 
 def parse_semantic_filter(
         general_filter : str
-)-> selectable.Select | TextClause:
+)-> Select[tuple[Record]]:
     """
     Runs parse_core_semantic_filter splitted by 'and'. 
     At the moment, no support for other boolean concatenators.
@@ -342,7 +339,7 @@ def parse_semantic_filter(
     return select(Record).where(*sql_expr_and)
 
 
-def parse_valid_element_list(
+def parse_element_from_dict(
         user_input : str,
         keybinds : dict[str, str]
 ) -> str:

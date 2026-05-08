@@ -70,8 +70,13 @@ def custom_help(arg : str, func : Callable | None = None) -> None:
 
 
 def load_db_api_module(*args) -> None:    
+    # --- load context first ---
+    ctx.set(*args)
+    custom_help('db')
+
     import db.db_api as da
     from db.model import Record, Conversion
+    # --- update global namespace ---
     exposed = {
         "br"            :   da.build_record,
         "bc"            :   da.build_conversion,
@@ -89,13 +94,18 @@ def load_db_api_module(*args) -> None:
         "Record"        :   Record,
         "Conversion"    :   Conversion,
     }
-
-    # --- actions ---
-    ctx.set(*args)
     globals().update(exposed)
 
 
 def load_plot_module(*args) -> None:
+    try:
+        ctx.set_plot()
+    except RuntimeError:
+        # --- if set_plot raises RuntimeError, more likely ctx.set() hasn't 
+        # --- been called
+        ctx.set(*args)
+        ctx.set_plot()
+    # --- populating global namespace ---
     import plot.plot as pp
     exposed = {
         "p1"    : pp.categories_per_period,
@@ -107,21 +117,14 @@ def load_plot_module(*args) -> None:
         "dark"  : pp.darkmode
     }
     # --- actions
-    try:
-        ctx.set_plot()
-    except RuntimeError:
-        # --- if set_plot raises RuntimeError, more likely ctx.set() hasn't 
-        # --- been called
-        ctx.set(*args)
-        ctx.set_plot()
     globals().update(exposed)
+    custom_help('plot')
 
 
 def main(
         config_path : Path,
         fields_path : Path,
         flag : str,
-        debug : bool
 ) -> None:
     if flag == 'db':
         load_db_api_module(config_path, fields_path)
@@ -129,8 +132,6 @@ def main(
         load_plot_module(config_path, fields_path)
     else:
         raise ValueError(f"Invalid {flag=}. Must be 'plot' or 'db'")
-    if not debug:
-        custom_help(flag)
 
 
 if __name__ == "__main__":
@@ -140,5 +141,4 @@ if __name__ == "__main__":
         config_path = sys.argv[1],
         fields_path = sys.argv[2],
         flag = sys.argv[3],
-        debug=False
     )

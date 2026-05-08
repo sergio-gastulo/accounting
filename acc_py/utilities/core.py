@@ -118,17 +118,17 @@ def confirm_action(
         label : str = "Confirm your action: [y/N]",
 ) -> None:
     for i in range(max_attempts):
-        confirm = input("Confirm your commit [y/N]: ")
+        confirm = input(label)
         if confirm.lower() in ('y', 'yes'):
             action()
-            print("Actions commited.")
+            print("Actions performed.")
             return
         elif not confirm or confirm.lower() in ('n', 'no'):
-            print("Action cancelled.")
-            return         
+            print("Action was cancelled. Aborting.")
+            return
         else:
             print(f"Attempt {i}: str '{confirm}' could not be understood.")
-    raise RuntimeError(f"Max attempts reached: {max_attempts}. Action cancelled.")
+    raise RuntimeError(f"Max attempts reached: {max_attempts}. Action aborted.")
 
 
 #endregion =====================================================================

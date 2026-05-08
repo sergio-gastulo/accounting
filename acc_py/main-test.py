@@ -11,8 +11,17 @@ if __name__ == "__main__":
         config_path=config["CONFIG_PATH"], 
         fields_path=config["FIELDS_JSON_PATH"],
         flag='db',
-        debug=True
     )
-    from db.db_api import edit
+    
+    # from db.model import Record
+    # from sqlalchemy import select
+    # from sqlalchemy.orm import Session
 
-    edit(1895)
+    # query = select(Record.date).limit(10)
+    # with Session(ctx.engine) as session:
+    #     dates = session.scalars(query)
+    # for date in dates:
+    #     print(f"{type(date)}: {date}") 
+
+    from plot.plot import categories_per_period
+    categories_per_period()

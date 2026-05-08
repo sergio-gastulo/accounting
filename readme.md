@@ -73,6 +73,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 - Expose date parser to construct dates from user input on python REPL.
 - When returning dataframe, pd.to_datetime should be called to cast dates automatically.
 - When writing conversion, print message showing help should make clearer what is base and target currency.
+- Decide whether currencies should be upper or lower case.
 
 
 ### User Compatible TODOs

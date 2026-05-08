@@ -288,7 +288,7 @@ def build_conversion(
 
 def write_conversion(conv : Optional[Conversion] = None) -> None:
     """
-    Write conversion wrapper. Relies on `build_conversion` to write.
+    Write conversion wrapper. Relies on `build_conversion` if `conv` is empty.
     
     Arguments
     --------
@@ -351,13 +351,13 @@ def delete(
 ) -> None:
     """
     Delete a Record or Conversion interactively.
-    By default, Record is going to be deleted. 
+    By default, a Record entity will be deleted. 
     
     Arguments
     ---------
     entity
-        Defaults to `Record`, it checks whether the entity to be edited is `Record` or 
-        `Conversion`.
+        Defaults to `Record`, it checks whether the entity to be edited is 
+        `Record` or `Conversion`.
     `id_`
         The ID of the record to edit. Ignored if `entity` is provided.
     entity

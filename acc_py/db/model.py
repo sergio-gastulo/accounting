@@ -16,7 +16,7 @@ class Entity:
         cols = self.__table__.columns.keys()
         values = {col: getattr(self, col) for col in cols}
         attrs = "\n".join(f"  {k}={v}" for k, v in values.items())
-        self_type = type(self).__name__
+        self_type = type(self).__name__.capitalize()
         wrap = f"{self_type}(\n{attrs}\n)" 
         return wrap
 
@@ -46,7 +46,7 @@ class Entity:
     def delete(self, engine : Engine) -> None:
         """
         General default deleter. Checks engine type and does not ask for commit. 
-        Prints warning message.
+        Prints soft_warning message.
         """
         ensure(engine, Engine)
         soft_warning("Warning: you may lose data permanently.")

@@ -8,7 +8,7 @@ from utilities.parser import (
     parse_currency,
     parse_date,
     parse_double_currency,
-    parse_valid_element_list,
+    parse_element_from_dict,
     parse_record_from_id,
 )
 from utilities.core import (
@@ -160,7 +160,7 @@ def prompt_double_currency(
 def get_from_nested_dict(
         kdict : KeybindDictType, 
         uinput : Optional[str], 
-        prompt : str
+        prompt : str,
 ) -> Optional[dict | str]:
     """Gets value associated to key `uinput` If nested then recursively looks for it."""
     # --- Type checking ---
@@ -171,24 +171,25 @@ def get_from_nested_dict(
     # --- no input? interactively ask ---
     if uinput is None:
         _jprint(kdict)
-        uinput = input(prompt).lower()
-    res = kdict.get(uinput)
+        uinput = input(prompt)
 
-    # --- begin recursion check ---
-    if isinstance(res, str):
-        return res
-    elif isinstance(res, dict):
+    # --- check if it's dictionary ---
+    res = kdict.get(uinput)
+    if isinstance(res, dict):
         res = get_from_nested_dict(res, None, prompt)
         return res
-    
-    # --- soft KeyError wrapper ---
-    print(f"ValueError: Argument keyinput={uinput} is not a valid key.")
+    # --- try to parse, otherwise soft_print ValueError ---
+    try:
+        return parse_element_from_dict(uinput, kdict)
+    except ValueError as e:
+        _soft_error(e)
 
 
 def prompt_category_from_keybinds(
         keybind_dict : KeybindDictType,
         keyinput : Optional[str] = None,
-        max_attempts : int = 5
+        max_attempts : int = 5,
+        quiet_success : bool = False,
 ) -> str:
     """Asks valid category from keybinds interactively."""
 
@@ -210,7 +211,8 @@ def prompt_category_from_keybinds(
     if category is None:
         raise RuntimeError(f"Only {max_attempts=} are allowed.")
     # --- success ---
-    _success(category)
+    if not quiet_success:
+        _success(category)
     return category
 
 
@@ -274,7 +276,7 @@ def prompt_list_of_fields(
         """Takes user input and splits it, while calling core parser."""
         nonlocal keybinds
         split = unsplit_cols.strip().split()
-        res =  [    parse_valid_element_list(col, keybinds)
+        res =  [    parse_element_from_dict(col, keybinds)
                     for col in split                        ]
         return res
     
@@ -336,7 +338,6 @@ def prompt_column_value(
         "amount"            :   prompt_arithmetic_operation,
         "currency"          :   prompt_currency,
         "description"       :   _parse_description,
-        "category"          :   lambda : prompt_category_from_keybinds(keybind_dict),
         "category"          :   lambda : prompt_category_from_keybinds(keybind_dict),
         "base_amount"       :   prompt_arithmetic_operation,
         "target_amount"     :   prompt_arithmetic_operation,

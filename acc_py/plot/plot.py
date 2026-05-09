@@ -1,16 +1,19 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.patches import Rectangle
+from matplotlib.axes import Axes
+from matplotlib.backend_bases import Event
 from numpy import atleast_1d
-from typing import List, Literal
 
-from sqlalchemy import select, not_, case, extract, ColumnElement
+
+from typing import List, Literal, Iterable
+from sqlalchemy import select, not_, case, extract, ColumnElement, Label
 from sqlalchemy.sql import functions, func
 from sqlalchemy.orm import Session
 
 from db.model import Record
 from context.context import ctx
-
 from utilities.core import pprint_df
 from utilities.parser import parse_period
 from utilities.prompt import prompt_category_from_keybinds
@@ -19,10 +22,10 @@ from utilities.prompt import prompt_category_from_keybinds
 #region ========================== global constants ============================
 
 
-INCLUDING_INFLOW = Record.category.in_(ctx.inflow_categories)
-PERIOD_COL = func.strftime('%Y-%m', Record.date).label("period")
-TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
 CurrencyAmountType = dict[str, float]
+INCLUDING_INFLOW = Record.category.in_(ctx.inflow_categories)
+PERIOD_COL : Label[str] = func.strftime('%Y-%m', Record.date).label("period")
+TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
 
 #endregion =====================================================================
 
@@ -67,10 +70,8 @@ def sum_currencies(
     return res_dict
 
 
-#endregion =====================================================================
-
-
 def _by_period(period : pd.Period) -> tuple[ColumnElement[bool]]:
+    """Quick filter by period."""
     return (
         extract('year', Record.date) == period.year,
         extract('month', Record.date) == period.month
@@ -83,20 +84,28 @@ def get_currency_list_by_period(
     q = q.where(*_by_period(period))
     
     with Session(ctx.engine) as session:
-        return list(session.scalars(q))
+        currencies = list(session.scalars(q))
+        currencies.sort()
+        return currencies
+
+#endregion =====================================================================
 
 
-#region ====================== Plotting functions ==============================
 
+#region ========================== first-plot ==================================
 
 def _quick_filter(
         period : pd.Period,
         category : str,
         currency : str
 ) -> pd.DataFrame:
+    # --- why calling the database instead of filtering in pandas? ---
+    # --- wellp, when group_by(Record.category) is called, description  ---
+    # --- is lost, it can't be retrieved ---
+
     q = select(Record.id, Record.date, Record.amount, Record.description)
     q = q.where(
-        *_by_period(period), 
+        *_by_period(period),
         Record.category == category, 
         Record.currency == currency
     )
@@ -104,8 +113,118 @@ def _quick_filter(
     return pd.read_sql(q, ctx.engine, 'id')
 
 
+def _quick_printer(
+        period : pd.Period,
+        category : str,
+        currency : str
+)-> None:
+    df_category = _quick_filter(period, category, currency)
+    header = (
+        f"Category: {category}," 
+        f"Currency: {currency},"
+        f"Total: {df_category.amount.sum()}"
+    )
+    pprint_df(df_category, header=header)
+
+
+def _set_labels(
+        ax : Axes,
+        max_x_value : float | int,
+        currency : str,
+        bar : Rectangle | Iterable[Rectangle] = None,
+) -> None:
+    
+    if bar is None: bar = ax.patches
+    # --- make it thread over lists of Rectangles ---
+    if isinstance(bar, Iterable) and isinstance(bar[0], Rectangle):
+        for single_bar in bar:
+            _set_labels(ax, max_x_value, currency, single_bar)
+        return
+    
+    # --- set amount label ---
+    width   = bar.get_width()
+    inside  = width > (max_x_value / 2)
+    xpos    = ( 0.5 if inside else 1.1 ) * width
+    ypos    = bar.get_y() + bar.get_height() / 2
+    color   = 'black' if inside else 'white'
+    label   = f'{width:.2f} {currency}'
+    txt     = ax.text(
+        xpos, ypos, label, va='center', 
+        ha='left', fontsize=10, color=color
+    )
+
+    # --- check if text is cutoff by the bar ---
+    bbox        = txt.get_window_extent()
+    bar_right   = ax.transData.transform((width, 0))[0]
+    if bbox.x1 > bar_right:
+        txt.set_position((1.1 * width, ypos))
+        txt.set_color('white')
+
+
+def _barchart_core(
+        df : pd.DataFrame,
+        currency : str,
+        append : List,
+        ax : Axes
+) -> None:
+    """Displays barchart of dataframe, previously filtered by currency."""
+
+    # --- setting main bars ---
+    # TODO: change color if darkmode has been called and viceversa
+    ax.barh(df.index, df.total_amount, color=(1, 1, 1), align='center')
+    ax.tick_params(axis='y', labelsize=10.5)
+
+    # --- set labels on each bar ---
+    max_val = df["total_amount"].max()
+    _set_labels(ax, max_val, currency)
+
+    # --- set text top right with total sum of amounts ---
+    total = df["total_amount"].sum()
+    label = f'{currency} {total:.2f}'
+    xy = (0.90, 0.95)
+    ax.text(*xy, label, transform=ax.transAxes, ha="left", va="top", fontsize=12)
+    
+    # --- append for event listener and return axis obj ---
+    categories = df.index.to_list()
+    append.append((ax, categories, currency))
+    # return ax
+
+
+def _pre_on_click(
+        event : Event,
+        period : pd.Period,
+        meta : List[tuple[Axes, str, str]]
+) -> None:
+    for ax, categories, currency in meta:
+        if event.inaxes == ax:
+            for bar, category in zip(ax.patches, categories):
+                contains, _ = bar.contains(event)
+                if contains:
+                    bar.set_color(ctx.bar_color)
+                    _quick_printer(period, category, currency)
+                    ax.figure.canvas.draw()
+
+
+def _get_header(
+        df : pd.DataFrame,
+        period : pd.Period
+) -> str:
+    amounts = df.groupby(level=0)["total_amount"].sum()
+    amounts.index = amounts.index.str.lower()
+    res = sum_currencies(amounts.to_dict())
+    pretty = ', '.join([
+        f"{currency.upper()}: {amount:.2f}"
+        for currency, amount in res.items()
+    ])
+    header = (
+        f"Outflow registered on {period.strftime("%B")}, {period.year}\n"
+        f"Total accumulated: {pretty}"
+    )
+    return header
+
+
 # alias: p1
-def categories_per_period(period: str | int | pd.Period | None = None) -> None:
+def barchart_by_period(period: str | int | pd.Period | None = None) -> None:
     """
     Displays a barchart from database records grouped by category and 
     currency for the given period.
@@ -125,97 +244,42 @@ def categories_per_period(period: str | int | pd.Period | None = None) -> None:
     # --- ensure valid period, maybe change to prompter? ---
     period = parse_period(period, ctx.period)
 
-    # --- retrieve data ---
+    # --- query construction ---
     q = select(Record.currency, Record.category, TOTAL_AMOUNT_COL)
     q = q.where(*_by_period(period), not_(INCLUDING_INFLOW))
-    q = q.group_by(Record.currency, Record.category)    
-    df = pd.read_sql(q, ctx.engine)
-    
-    currency_list = get_currency_list_by_period(period)
-    bars_per_ax = []
-    store_totals = {}
-    def core(df: pd.DataFrame, currency: str, ax=None, fig=None) -> None:            
-        values = df.total_amount
-        max_value = max(values)
-        labels = [ctx.categories_dict[key] for key in df.category]
-        bars = ax.barh(
-            labels, values, 
-            height=0.8, color = (1,1,1), 
-            align='center')
-        ax.tick_params(axis='y', labelsize=10.5)
+    q = q.group_by(Record.currency, Record.category)
+    df = pd.read_sql(q, ctx.engine, index_col=['currency', 'category'])
+    currencies = df.groupby(level=0)["total_amount"].count().to_dict()
 
-        bars_per_ax.append((ax, bars, df.category.to_list(), currency))
-        
-        for bar in bars:
-            width   = bar.get_width()
-            inside  = width > max_value / 2
-            xpos    = (0.5 if inside else 1.1) * width
-            ypos    = bar.get_y() + bar.get_height() / 2
-            color   = (0,0,0) if inside else (1,1,1)
-            
-            ax.text(
-                xpos, ypos, 
-                f'{width:.2f} {currency}', 
-                va='center', ha='left', 
-                fontsize=10, color=color
-            )
-
-        totals = values.sum()
-        store_totals.update({currency.lower() : totals})
-        ax.text(
-            0.90, 0.95, 
-            f'{currency} {totals:.2f}', 
-            transform=ax.transAxes, 
-            ha="left", va="top", 
-            fontsize=12
-        )
-        fig.subplots_adjust(left=0.25, right=0.95)
-
-    def on_click(event):
-        for ax, bars, labels, currency in bars_per_ax:
-            if event.inaxes == ax:
-                for bar, label in zip(bars, labels):
-                    contains, _ = bar.contains(event)
-                    if contains:
-                        bar.set_color(ctx.bar_color)
-                        df_category = _quick_filter(
-                                period=period, 
-                                category=label, 
-                                currency=currency
-                        )
-                        header = (
-                            f"Category: {label}," 
-                            f"Currency: {currency},"
-                            f"Total: {df_category.amount.sum()}"
-                        )
-                        pprint_df(df_category, header=header)
-                        ax.figure.canvas.draw()
-                        return
-
-    heights = [
-        len(df.loc[df.currency == currency, 'category'].unique())
-        for currency in currency_list
-    ]
-
+    # --- main figure creation ---
+    metadata = []
+    nrows = len(currencies)
+    heights = list(currencies.values())
     fig, axs = plt.subplots(
-        len(currency_list), 1, sharex=True, 
+        nrows, 1, sharex=True, 
         gridspec_kw={'height_ratios': heights}
     )
-    axs = atleast_1d(axs)
-    for i, currency in enumerate(currency_list):
-        df_currency = df.loc[
-            df.currency == currency, ['category', 'total_amount']
-        ].sort_values('total_amount', ascending=False)
-        core(df_currency, currency, ax=axs[i], fig=fig)
+    axs : List[Axes] = atleast_1d(axs)
 
-    currency_totals = sum_currencies(store_totals)
+    # --- populating horizontal bars ---
+    for i, (currency, _) in enumerate(currencies.items()):
+        _barchart_core(df.loc[currency], currency, metadata, axs[i])
+    
+    # --- setting plot header ---
+    header = _get_header(df, period)
+    fig.suptitle(header)
+    fig.subplots_adjust(left=0.25, right=0.95)
 
-    fig.suptitle(
-        f"Spendings registered on {period.strftime("%B")}, {period.year}\n"
-        f"Total accumulated on it's own currency: {currency_totals}"
-    )
+    # --- connect on_click event ---
+    on_click = lambda event : _pre_on_click(event, period, metadata)
     fig.canvas.mpl_connect('button_press_event', on_click)
     plt.show()
+
+
+#endregion =====================================================================
+
+
+
 
 
 # alias: p2
@@ -435,5 +499,3 @@ def savings_plot():
     ax.set_xlabel("Raw saving.")
     fig.suptitle('Savings as a Time Series per Currency')
     plt.show()
-
-#endregion =====================================================================

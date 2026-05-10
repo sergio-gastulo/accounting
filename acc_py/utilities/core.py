@@ -4,7 +4,7 @@ Should not import **ANY** hand-written acccli-related code.
 It contains a variety of functions that are used in context.py, parser.py and prompt.py
 """
 import inspect
-from typing import List, Tuple, Any, Type, Callable
+from typing import List, Tuple, Any, Type, Callable, TypeAlias
 from pathlib import Path
 import json
 import socket
@@ -17,12 +17,12 @@ import hashlib
 from tkinter.filedialog import askopenfilename
 from tkinter.colorchooser import askcolor
 from pandas.api.types import is_string_dtype
-from matplotlib.colors import is_color_like
+from matplotlib.colors import is_color_like, to_rgb
 
 
 #region ========================== new types ===================================
 
-RGBType = List[int] | List[float] | Tuple[int] | Tuple[float]
+RGBType : TypeAlias = List[int] | List[float] | Tuple[int] | Tuple[float]
 FieldDictType = List[dict[str, str | List[dict[str, str]]]]
 ExchangeDictType = dict[str, dict[str, float | int]]
 KeybindDictType = dict[str, str | dict[str, str]]
@@ -196,7 +196,7 @@ def pprint_df(
         if is_string_dtype(df.description):
             df.description = df.description.str[:100]
 
-    has_index = (df.index.name == 'id')
+    has_index = (df.index.dtype != int or df.index.name == 'id')
     print_df = df.to_markdown(index=has_index, tablefmt="outline")
     
     if header:
@@ -373,7 +373,10 @@ def _currency_type_check(currency : str) -> str:
     return currency.lower()
 
 def check_currency_list(currency_list : List[str]) -> List[str]:
-    """Threads over currency_list and validates currency type."""
+    """
+    Threads over currency_list and validates currency type. 
+    Returns currency in lower case. 
+    """
     return [_currency_type_check(curr) for curr in currency_list]
 
 
@@ -526,7 +529,7 @@ def convert_rgb(color : RGBType) -> RGBType:
 def _cast_color(color: Any) -> RGBType | str:
     """Checks if color is a valid color. Relies on matplotlib.colors parser."""
     if is_color_like(color):
-        return color
+        return to_rgb(color)
     try:
         return convert_rgb(color)
     except TypeError as e:

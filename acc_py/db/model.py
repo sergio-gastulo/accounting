@@ -111,7 +111,7 @@ class Conversion(Entity, Base):
         if inverted:
             rate = 1 / rate
         return (
-            f"{self.base_amount:,.2f} {self.base_currency}"
+            f"{self.id}: {self.base_amount:,.2f} {self.base_currency}"
             f" -> {self.target_amount:,.2f} {self.target_currency}"
             f" @ {rate:.4f} {self.base_currency}/{self.target_currency}"
             f"\n         {self.description}"

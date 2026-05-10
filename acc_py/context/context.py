@@ -5,7 +5,7 @@ Main data manager for acccli. Relies heavily on utilities.core.
 from dataclasses import dataclass
 from sqlalchemy.engine.base import Engine
 from sqlalchemy import create_engine
-from typing import List, Optional
+from typing import List, Optional, Any
 from pathlib import Path, WindowsPath
 from datetime import date
 from pandas import Period
@@ -56,11 +56,6 @@ def _today_period() -> Period:
     return Period(date.today(), 'M')
 
 
-def _get_bar_color(color):
-    if color is None: return 'red'
-    return _cast_color(color)
-
-
 def _engine(url : str | Path | None) -> Engine:
     if url is None:
         return create_engine("sqlite://")
@@ -104,6 +99,12 @@ def _validate_categories(categories : List[str], keybinds : StrDict) -> List[str
     ]
     return res
 
+
+def _return_dict(d : dict) -> dict:
+    ensure(d, dict)
+    return d
+
+
 #endregion =====================================================================
 
 
@@ -126,15 +127,13 @@ class AccountingContext:
     # ----------------- plot configurations, not needed for db -----------------
     # --- fetched from config.json ---
     currency_list : Optional[List[str]]                 = None
-    savings_colors : Optional[RGBType]                  = None
-    bar_color : Optional[RGBType | str]                 = None
     inflow_categories : Optional[List[str]]             = None
-    # --- fetched but later built ---
+    # --- fetched but built later ---
     colors: Optional[CurrencyColorDictionary]           = None
     # --- built at runtime ---
     exchange_dictionary : Optional[ExchangeDictType]    = None
     period: Optional[Period]                            = None
-
+    matplotlib : Optional[dict[str, Any]]               = None
 
     def load_from_cache(
             self
@@ -222,13 +221,13 @@ class AccountingContext:
         # --- proceed to load remaining attrs --- 
         config                      =   _jopen(self.config_path)
         self.currency_list          =   _set_currency_list(config.get('currency_list'))
-        self.savings_colors         =   _cast_color(config.get('savings_color'))
-        self.bar_color              =   _get_bar_color(config.get('bar_color'))
         self.inflow_categories      =   _validate_categories(config.get('inflow-categories'), self.keybinds)
         self.colors                 =   check_colors(self.currency_list, config.get('rgb_colors'))
         self.exchange_dictionary    =   get_exchange_dict(self.currency_list, config.get('use_cache'), quiet=True)
         self.period                 =   _today_period()
-        
+        # NOTE: we're only checking if it's a dictionary
+        self.matplotlib             =   _return_dict(config.get("matplotlib"))
+
 
     def save(self) -> None:
         """Saves current ctx state to json."""

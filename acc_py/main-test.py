@@ -12,16 +12,8 @@ if __name__ == "__main__":
         fields_path=config["FIELDS_JSON_PATH"],
         flag='db',
     )
-    
-    # from db.model import Record
-    # from sqlalchemy import select
-    # from sqlalchemy.orm import Session
 
-    # query = select(Record.date).limit(10)
-    # with Session(ctx.engine) as session:
-    #     dates = session.scalars(query)
-    # for date in dates:
-    #     print(f"{type(date)}: {date}") 
-
-    from plot.plot import categories_per_period
-    categories_per_period()
+    from plot.plot import set_configs, dark, savings_plot
+    set_configs()
+    dark()
+    savings_plot()

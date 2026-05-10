@@ -63,18 +63,11 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## **TODO**
-- Provide support for several p1() periods (comparings periods).
-- Think of conversion plots.
-- Provide support to dump-save python objects. 
-- Dump valid ctx for faster import (check if file was edited before).
+- Provide support to dump-save python objects.
 - Implement duplicate of record (This allows faster writing methods, remember to forget ID since it's a 'duplicate').
-- Change errors to what they actually represent (better error printing).
-- After parsing, allow config.json to be saved from ctx.
 - Expose date parser to construct dates from user input on python REPL.
 - When returning dataframe, pd.to_datetime should be called to cast dates automatically.
-- When writing conversion, print message showing help should make clearer what is base and target currency.
 - Decide whether currencies should be upper or lower case.
-
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.
@@ -87,6 +80,7 @@ TODOs that would be useful if this project became an application for other peopl
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 
 ### Need to elaborate // or discarded
+- Think of conversion plots.
 - Provide light-mode support on plot.py.
 - Provide WhatsApp message parsing.
 - Provide better printing for [read_conversion()](/acc_py/src/acc_py/db/db_api.py).

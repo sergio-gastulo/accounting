@@ -108,13 +108,13 @@ def load_plot_module(*args) -> None:
     # --- populating global namespace ---
     import plot.plot as pp
     exposed = {
-        "p1"    : pp.categories_per_period,
-        "p2"    : pp.expenses_time_series,
+        "p1"    : pp.barchart_by_period,
+        "p2"    : pp.scattered_outflow,
         "p3"    : pp.category_time_series,
         "sp"    : pp.savings_plot,
         "h_p"   : lambda f=None : custom_help(arg='plot', func=f),
         "load"  : lambda : load_db_api_module(*args),
-        "dark"  : pp.darkmode
+        "dark"  : pp.dark
     }
     # --- actions
     globals().update(exposed)

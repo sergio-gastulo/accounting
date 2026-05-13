@@ -229,15 +229,17 @@ class AccountingContext:
         self.matplotlib             =   _return_dict(config.get("matplotlib"))
 
 
-    def save(self) -> None:
+    def to_cache(self, path : Optional[Path] = None) -> None:
         """Saves current ctx state to json."""
         # --- force all fields to be fetched before saving ---
         if not self.period:
             self.set_plot()
 
+        if path is None:
+            name = "state.json"
+            path = APPLICATION_CACHED_DIRECTORY / name
+            
         # --- load state ---
-        name = "state.json"
-        path = APPLICATION_CACHED_DIRECTORY / name
         save_dict = self.__dict__.copy()
 
         # --- manually update unserializable ---

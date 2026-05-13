@@ -1,8 +1,11 @@
+from typing import Any, Optional
 import datetime
+from copy import deepcopy
+
 from sqlalchemy import String, Date, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
 from sqlalchemy import Engine
-from typing import Any, Optional
+
 from utilities.core import ensure, soft_warning
 
 
@@ -54,6 +57,10 @@ class Entity:
             session.delete(self)
             session.commit()
 
+    def duplicate(self):
+        new = deepcopy(self)
+        new.id = None
+        return new        
 
 class Record(Entity, Base):
 

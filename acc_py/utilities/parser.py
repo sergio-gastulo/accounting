@@ -133,7 +133,7 @@ def parse_date(date_input : str | int) -> date:
 def parse_double_currency(
         raw_input : str, 
         default_currency : str,
-        lower_bound : float = 0.0,
+        lbound : float = 0.0,
 ) -> tuple[float, str]:
     """
     Takes str and parses it to (amount, currency).
@@ -152,7 +152,7 @@ def parse_double_currency(
         # --- if above fails, more likely it was a single arith op ---
         currency    =   parse_currency(default_currency)
         raw_op      =   ' '.join(tokens)
-    amount = parse_arithmetic_operation(raw_op, lower_bound)
+    amount = parse_arithmetic_operation(raw_op, lbound)
     return amount, currency
     
 
@@ -227,19 +227,19 @@ def core_semantic_filter_parse(
 
         # --------------------------- amount filters ---------------------------
         case (
-			    [("amount" | "am"), ("between" | "b"), lower_bound, "and", upper_bound] | 
-			    [lower_bound, ("<" | "<=") , "amount", ("<" | "<="), upper_bound] | 
-			    [upper_bound, (">=" | ">"), "amount", (">=" | ">"), lower_bound]
+			    [("amount" | "am"), ("between" | "b"), lbound, "and", upper_bound] | 
+			    [lbound, ("<" | "<=") , "amount", ("<" | "<="), upper_bound] | 
+			    [upper_bound, (">=" | ">"), "amount", (">=" | ">"), lbound]
 			):
-            lower_bound, upper_bound = map(float, [lower_bound, upper_bound])
-            return Record.amount.between(lower_bound, upper_bound)
+            lbound, upper_bound = map(float, [lbound, upper_bound])
+            return Record.amount.between(lbound, upper_bound)
 
         case (
-            [lower_bound, "<=" | "<", ("amount" | "a")] | 
-            [("amount" | "a"), ">=" | ">", lower_bound]
+            [lbound, "<=" | "<", ("amount" | "a")] | 
+            [("amount" | "a"), ">=" | ">", lbound]
         ):
-            lower_bound = float(lower_bound)
-            return Record.amount >= lower_bound
+            lbound = float(lbound)
+            return Record.amount >= lbound
         
         case (
             [upper_bound, ">=" | ">", ("amount" | "a")] | 

@@ -63,27 +63,21 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## **TODO**
-- Provide support to dump-save python objects.
 - Implement duplicate of record (This allows faster writing methods, remember to forget ID since it's a 'duplicate').
-- Expose date parser to construct dates from user input on python REPL.
 - When returning dataframe, pd.to_datetime should be called to cast dates automatically.
 - Decide whether currencies should be upper or lower case.
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.
 - Provide a saving option for every plot to prevent terminal from hanging when displaying plot.
-- Full config.json support (all customizable).
 - Flush to stdout so terminal does not polute with user input validation. 
 - Provide toy files as examples.
-- Add interactive clicks on scatters
 - Provide support for changing fields.json
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 
-### Need to elaborate // or discarded
+### Need to elaborate
 - Think of conversion plots.
-- Provide light-mode support on plot.py.
 - Provide WhatsApp message parsing.
-- Provide better printing for [read_conversion()](/acc_py/src/acc_py/db/db_api.py).
 
 
 ## **Requirements**:

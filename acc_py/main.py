@@ -2,10 +2,7 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-from utilities.core import (
-    print_func_doc, 
-    pprint_categories
-)
+from utilities.core import pprintfunc
 from context.context import ctx
 from datetime import datetime
 
@@ -17,44 +14,10 @@ DOCS_DIR  = Path(__file__).resolve().parent / "templates"
 now : Callable = lambda : datetime.now().strftime('%H:%M:%S')
 
 
-def pc(help : bool = False) -> None:
-    """
-    Print all categories in a readable, formatted way.
-
-    Parameters
-    ----------
-    categories_dict : dict[str, str]
-        A mapping of category names to their descriptions.
-        Each key is a category name, and each value is the category's
-        human-readable label or explanation.
-
-    field_json_path : Path
-        Path to the JSON file from which the categories originate.
-        Used for reference only; the function does not modify the file.
-
-    help : bool, optional
-        If False (default), print each category and its description
-        in a clean, aligned, human-friendly format.
-        If True, print extended help information for all available
-        categories, including additional notes or hints contained in the
-        descriptions.
-
-    Returns
-    -------
-    None
-        This function only prints formatted output and does not return a value.
-    """
-    pprint_categories(
-        categories_dict=ctx.categories_dict,
-        fields_dict=ctx.fields,
-        help=help
-    )
-
-
 def custom_help(arg : str, func : Callable | None = None) -> None:
 
     if isinstance(func, Callable):
-        print_func_doc(func=func)
+        pprintfunc(func=func)
         return
 
     path = DOCS_DIR / f"{arg}_help.txt"
@@ -66,10 +29,27 @@ def custom_help(arg : str, func : Callable | None = None) -> None:
         return
 
 
+def independent() -> None:
+    """Pouplate globals regardless of whether it's db or plot context."""
+
+    import utilities.core as core
+    import utilities.parser as pars
+    exposed = {
+        "jdump" : core._jdump,
+        "pc" : core.pprint_categories,
+        "core_import" : core.fetch,
+        "export" : core.export,
+        "pdate" : pars.parse_date
+    }
+    globals().update(exposed)
+
+
+
 #endregion =====================================================================
 
 
 def load_db_api_module(*args) -> None:    
+
     # --- load context first ---
     ctx.set(*args)
     custom_help('db')
@@ -78,18 +58,18 @@ def load_db_api_module(*args) -> None:
     from db.model import Record, Conversion
     # --- update global namespace ---
     exposed = {
-        "br"            :   da.build_record,
-        "bc"            :   da.build_conversion,
-        "bdf"           :   da.build_df,
-        "e"             :   da.edit,
-        "fetch"         :   da.fetch,
-        "d"             :   da.delete,
-        "r"             :   da.read,
-        "wr"            :   da.write_record,
-        "wc"            :   da.write_conversion,
-        "wdf"           :   da.write_df,
-        "h_db"          :   lambda f=None : custom_help(arg='db', func=f),
-        "load"          :   lambda : load_plot_module(*args),
+        "br" : da.build_record,
+        "bc" : da.build_conversion,
+        "bdf" : da.build_df,
+        "e" : da.edit,
+        "fetch" : da.fetch,
+        "d" : da.delete,
+        "r" : da.read,
+        "w" : da.write_record,
+        "wc" : da.write_conversion,
+        "wdf" : da.write_df,
+        "h_db" : lambda f=None : custom_help(arg='db', func=f),
+        "load" : lambda : load_plot_module(*args),
         # --- expose Record | Conversion for context management ---
         "Record"        :   Record,
         "Conversion"    :   Conversion,
@@ -98,6 +78,8 @@ def load_db_api_module(*args) -> None:
 
 
 def load_plot_module(*args) -> None:
+
+    custom_help('plot')
     try:
         ctx.set_plot()
     except RuntimeError:
@@ -107,6 +89,10 @@ def load_plot_module(*args) -> None:
         ctx.set_plot()
     # --- populating global namespace ---
     import plot.plot as pp
+    
+    pp.set_configs()
+    pp.dark()
+
     exposed = {
         "p1"    : pp.barchart_by_period,
         "p2"    : pp.scattered_outflow,
@@ -118,7 +104,6 @@ def load_plot_module(*args) -> None:
     }
     # --- actions
     globals().update(exposed)
-    custom_help('plot')
 
 
 def main(
@@ -126,6 +111,9 @@ def main(
         fields_path : Path,
         flag : str,
 ) -> None:
+    """Main interface handler."""
+
+    independent()
     if flag == 'db':
         load_db_api_module(config_path, fields_path)
     elif flag == 'plot':

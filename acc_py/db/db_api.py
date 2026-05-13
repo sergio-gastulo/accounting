@@ -127,21 +127,40 @@ def build_record(
     return record
 
 
-def write_record(rec : Optional[Record] = None) -> None:
+def write_record(obj : Any = None) -> None:
     """
-    Simple record writer wrapper. Relies on `build_record` to 
-    retrieve fields.
+    Simple record writer wrapper. Depending on the type of `obj`, it parses and 
+    writes without asking for commit.
 
     Arguments
     ---------
-    rec
-        Record that will be written to db. If None is passed, then 
-        `build_record` is called to build one and automatically write to db.
+    obj
+        Record or Record-like expression that will be written to db. 
+        - If a `pd.DataFrame`, it will rely on `write_df` and return.
+        - If a `pd.Series`, obj is converted to a dict. 
+        - If a `dict`, obj is converted into a `Record` via Record(**obj).
+        - If None, `build_record` is called to construct it interactively.
+        - If a Record, it is directly written to database.
     """
-    ensure_or_none(rec, Record)
-    if rec is None:
-        rec = build_record()
-    rec.write(ctx.engine)
+
+    if isinstance(obj, pd.DataFrame):
+        write_df(obj)
+        return
+
+    if isinstance(obj, pd.Series):
+        obj = obj.to_dict()
+
+    if isinstance(obj, dict):
+        if "date" in obj:
+            obj["date_"] = obj.pop("date")
+        obj = Record(**obj)
+
+    if obj is None:
+        obj = build_record()
+
+    ensure(obj, Record)
+    obj.write(ctx.engine)
+
 
 
 def build_df(
@@ -199,7 +218,7 @@ def build_df(
     return df
 
 
-def write_df(df : pd.DataFrame) -> None:
+def write_df(df : pd.DataFrame | pd.Series) -> None:
     """
     Writes **record** dataframe to database. Performs type-checking, column type
     checking, and if df contains index, then it updates each record accordingly.
@@ -212,6 +231,7 @@ def write_df(df : pd.DataFrame) -> None:
     """
 
     # --- sanitize dataframe before writing to it ---
+    ensure(df, pd.DataFrame, pd.Series)
     table_name = Record.__tablename__
     category_list = list(ctx.categories_dict.keys())
     df = sanitize_df(df, category_list)
@@ -230,12 +250,11 @@ def write_df(df : pd.DataFrame) -> None:
     # --- if there is index, reset it so orient=records preserves it ---
     if is_index_id:
         df = df.reset_index()
-    to_dict = df.to_dict(orient='records')
+    as_dict = df.to_dict(orient='records')
 
     def _action():
-        nonlocal to_dict
         with Session(ctx.engine) as session:
-            session.bulk_update_mappings(Record, to_dict)
+            session.bulk_update_mappings(Record, as_dict)
             session.commit()
 
     # --- print dataframe and confirm user validation ---        
@@ -444,7 +463,7 @@ def read(
 ):
     """
     Reads records from database.
-    Relies on `fetch` to fetch records, and select true() on Conversions.
+    Relies on `fetch` to fetch records, and `Conversions.select(true())` on Conversions.
 
     Parameters
     ----------

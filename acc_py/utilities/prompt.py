@@ -73,7 +73,7 @@ def main_loop(
 
 def prompt_arithmetic_operation(
         user_input : Optional[str | float | int] = None, 
-        lower_bound: float = 0.0
+        lbound: float = 0.0
 ) -> float | int :
     """
     Asks for arithmetic operation as `str`. 
@@ -82,13 +82,13 @@ def prompt_arithmetic_operation(
     # --- type checking ---
     if isinstance(user_input, int | float):
         return user_input
-    ensure(lower_bound, float, int)
+    ensure(lbound, float, int)
     _ensure_str_none(user_input)
 
     kwargs = {
         "prompt" : "Type valid aithmetic operation: ",
         "parser" : parse_arithmetic_operation,
-        "lower_bound" : lower_bound
+        "lbound" : lbound
     }
     res = main_loop(user_input, **kwargs)
     _success(res)
@@ -138,19 +138,19 @@ def prompt_date_operation(
 def prompt_double_currency(
         default_currency : str,
         double_curr_input : str | None = None, 
-        lower_bound : float = 0.0
+        lbound : float = 0.0
 ) -> tuple[float, str]:
     """Converts `str` into valid (amount, currency) pair."""
     # --- type checking ---
     _ensure_str_none(double_curr_input)
     ensure(default_currency, str)
-    ensure(lower_bound, float)
+    ensure(lbound, float)
     
     kwargs = {
         "prompt" : "Type double-currency operation: ",
         "parser" : parse_double_currency,
         "default_currency" : default_currency,
-        "lower_bound" : lower_bound
+        "lbound" : lbound
     }
     amount, currency = main_loop(double_curr_input, **kwargs)
     _success(amount, currency)

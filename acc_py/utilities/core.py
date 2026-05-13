@@ -1,19 +1,20 @@
 """
 First file that is run.
 Should not import **ANY** hand-written acccli-related code.
-It contains a variety of functions that are used in context.py, parser.py and prompt.py
+It contains a variety of functions that are used in context.py, parser.py 
+and prompt.py
 """
-import inspect
-from typing import List, Tuple, Any, Type, Callable, TypeAlias
+from typing import List, Tuple, Any, Type, Callable, TypeAlias, Optional
 from pathlib import Path
 import json
 import socket
 import urllib
 import requests
 from os import environ
-from pandas import DataFrame
 import hashlib
+from datetime import datetime
 
+import pandas as pd
 from tkinter.filedialog import askopenfilename
 from tkinter.colorchooser import askcolor
 from pandas.api.types import is_string_dtype
@@ -33,14 +34,20 @@ KeybindDictType = dict[str, str | dict[str, str]]
 #region ======================= global-variables ===============================
 
 # --- directories to save files to ---
-DATA_DIR_NAME = ".data-acccli"
-APPLICATION_DIRECTORY = Path().home() / DATA_DIR_NAME
+data_dir = ".data-acccli"
+APPLICATION_DIRECTORY = Path().home() / data_dir
 APPLICATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 # --- cached directory that can be deleted directly ---
-CACHE = "cached"
-APPLICATION_CACHED_DIRECTORY = APPLICATION_DIRECTORY / CACHE
+cache = "cached"
+APPLICATION_CACHED_DIRECTORY = APPLICATION_DIRECTORY / cache
 APPLICATION_CACHED_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
+# --- saving directory for dumping ---
+storage = "storage"
+APPLICATION_STORAGE_DIRECTORY = APPLICATION_DIRECTORY / storage
+APPLICATION_STORAGE_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
 
 # --- color dictionary to print nicely ---
 # --- https://gist.github.com/minism/1590432 ---
@@ -77,6 +84,7 @@ def _jprint(d : dict):
 
 def _jdump(d : dict, path : Path) -> None:
     """Save dict to path."""
+    ensure(d, dict)
     with open(path, 'w') as file:
         json.dump(d, file, indent=4)
 
@@ -115,6 +123,7 @@ def ensure(
 def confirm_action(
         action : Callable,
         max_attempts : int = 3,
+        *, 
         label : str = "Confirm your action: [y/N]",
 ) -> None:
     for i in range(max_attempts):
@@ -173,22 +182,19 @@ def import_fields(
 
 
 # TODO: test this
-def print_func_doc(func: callable) -> None:
+def pprintfunc(func: callable) -> None:
     """Nice documentation printer."""
     cyan_str = fg.cyan
     reset_str = fg.reset
 
     print(f'{cyan_str}Function name:{reset_str}\n{func.__name__}\n')
 
-    sig = inspect.signature(func)
-    print(f'{cyan_str}Arguments:{reset_str} {sig}\n')
-
     doc = func.__doc__
     print(f'{cyan_str}Documentation:{reset_str}\n{doc}')
 
 
 def pprint_df(
-        df : DataFrame,
+        df : pd.DataFrame,
         header : str | None = None
 ) -> None:
     """Pretty df printer."""    
@@ -256,8 +262,30 @@ def pprint_categories(
         help : bool = False
 ) -> None:
     """
-    Pretty categories printer. If help is asked, then get_help_dictionary is 
-    called. 
+    Print all categories in a readable, formatted way.
+
+    Parameters
+    ----------
+    categories_dict : dict[str, str]
+        A mapping of category names to their descriptions.
+        Each key is a category name, and each value is the category's
+        human-readable label or explanation.
+
+    field_json_path : Path
+        Path to the JSON file from which the categories originate.
+        Used for reference only; the function does not modify the file.
+
+    help : bool, optional
+        If False (default), print each category and its description
+        in a clean, aligned, human-friendly format.
+        If True, print extended help information for all available
+        categories, including additional notes or hints contained in the
+        descriptions.
+
+    Returns
+    -------
+    None
+        This function only prints formatted output and does not return a value. 
     """
     if not help:
         _jprint(categories_dict)
@@ -593,3 +621,75 @@ def sha256(file_path : Path) -> str:
             hash_func.update(chunk)
     
     return hash_func.hexdigest()
+
+
+def export(
+        obj : pd.DataFrame | pd.Series | dict, 
+        p : Optional[Path | str] = None, 
+        **kwargs
+) -> None:
+    """
+    Quick exporter to supported extensions: csv, json and xml.
+
+    Arguments
+    ---------
+    obj 
+        Object to be exported. Only accepts `DataFrame`, `Series` and `dict`.
+    p
+        Path to export obj to.
+    **kwargs
+        Arugments that are passed to to_json, to_csv, ...
+    """
+    if p is None:
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        fname = f"_dumped_{now}.json"
+        p = APPLICATION_STORAGE_DIRECTORY / fname
+
+    extension = p.suffix.lower().lstrip(".")
+    supported = {"csv", "json", "xml"}
+    if extension not in supported:
+        raise ValueError(f"Path {p} extension is not in {supported}.")
+
+    if isinstance(obj, pd.DataFrame | pd.Series):
+        savemap = f"to_{extension}"
+        savemap = getattr(obj, savemap)
+        # https://stackoverflow.com/a/39612316/29272030
+        with open(p, "w", encoding='utf-8') as file:
+            savemap(file, force_ascii=False, **kwargs)
+
+    elif isinstance(obj, dict):
+        if extension == ".json":
+            _jdump(obj, p)
+        else:
+            raise ValueError(f"Extension {extension} is not valid for a dictionary to be converted to.")
+    
+
+def fetch(
+        p : Path,
+        **kwargs
+) -> pd.DataFrame:
+    """
+    Quick importer from supported extensions: csv, json and xml.
+
+    Arguments
+    ---------
+    p
+        Path to fetch data from.
+    **kwrags
+        Keyword arguments that are passed to read_csv, read_json, etc.
+
+    Returns
+    -------
+    df
+        DataFrame that is returned via pd.read_csv, ...
+        No further sanitization or parsing is performed.
+    """
+    extension = p.suffix.lower().lstrip(".")
+    supported = {"csv", "json", "xml"}
+    if extension not in supported:
+        raise ValueError(f"Path {p} extension is not in {supported}.")
+    
+    savemap = f"read_{extension}"
+    savemap = getattr(pd, savemap)
+    df = savemap(p, encoding='utf-8', **kwargs)
+    return df

@@ -1,19 +1,23 @@
 import dotenv
-from main import main as debug_main
+from main import main
 from context.context import ctx
-
+import sys
 
 if __name__ == "__main__":
 
     config = dotenv.dotenv_values(".env")
+    flag = 'plot'
 
-    debug_main(
-        config_path=config["CONFIG_PATH"], 
-        fields_path=config["FIELDS_JSON_PATH"],
-        flag='db',
-    )
+    # awkward but it works
+    sys.argv.append(config["CONFIG_PATH"])
+    sys.argv.append(config["FIELDS_JSON_PATH"])
+    sys.argv.append(flag)
+    main()
 
-    from plot.plot import set_configs, dark, savings_plot
-    set_configs()
-    dark()
-    savings_plot()
+    from db.db_api import _render_template
+    fixed_fields = {
+        "date" : "foobarbaz",
+        "category": "anotherfoo",
+        "currency": "usd"
+    }
+    print(_render_template(**fixed_fields))

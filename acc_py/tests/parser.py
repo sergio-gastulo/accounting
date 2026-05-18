@@ -1,9 +1,7 @@
-# unittest tooling
 import unittest
 from unittest.mock import call
 from unittest import TestCase
 
-# generics
 import datetime
 from sqlalchemy.dialects import sqlite
 from sqlalchemy import text, true, select
@@ -11,14 +9,12 @@ import pandas as pd
 from datetime import timedelta
 from typing import Callable
 
-from db.model import Record
+from db.model import Record, Conversion
 from tests._shared import (
     Patcher, 
     mem_engine,
-    write,
     TODAY
 )
-
 from utilities.parser import (
     parse_period,
     parse_arithmetic_operation,
@@ -27,7 +23,6 @@ from utilities.parser import (
     parse_double_currency,
     core_semantic_filter_parse,
     parse_semantic_filter,
-    parse_valid_element_list,
     cast_csv_types,
     sanitize_df,
     parse_record_from_id
@@ -607,45 +602,6 @@ class TestSemanticFilterParser(TestCase):
                     self.wrap(query)
 
 
-class TestValidElementFromListParser(TestCase):
-    def test_parse_valid_element_list(self):
-        keybinds = {
-            "key" : "value",
-            "key2" : "value2",
-            "weird" : "weird value"
-        }
-        for key, value in keybinds.items():
-            with self.subTest(key=key, value=value):
-                self.assertEqual(
-                    value,
-                    parse_valid_element_list(
-                        user_input=key,
-                        keybinds=keybinds
-                    )
-                )
-                self.assertEqual(
-                    value, 
-                    parse_valid_element_list(
-                        user_input=value,
-                        keybinds=keybinds
-                    )
-                )
-
-    def test_parse_valid_element_list_err(self):
-        cases = [
-            ( { "key":  "value" },  "invalid",      ValueError),
-            ( { },                  "any",          ValueError),
-            ( { "key":  "value" },  2,              TypeError),
-        ]
-        for keybind, uinput, err in cases:
-            with self.subTest(uinput=uinput, keybind=keybind):
-                with self.assertRaises(err):
-                    parse_valid_element_list(
-                        user_input=uinput,
-                        keybinds=keybind
-                    )
-
-
 @unittest.skip("TODO: not implemented yet -- a simple open call")
 class TestCSVRecordParser(TestCase):
     pass
@@ -909,38 +865,54 @@ class TestDataFrameSanitizer(TestCase):
 
 class TestRecordFromIDParser(TestCase):    
 
-    def test_id_success(self):
-        engine = mem_engine()
-        record = write(
-            engine=engine,
+    engine = mem_engine()
+
+    def test_id_success_record(self):
+        record = Record(
             date=TODAY,
             amount=0.65,
             currency="foo",
             description="foo",
-            category = "foo")
-        inputs = [ "1", 1.0, 1 ]
+            category = "foo"
+        )
+        record.write(self.engine, quiet=True)
+        inputs = [ "1", 1 ]
         for uinput in inputs:
             with self.subTest(uinput=uinput):
-                self.assertEqual(record, parse_record_from_id(uinput, engine))
+                res = parse_record_from_id(uinput, self.engine, Record)
+                self.assertEqual(record, res)
+
+    def test_id_success_conversion(self):
+        conv = Conversion(
+            date=TODAY,
+            base_currency="USD",
+            base_amount=1.0,
+            target_currency="EUR",
+            target_amount=5.0,
+            description="foobarbaz"
+        )
+        conv.write(self.engine, quiet=True)
+        inputs = [ "1", 1 ]
+        for uinput in inputs:
+            with self.subTest(uinput=uinput):
+                res = parse_record_from_id(uinput, self.engine, Conversion)
+                self.assertEqual(conv, res)
 
     def test_uinput_not_int_parsable(self):
         uinput = "not-int"
-        engine = mem_engine()
         with self.assertRaises(ValueError):
-            parse_record_from_id(uinput, engine)
+            parse_record_from_id(uinput, self.engine, Record)
 
     def test_int_parsable_but_inexistent(self):
-        engine = mem_engine()
         uinput = "99999"
         with self.assertRaises(ValueError):
-            parse_record_from_id(uinput, engine)
+            parse_record_from_id(uinput, self.engine, Record)
 
     def test_type_error(self):        
-        bad_inputs = [ print, None ]
-        engine = mem_engine()
+        bad_inputs = [ print, None, float]
         for uinput in bad_inputs:
             with self.assertRaises(TypeError):
-                parse_record_from_id(uinput, engine)
+                parse_record_from_id(uinput, self.engine, Record)
 
 
 

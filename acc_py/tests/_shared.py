@@ -1,8 +1,7 @@
 from pathlib import Path
 from typing import Callable
 from unittest.mock import MagicMock, patch
-from db.model import Record, Base
-from sqlalchemy.orm import Session
+from db.model import Base
 from sqlalchemy import Engine, create_engine
 from datetime import date
 
@@ -10,9 +9,9 @@ from datetime import date
 
 #region ========================== variables ===================================
 
-TEST_FILE_DIRECTORY     =   Path(__file__).parent / "files"
-RUN_API_TEST            =   False
-TODAY                   =   date.today()
+TEST_FILE_DIRECTORY = Path(__file__).parent / "files"
+RUN_API_TEST = False
+TODAY = date.today()
 
 #endregion =====================================================================
 
@@ -65,13 +64,12 @@ def mem_engine() -> Engine:
     Base.metadata.create_all(engine)
     return engine
 
-def write(engine : Engine, *args, **kwargs) -> Record:
-    with Session(engine) as session:
-        record = Record(*args, **kwargs)
-        session.add(record)
-        session.commit()
-        session.refresh(record)
-    return record
+
+def session_mocker() -> MagicMock:
+    mock_session = MagicMock()
+    mock_session.__enter__ = MagicMock(return_value=mock_session)
+    mock_session.__exit__ = MagicMock(return_value=False)
+    return mock_session
 
 
 #endregion =====================================================================

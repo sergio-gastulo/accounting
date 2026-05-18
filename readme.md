@@ -64,7 +64,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 
 ## **TODO**
 - Implement duplicate of record (This allows faster writing methods, remember to forget ID since it's a 'duplicate').
-- When returning dataframe, pd.to_datetime should be called to cast dates automatically.
+- When returning dataframe, pd.to_datetime should be called to cast dates automatically (i.e., fix bug on datetime calls and csv casting).
 - Decide whether currencies should be upper or lower case.
 
 ### User Compatible TODOs

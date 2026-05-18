@@ -4,16 +4,15 @@ Some parsers import Record and Session from db.model: be careful.
 Basic functionality: take user input and return what is documented.
 All parsers should raise, and try as much as possible.
 """
-import re
+from typing import List
 from datetime import date, timedelta
-from pandas import Period
+import re
 from pathlib import Path
-import pandas as pd 
 from io import StringIO
+
+import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 from pandas.api.types import is_string_dtype, is_numeric_dtype
-from typing import List
-
 from sqlalchemy import Select, select, true, text, Engine
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -158,13 +157,13 @@ def parse_double_currency(
 
 def parse_period(
         period : str | int | pd.Period | None, 
-        default_period : Period,
-    ) -> Period:
+        default_period : pd.Period,
+    ) -> pd.Period:
     """
     Parses string and return valid pandas.Period class.
     """
     # --- type checking for default period---
-    if not isinstance(default_period, Period):
+    if not isinstance(default_period, pd.Period):
         raise TypeError(f"Invalid {default_period=}.")
 
     # --- handle types properly ---
@@ -172,7 +171,7 @@ def parse_period(
         return default_period + period
     if period is None:
         return default_period
-    if isinstance(period, Period):
+    if isinstance(period, pd.Period):
         return period
     if not isinstance(period, str):
         raise TypeError(f"Period must be str, int, Period or None.")
@@ -184,7 +183,7 @@ def parse_period(
     
     # --- handle year-month with no spaces: rely on pandas parser ---
     try: 
-        return Period(period, freq='M')
+        return pd.Period(period, freq='M')
     except (ValueError, TypeError):
         pass
 
@@ -197,7 +196,7 @@ def parse_period(
         case [year, "/" | "-", month] | [year, month]:
             year, month = map(int, (year, month))
             year += 2000 if year < 100 else 0
-            return Period(year=year, month=month, freq='M')
+            return pd.Period(year=year, month=month, freq='M')
 
         case [ ]:
             return default_period
@@ -400,11 +399,13 @@ def parse_csv_record(
         path : Path
 ) -> pd.DataFrame:
     """
-    Simple cast_csv_types wrapper. Reads content from path. 
+    Simple cast_csv_types wrapper. Reads content from path and returns 
+    casted dataframe.  
     """
     with open(path, 'r', encoding='utf-8') as file:
         text = file.read() 
-    return cast_csv_types(text)
+    df = cast_csv_types(text)
+    return df
 
 
 def sanitize_df(

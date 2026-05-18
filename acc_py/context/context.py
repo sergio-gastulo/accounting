@@ -17,7 +17,6 @@ from utilities.prompt import (
 from utilities.core import (
     _jopen,
     _jrepr,
-    _cast_color,
     soft_warning,
     confirm_action,
     ensure,
@@ -34,6 +33,7 @@ from utilities.core import (
     check_colors,
     get_exchange_dict,
     sha256,
+    pprint_categories
 )
 
 #region ========================== new types ===================================
@@ -255,6 +255,19 @@ class AccountingContext:
             "data" : save_dict
         }
         _jsave(save_dict, path)
+
+    def pprint_cats(self, whelp : bool = False) -> None:
+        """
+        Pretty-prints categories.
+
+        Parameters
+        ----------
+        whelp
+            - Defaults to False. 
+            - Prints each category and its description
+            - If True, print with help.
+        """
+        pprint_categories(self.categories_dict, self.fields, whelp)
 
 
 

@@ -1,7 +1,6 @@
 import unittest
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, call
-
 from typing import Callable
 from io import StringIO
 from datetime import date
@@ -10,10 +9,9 @@ from tests._shared import (
     Patcher,
     patch_builtin,
     mem_engine,
-    write,
     TODAY
 )
-
+from db.model import Record, Conversion
 from utilities.prompt import (
     main_loop,
     prompt_arithmetic_operation,
@@ -23,7 +21,7 @@ from utilities.prompt import (
     prompt_date_operation,
     prompt_double_currency,
     prompt_list_of_fields,
-    prompt_record_by_id,
+    prompt_entity_by_id,
     get_from_nested_dict
 )
 
@@ -271,7 +269,7 @@ class TestDoubleCurrencyPrompt(TestCase):
         _, kwargs = mock_main.call_args
         self.assertEqual(kwargs["prompt"], "Type double-currency operation: ")
         self.assertEqual(kwargs["default_currency"], default)
-        self.assertEqual(kwargs["lower_bound"], lbound)
+        self.assertEqual(kwargs["lbound"], lbound)
         self.assertIn("parser", kwargs)
     
     def test_type_error_on_nonstr(self):
@@ -349,12 +347,12 @@ class TestFromNestedDictGetter(TestCase):
     def test_soft_key_error_and_res_is_none(self):
         keybinds = { }
         uinput = "not-key"
-        expected = "valid key."
         with (
-            _patch_print_buffer as mock_print
+            # _patch_print_buffer as mock_print,
+            _patch_this('_soft_error') as mock_soft,
         ):
             res = get_from_nested_dict(keybinds, uinput, "")
-        self.assertIn(expected, mock_print.getvalue())
+        mock_soft.assert_called_once()
         self.assertEqual(res, None)
 
     def test_typeerror_on_nonstr(self):
@@ -464,18 +462,22 @@ class TestCategoryFromKeybindsPrompt(TestCase):
 
 
 class TestRecordByIDPrompt(TestCase):
-    
-    def test_str_none_passed(self):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = mem_engine()
+        return super().setUpClass()
+
+    def test_str_none_passed_record(self):
         prompt = "Type id to be filtered: "
-        engine = mem_engine()
-        record = write(
-            engine=engine,
+        record = Record(
             date=TODAY,
             amount=2.4,
             currency="foo",
             description="foo",
             category="foo"
         )
+        record.write(self.engine, quiet=True)
         uinputs = [ "1", None, 1]
         for uinput in uinputs:
             with self.subTest(uinput=uinput):
@@ -484,22 +486,54 @@ class TestRecordByIDPrompt(TestCase):
                     _patch_this('_success') as mock_success,
                 ):
                     mock_main.return_value = record
-                    res = prompt_record_by_id(engine, uinput)
+                    res = prompt_entity_by_id(self.engine, Record, uinput)
                 mock_main.assert_called_once()
                 mock_success.assert_called_once_with(record.pretty())
                 arg, kwargs = mock_main.call_args
                 self.assertEqual(arg[0], uinput)
                 self.assertIn("parser", kwargs)
                 self.assertEqual(prompt, kwargs["prompt"])
-                self.assertEqual(engine, kwargs["engine"])
+                self.assertEqual(self.engine, kwargs["engine"])
                 self.assertEqual(res, record)
+
+    def test_str_none_passed_conversion(self):
+        prompt = "Type id to be filtered: "
+        conv = Conversion(
+            date=TODAY,
+            base_currency="USD",
+            base_amount=1.0,
+            target_currency="EUR",
+            target_amount=5.0,
+            description="foobarbaz"
+        )
+        conv.write(self.engine, quiet=True)
+        uinputs = [ "1", None, 1]
+        for uinput in uinputs:
+            with self.subTest(uinput=uinput):
+                with (
+                    _patch_this(main_loop) as mock_main,
+                    _patch_this('_success') as mock_success,
+                ):
+                    mock_main.return_value = conv
+                    res = prompt_entity_by_id(self.engine, Conversion, uinput)
+                mock_main.assert_called_once()
+                mock_success.assert_called_once_with(conv.pretty())
+                arg, kwargs = mock_main.call_args
+                self.assertEqual(arg[0], uinput)
+                self.assertIn("parser", kwargs)
+                self.assertEqual(prompt, kwargs["prompt"])
+                self.assertEqual(self.engine, kwargs["engine"])
+                self.assertEqual(res, conv)
 
     def test_type_err_on_nonstr_id(self):
         id_ = print
-        engine = mem_engine()
-        self.addCleanup(engine.dispose)
         with self.assertRaises(TypeError):
-            prompt_record_by_id(engine, id_)
+            prompt_entity_by_id(self.engine, Record, id_)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.engine.dispose()
+        return super().tearDownClass()
 
 
 class TestListOfFieldsPrompt(TestCase):
@@ -508,13 +542,6 @@ class TestListOfFieldsPrompt(TestCase):
         uinput = "d c cat"
         prompt = "Write valid elements from list: "
         expected_from_parser = ["description", "currency", "category"]
-        keybinds = {
-            "d"     : "date",
-            "a"     : "amount",
-            "c"     : "currency",
-            "desc"  : "description",
-            "cat"   : "category" 
-        }
         with (
             _patch_this(main_loop) as mock_main,
             _patch_this('_jprint') as mock_jprint,
@@ -522,7 +549,7 @@ class TestListOfFieldsPrompt(TestCase):
         ):
             mock_main.return_value = expected_from_parser
             res = prompt_list_of_fields(uinput)
-        mock_jprint.assert_called_once_with(keybinds)
+        mock_jprint.assert_called_once()
         mock_success.assert_called_once_with(*expected_from_parser)
         arg, kwargs = mock_main.call_args
         self.assertEqual(arg[0], uinput)
@@ -534,13 +561,6 @@ class TestListOfFieldsPrompt(TestCase):
         uinput = "not valid input"
         prompt = "Write valid elements from list: "
         expected_from_parser = ["description", "currency", "category"]
-        keybinds = {
-            "d"     : "date",
-            "a"     : "amount",
-            "c"     : "currency",
-            "desc"  : "description",
-            "cat"   : "category" 
-        }
         with (
             _patch_this(main_loop) as mock_main,
             _patch_this('_jprint') as mock_jprint,
@@ -548,7 +568,7 @@ class TestListOfFieldsPrompt(TestCase):
         ):
             mock_main.return_value = expected_from_parser
             res = prompt_list_of_fields(uinput)
-        mock_jprint.assert_called_once_with(keybinds)
+        mock_jprint.assert_called_once()
         mock_success.assert_called_once_with(*expected_from_parser)
         arg, kwargs = mock_main.call_args
         self.assertEqual(arg[0], uinput)

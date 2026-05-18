@@ -50,7 +50,6 @@ from db.model import (
 #region ============================ utils  ====================================
 
 RECORD_TABLE_COLUMNS : List[str] = list(inspect(Record).c.keys())
-TODAY = date.today()
 
 def ensure_or_none(value : Any, *args : Type[Any]):
     ensure(value, *args, allow_none=True)
@@ -162,13 +161,44 @@ def write_record(obj : Any = None) -> None:
     obj.write(ctx.engine)
 
 
+def _render_template(
+        **kwargs
+) -> str:
+    """Render the content on the template to be edited."""
+
+    jinjatext = "{%if not date %}date, {% endif %}" \
+                "{%if not amount %}amount, {% endif %}" \
+                "{%if not description %}description, {% endif %}" \
+                "{%if not currency %}currency, {% endif %}" \
+                "{%if not category %}category, {% endif %}"
+    template: Template = Template(jinjatext)
+    text = template.render(**kwargs)
+    return text
+
+
+def _build_tmp(
+            text: str
+)-> Path:
+    """Populate temporary file and then launch it. Returns the tmp file path."""
+    
+    # create tmp file
+    fname = date.today().strftime("%Y-%m-%d")
+    path =  APPLICATION_DIRECTORY / f"csv_{fname}.csv"
+    with open(path, 'w') as file:
+        file.write(text)
+    
+    # call editor and return path after quit
+    print(f"Launching {path}.")
+    subprocess.call([ctx.editor, path])
+    return path
+
 
 def build_df(
         fixed_fields : Optional[FixedColumnsType] = None
 ) -> pd.DataFrame:
     """
     Create multiple Records in dataframe form.
-    Omitted `fixed_fields` are prompted interactively.
+    If `fixed_fields` is None, they're prompted interactively.
 
     Parameters
     ----------
@@ -186,35 +216,17 @@ def build_df(
     ensure_or_none(fixed_fields, dict)
     fixed_fields = prompt_column_value(ctx.keybinds, fixed_fields)
 
-    # --- construct template path and content retrieval ---
-    template_fname  = "csv_metadata.j2"
-    template_dir    = "templates"
-    template        = Path(__file__).parent.parent / template_dir / template_fname
-    content         = template.read_text()
-    
-    # --- construction of unfixed columns to be populated on template ---
-    excluded        = set(fixed_fields) | {"id"}
-    dynamic_cols    = ', '.join(sorted(set(RECORD_TABLE_COLUMNS) - excluded))
-    text_template   = Template(content).render(cols=dynamic_cols)
+    text = _render_template(**fixed_fields)
+    tmp = _build_tmp(text)
 
-    # --- set file template ---
-    today_str = TODAY.strftime("%Y-%m-%d")
-    temp_file =  APPLICATION_DIRECTORY / f"csv_{today_str}.csv"
-    with open(temp_file, 'w') as file:
-        file.write(text_template)
-    
-    # --- call editor ---
-    print(f"Launching {temp_file}.")
-    subprocess.call([ctx.editor, temp_file])
-
-    # -------------------------- dataframe management --------------------------
-    df = parse_csv_record(temp_file)
+    # fetch dataframe
+    df = parse_csv_record(tmp)
     for column, value in fixed_fields.items():
         df[column] = value
     df.date = pd.to_datetime(df.date)
     
     # --- if parse was successful, remove file and return ---
-    temp_file.unlink(missing_ok=True)
+    tmp.unlink(missing_ok=True)
     return df
 
 

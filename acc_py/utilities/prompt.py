@@ -274,7 +274,6 @@ def prompt_list_of_fields(
     }
     def _parser( unsplit_cols : str ) -> List[str]:
         """Takes user input and splits it, while calling core parser."""
-        nonlocal keybinds
         split = unsplit_cols.strip().split()
         res =  [    parse_element_from_dict(col, keybinds)
                     for col in split                        ]

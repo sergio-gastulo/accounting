@@ -4,20 +4,22 @@ Should not import **ANY** hand-written acccli-related code.
 It contains a variety of functions that are used in context.py, parser.py 
 and prompt.py
 """
-from typing import List, Tuple, Any, Type, Callable, TypeAlias, Optional
-from pathlib import Path
 import json
 import socket
 import urllib
 import requests
-from os import environ
 import hashlib
+from pathlib import Path
 from datetime import datetime
+from os import environ
+from typing import (
+    List, Tuple, Any, Type, Callable, TypeAlias, Optional
+)
 
 import pandas as pd
+from pandas.api.types import is_string_dtype
 from tkinter.filedialog import askopenfilename
 from tkinter.colorchooser import askcolor
-from pandas.api.types import is_string_dtype
 from matplotlib.colors import is_color_like, to_rgb
 
 
@@ -33,24 +35,24 @@ KeybindDictType = dict[str, str | dict[str, str]]
 
 #region ======================= global-variables ===============================
 
-# --- directories to save files to ---
+# directories to save files to
 data_dir = ".data-acccli"
 APPLICATION_DIRECTORY = Path().home() / data_dir
 APPLICATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
-# --- cached directory that can be deleted directly ---
+# cached directory that can be deleted directly
 cache = "cached"
 APPLICATION_CACHED_DIRECTORY = APPLICATION_DIRECTORY / cache
 APPLICATION_CACHED_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
-# --- saving directory for dumping ---
+# saving directory for dumping
 storage = "storage"
 APPLICATION_STORAGE_DIRECTORY = APPLICATION_DIRECTORY / storage
 APPLICATION_STORAGE_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
-# --- color dictionary to print nicely ---
-# --- https://gist.github.com/minism/1590432 ---
+# color dictionary to print nicely
+# https://gist.github.com/minism/1590432
 class fg:
     black   = '\033[30m'
     red     = '\033[31m'
@@ -83,7 +85,7 @@ def _jprint(d : dict):
     print(_jrepr(d))
 
 def _jdump(d : dict, path : Path) -> None:
-    """Save dict to path."""
+    """Save dict to path. Ensures that d is a dict."""
     ensure(d, dict)
     with open(path, 'w') as file:
         json.dump(d, file, indent=4)
@@ -98,7 +100,7 @@ def soft_warning(s : str) -> None:
     """Print soft warning."""
     print(f"{fg.red}{s}{fg.end}")
 
-
+# TODO: test this !!!
 def ensure(
         value : Any, 
         *types : Type[Any], 
@@ -165,45 +167,42 @@ def import_fields(
     """
     field_dict = _jopen(path)
     errs = []
-    keys_ensure = ['key', 'shortname', 'description']
+    ensured_keys = ['key', 'shortname', 'description']
 
     if field_dict in [ [ ], [ { } ] ]: 
         raise ValueError("Empty category dict.")
 
     for field in field_dict:
-        _raw_keys_check(field, keys_ensure, errs)
+        _raw_keys_check(field, ensured_keys, errs)
         subcat = field.get('subcategories')
         if subcat:
             for item in subcat:
-                _raw_keys_check(item, keys_ensure, errs)
+                _raw_keys_check(item, ensured_keys, errs)
     if errs:
         raise ValueError(f"Invalid field dictionary. Errors: {errs}.")    
     return field_dict
 
 
 # TODO: test this
-def pprintfunc(func: callable) -> None:
-    """Nice documentation printer."""
-    cyan_str = fg.cyan
-    reset_str = fg.reset
-
-    print(f'{cyan_str}Function name:{reset_str}\n{func.__name__}\n')
-
-    doc = func.__doc__
-    print(f'{cyan_str}Documentation:{reset_str}\n{doc}')
+def pprintfunc(func: Callable) -> None:
+    """Simple documentation printer."""
+    print(f'{fg.cyan}Function name:{fg.reset}\n{func.__name__}\n')
+    print(f'{fg.cyan}Documentation:{fg.reset}\n{func.__doc__}')
 
 
 def pprint_df(
         df : pd.DataFrame,
-        header : str | None = None
+        header : Optional[str] = None
 ) -> None:
-    """Pretty df printer."""    
+    """
+    Pretty df printer. Prints index only if non-default. 
+    """    
     if "description" in df.columns:
         if is_string_dtype(df.description):
             df.description = df.description.str[:100]
 
-    has_index = (df.index.dtype != int or df.index.name == 'id')
-    print_df = df.to_markdown(index=has_index, tablefmt="outline")
+    is_default = (df.index.dtype == int and df.index.name is None)
+    print_df = df.to_markdown(index= not is_default, tablefmt="outline")
     
     if header:
         line = print_df.partition('\n')[0]
@@ -236,21 +235,20 @@ def get_help_dictionary(
 ) -> dict[str, str]:
     """Returns help-dictionary from fields_dict."""
 
-    # TODO: assert FieldDictType clearly
-    if not isinstance(fields_dict, List):
+    if not (isinstance(fields_dict, List) and isinstance(fields_dict[0], dict)):
         raise TypeError(f"{fields_dict} is not a list of dictionaries.")
 
     res = {}
     for category_item in fields_dict:
         res.update(
-            # --- no need to check for shortname they're checked at 
-            # --- ctx construction (import_fields)
+            # no need to check for shortname they're checked at 
+            # ctx construction (import_fields)
             { category_item['shortname'] : category_item.get('help', '') }
         )
         subcategory_item = category_item.get('subcategories')
         if subcategory_item:
             for item in subcategory_item:
-                # --- no need for type-checking here neither ---
+                # no need for type-checking here neither
                 res.update( { item['shortname'] : item.get('help', '')} )
     
     return res
@@ -261,56 +259,12 @@ def pprint_categories(
         fields_dict : FieldDictType,
         help : bool = False
 ) -> None:
-    """
-    Print all categories in a readable, formatted way.
-
-    Parameters
-    ----------
-    categories_dict : dict[str, str]
-        A mapping of category names to their descriptions.
-        Each key is a category name, and each value is the category's
-        human-readable label or explanation.
-
-    field_json_path : Path
-        Path to the JSON file from which the categories originate.
-        Used for reference only; the function does not modify the file.
-
-    help : bool, optional
-        If False (default), print each category and its description
-        in a clean, aligned, human-friendly format.
-        If True, print extended help information for all available
-        categories, including additional notes or hints contained in the
-        descriptions.
-
-    Returns
-    -------
-    None
-        This function only prints formatted output and does not return a value. 
-    """
     if not help:
         _jprint(categories_dict)
         return
     
-    help_dict = get_help_dictionary(fields_dict)
-    _jprint(help_dict)
-
-
-# TODO: is this really being used somewhere?
-def get_all_categories(
-        fields_dict : FieldDictType
-) -> List[str] : 
-    """Retrieves a list of all categories in fields_dict."""
-    res = []
-    for item in fields_dict:
-        # --- shortname guaranteed in the ctx parser ---
-        res.append(item['shortname']) 
-        collection = item.get('subcategories')
-        if collection:
-            for subitem in collection:
-                # --- sub-items' shortnames are checked in the parser too ---
-                res.append(subitem.get('shortname'))
-
-    return res
+    with_help = get_help_dictionary(fields_dict)
+    _jprint(with_help)
 
 
 def fetch_category_dictionary(
@@ -322,14 +276,14 @@ def fetch_category_dictionary(
     res = {}
     for item_dict in field_dict:
         subcategories = item_dict.get("subcategories")
-        # --- both shortname-description guaranteed in the ctx parser ---
+        # both shortname-description guaranteed in the ctx parser
         if subcategories:
             for item in subcategories:
                 res.update(
                     { item["shortname"] : item["description"] }
                 )
         else:
-            # --- here too ---
+            # here too
             res.update(
                 { item_dict["shortname"] : item_dict["description"] }
             )
@@ -343,10 +297,10 @@ def _sort_dict(d : dict[str, Any]) -> dict[str, Any]:
 def fetch_keybind_dict(
         field_dict : FieldDictType
 ) -> KeybindDictType:
-    """Constructs keybind dict from fields_dict."""
+    """Constructs keybind dictionary dict from fields_dict."""
     keybind_dict = {}
 
-    # --- no KeyErrors since field_dict is first ensured on import_fields ---
+    # no KeyErrors since field_dict is first ensured on import_fields
     for item_dict in field_dict:
         subcategories = item_dict.get("subcategories")
         if subcategories:
@@ -366,7 +320,7 @@ def _fetch_exchange(currency : str) -> dict[str, int | float]:
     """
     Fetch full list of currency exchanges associated to currency.
     """
-    # --- https://github.com/fawazahmed0/exchange-api ---
+    # https://github.com/fawazahmed0/exchange-api
     url_bases = [
         "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/",
         "https://latest.currency-api.pages.dev/v1/currencies/" 
@@ -378,7 +332,7 @@ def _fetch_exchange(currency : str) -> dict[str, int | float]:
         url_request = urllib.parse.urljoin(url, endpoint)
         response = requests.get(url_request)
         if response.ok :
-            # --- res example: https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/pen.json ---
+            # res example: https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/pen.json
             res = json.loads(response.content)
             res = res[currency]
             return res
@@ -417,11 +371,11 @@ def fetch_exchange_rates(
     non-existent. Type checks are included. 
     """
     currency = _currency_type_check(currency)
-    # --- if memoized, call it ---
+    # if memoized, call it
     if currency in exchange_memo:
         return exchange_memo[currency]
 
-    # --- if not, then update exchange_memo ---
+    # if not, then update exchange_memo
     res = _fetch_exchange(currency)
     exchange_memo.update( { currency : res } )
     return res
@@ -435,15 +389,15 @@ def get_exchange_rate(
     Gets exchange rate between curr_1 and curr_2. Calls fetch_exchange_rate
     under the hood. Type checks are implemented.
     """    
-    # --- type checking ---
+    # type checking
     currency_1 = _currency_type_check(currency_1)
     currency_2 = _currency_type_check(currency_2)
 
-    # --- unnecessary fetch is prevented ---
+    # unnecessary fetch is prevented
     if currency_1 == currency_2:
         return 1.0
 
-    # --- fetch full exchange rates, if curr_2 does not exist, raise err ---
+    # fetch full exchange rates, if curr_2 does not exist, raise err
     res = fetch_exchange_rates(currency_1)
     if currency_2 in res:
         return res[currency_2]
@@ -467,7 +421,7 @@ def build_exchange(curr_list : List[str]) -> ExchangeDictType:
 # NOTE: delete quiet? refactor tests.core.TestExchangeDictionaryGetter
 def get_exchange_dict(
         curr_list : List[str],
-        use_cache : bool | None = False,
+        use_cache : bool = False,
         quiet : bool = False
 ) -> ExchangeDictType:
     """
@@ -475,19 +429,19 @@ def get_exchange_dict(
     from cache. If failure, it type-checks curr_list and builds ex-dict from it.
     """
     
-    # --- try to load from cache: whenever no internet is available or
-    # --- explicitely passed as option
+    # try to load from cache: whenever no internet is available or
+    # explicitely passed as option
     name = "exchange.json"
     cached_path = APPLICATION_CACHED_DIRECTORY / name
     if (use_cache and cached_path.exists()) or (not has_internet()):
         res = _jopen(cached_path)
         return res
 
-    # --- ensure type check and build exchange dict ---
+    # ensure type check and build exchange dict
     curr_list = check_currency_list(curr_list)
     curr_exchange = build_exchange(curr_list)
     
-    # --- load to cache and print if asked ---
+    # load to cache and print if asked
     _jdump(curr_exchange, cached_path)
     if not quiet:
         _jprint(curr_exchange)
@@ -501,7 +455,7 @@ def _ask_editor() -> Path:
     title = "Select your preferred text editor."
     allowed = [("Exe", "*.exe")]
     
-    # --- you ain't leaving unless a valid .exe is provided ---
+    # you ain't leaving unless a valid .exe is provided
     while not editor_path:
         print("An editor file is mandatory for editing, please pick one.")
         editor_path = askopenfilename(
@@ -515,12 +469,12 @@ def _ask_editor() -> Path:
 def check_editor(editor_path : Path | str | None) -> Path:
     """Check if path is a valid .exe"""
 
-    # --- wrap Path type ---
+    # wrap Path type
     if isinstance(editor_path, str):
         editor_path = Path(editor_path)
 
     if isinstance(editor_path, Path):
-        # --- check if it's a valid executable ---
+        # check if it's a valid executable
         if editor_path.exists() and editor_path.suffix == ".exe":
             return editor_path
         return _ask_editor()
@@ -533,10 +487,10 @@ def check_editor(editor_path : Path | str | None) -> Path:
 def _single_cord_converter(c : int | float) -> int | float:
     """Quick try-to-convert for a single int | float."""
     
-    # --- 8 bit base integer check ---
+    # 8 bit base integer check
     if isinstance(c, int) and 0 <= c <= 255:
         return c / 255.
-    # --- [0, 1]^3 check ---
+    # [0, 1]^3 check
     elif isinstance(c, float) and 0 <= c <= 1:
         return c
     raise ValueError(f"Component {c=} failed RGB conversion.")
@@ -561,11 +515,11 @@ def _cast_color(color: Any) -> RGBType | str:
     try:
         return convert_rgb(color)
     except TypeError as e:
-        # --- Translating TypeError to ValueError
-        # --- Think about it: "not a color" is technically a valid type since
-        # --- matplotlib actually accepts strings as colors e.g. 'red'
-        # --- However, it is unparsable -> what happens when can't be parsed?
-        # --- ValueError! (error message is preserved though)
+        # Translating TypeError to ValueError
+        # Think about it: "not a color" is technically a valid type since
+        # matplotlib actually accepts strings as colors e.g. 'red'
+        # However, it is unparsable -> what happens when can't be parsed?
+        # ValueError! (error message is preserved though)
         raise ValueError(repr(e))
 
 
@@ -595,11 +549,11 @@ def check_colors(
     ncolors = len(colors)
     ncurrs = len(currencies)
 
-    # --- numer of excesive colors is simply ignored ---
+    # numer of excesive colors is simply ignored
     if ncolors > ncurrs:
         return _build_color_dict(currencies, colors[:ncurrs])
     
-    # --- more colors must be passed ---
+    # more colors must be passed
     elif ncolors < ncurrs:
         res = _build_color_dict(currencies[:ncolors], colors)
         for currency in currencies[ncolors:]:
@@ -607,7 +561,7 @@ def check_colors(
             res.update( { currency : _cast_color(color) } )
         return res
     
-    # --- same len? just thread! ---
+    # same len? just thread!
     return _build_color_dict(currencies, colors)
 
 
@@ -623,7 +577,7 @@ def sha256(file_path : Path) -> str:
     return hash_func.hexdigest()
 
 
-def export(
+def fexport(
         obj : pd.DataFrame | pd.Series | dict, 
         p : Optional[Path | str] = None, 
         **kwargs
@@ -632,23 +586,30 @@ def export(
     Quick exporter to supported extensions: csv, json and xml.
 
     Arguments
-    ---------
+   ------
     obj 
         Object to be exported. Only accepts `DataFrame`, `Series` and `dict`.
     p
-        Path to export obj to.
+        Path to export obj to. Resolves to APPLICATION_STORAGE_DIRECTORY / 
+        timestamp.json if none is provided.
     **kwargs
         Arugments that are passed to to_json, to_csv, ...
+
+    Notes
+   --
+    For exporting dictionaries, only json support is allowed in the meantime.
     """
+
     if p is None:
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         fname = f"_dumped_{now}.json"
         p = APPLICATION_STORAGE_DIRECTORY / fname
+    if isinstance(p, str) : p = Path(p)
 
     extension = p.suffix.lower().lstrip(".")
     supported = {"csv", "json", "xml"}
     if extension not in supported:
-        raise ValueError(f"Path {p} extension is not in {supported}.")
+        raise ValueError(f"Path extension({p}) is not in {supported}.")
 
     if isinstance(obj, pd.DataFrame | pd.Series):
         savemap = f"to_{extension}"
@@ -661,29 +622,35 @@ def export(
         if extension == ".json":
             _jdump(obj, p)
         else:
-            raise ValueError(f"Extension {extension} is not valid for a dictionary to be converted to.")
-    
+            err = f"Extension {extension} is not supported for dictionaries."
+            raise ValueError(err)
+    else:
+        err = f"Argument {obj=} is not a dictionary, Series or DataFrame."
+        raise TypeError(err)
 
-def fetch(
-        p : Path,
+
+def fimport(
+        p : Path | str,
         **kwargs
 ) -> pd.DataFrame:
     """
     Quick importer from supported extensions: csv, json and xml.
 
     Arguments
-    ---------
+   ------
     p
         Path to fetch data from.
     **kwrags
         Keyword arguments that are passed to read_csv, read_json, etc.
 
     Returns
-    -------
+   ----
     df
         DataFrame that is returned via pd.read_csv, ...
         No further sanitization or parsing is performed.
     """
+    if isinstance(p, str):
+        p = Path(p)
     extension = p.suffix.lower().lstrip(".")
     supported = {"csv", "json", "xml"}
     if extension not in supported:
@@ -693,3 +660,10 @@ def fetch(
     savemap = getattr(pd, savemap)
     df = savemap(p, encoding='utf-8', **kwargs)
     return df
+
+
+def now() -> None:
+    """Print current time in '%H:%M:%S'."""
+    fmt = '%H:%M:%S'
+    time = datetime.now(fmt)
+    print(time)

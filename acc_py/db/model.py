@@ -14,12 +14,20 @@ Base = declarative_base()
 
 class Entity:
 
+    def __eq__(self, other : Any):
+        same_type = isinstance(other, type(self))
+        if not same_type:
+            return False
+        return (self.id == other.id)
+
+
+    # TODO: check if this is basically just a repr and should be renamed
     def pretty(self) -> str:
         """Default class prettier. Returns all attributes with indentation."""
         cols = self.__table__.columns.keys()
         values = {col: getattr(self, col) for col in cols}
         attrs = "\n".join(f"  {k}={v}" for k, v in values.items())
-        self_type = type(self).__name__.capitalize()
+        self_type = type(self).__name__
         wrap = f"{self_type}(\n{attrs}\n)" 
         return wrap
 
@@ -27,29 +35,50 @@ class Entity:
         """Default pretty printer, prints self.pretty()"""
         print(self.pretty())
 
-    def write(self, engine : Engine, label : Optional[str] = None) -> None:
+    def write(
+            self, 
+            engine : Engine, 
+            label : Optional[str] = None,
+            quiet : bool = False
+    ) -> None:
         """
-        General default writer. Checks engine type. Does not ask for commit. 
-        Pretty prints entity before commit.
+        Writes to database without asking for commit. 
+        Checks `engine`, `label` and `quiet` type. 
+        
+        Arguments
+        ---------
+        `engine`
+            sqlalchemy.Engine object to generate a session from to write Record 
+            | Conversion to. Does not perform any other assumption.
+        `label`
+            Simple label that is passed to print before showing entity's pretty
+            str
+        `quiet`
+            Controls if both label and entity.pretty() are printed to sys.stdout.
+            Defaults to False (yes, print, please!)
         """
         # --- Important: type(ctx.engine) in Engine works
         # --- but isinstance(ctx.engine, Engine) is false
         # --- ensurer works for this case 
         ensure(engine, Engine)
+        ensure(label, str, allow_none=True)
+        ensure(quiet, bool)
 
-        # --- write ---
         if label is None:
             label = "The following record has been added to database:"
+        # --- write ---
         with Session(engine) as session:
             session.add(self)
             session.commit()
-            print(label)
-            self.pprint()
+            session.refresh(self)
+            if not quiet:
+                print(label)
+                self.pprint()
 
     def delete(self, engine : Engine) -> None:
         """
-        General default deleter. Checks engine type and does not ask for commit. 
-        Prints soft_warning message.
+        Deletes a Record | Conversion directly without asking for commit. 
+        Prints soft_warning message before deleting.
         """
         ensure(engine, Engine)
         soft_warning("Warning: you may lose data permanently.")
@@ -58,19 +87,24 @@ class Entity:
             session.commit()
 
     def duplicate(self):
+        """
+        Returns a copy of `self`, removing id to prevent from overwriting data
+        to database if accidentally written to it.
+        """
         new = deepcopy(self)
         new.id = None
-        return new        
+        return new
+
 
 class Record(Entity, Base):
 
     __tablename__ = "cuentas"
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    date: Mapped[datetime.date] = mapped_column(Date)
-    amount: Mapped[float] = mapped_column(Numeric(10, 2))
-    currency: Mapped[str] = mapped_column(String(3))
-    description: Mapped[str] = mapped_column(String,nullable=False)
+    date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
+    amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
     category: Mapped[str] = mapped_column(nullable=False)
 
     def __repr__(self) -> str:
@@ -79,12 +113,6 @@ class Record(Entity, Base):
             f"amount={self.amount!r}, currency={self.currency!r}, "
             f"description={self.description!r}, category={self.category!r})"
         )
-    
-    def __eq__(self, other : Any):
-        same_type = isinstance(other, Record)
-        if not same_type:
-            return False
-        return (self.id == other.id)
 
 
 class Conversion(Entity, Base):
@@ -92,11 +120,11 @@ class Conversion(Entity, Base):
     __tablename__ = "conversions"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    date: Mapped[datetime.date] = mapped_column(Date)
-    base_currency: Mapped[str] = mapped_column(String(3))
-    base_amount: Mapped[float] = mapped_column(Numeric(10, 2))
-    target_currency: Mapped[str] = mapped_column(String(3))
-    target_amount: Mapped[float] = mapped_column(Numeric(10, 2))
+    date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
+    base_currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    base_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    target_currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    target_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     description: Mapped[str] = mapped_column(String,nullable=False)
 
     def __repr__(self) -> str:
@@ -112,7 +140,7 @@ class Conversion(Entity, Base):
         )
     
     def pretty(self, inverted : bool = True) -> str:
-        """Overridden class prettier to show exchange rate as well."""
+        """Overwritten class prettier to show exchange rate as well."""
         ensure(inverted, bool)
         rate = self.target_amount / self.base_amount
         if inverted:
@@ -123,7 +151,6 @@ class Conversion(Entity, Base):
             f" @ {rate:.4f} {self.base_currency}/{self.target_currency}"
             f"\n         {self.description}"
         )
-
 
 
 def create_tables(engine: Engine) -> None:

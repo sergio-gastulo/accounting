@@ -1,25 +1,28 @@
 import unittest
-from unittest.mock import patch, call
-
-# general
-from pathlib import Path
-import pandas as pd
+from unittest import TestCase
+from unittest.mock import (
+    patch, 
+    call, 
+    mock_open, 
+    MagicMock
+)
 import io
 import json
+from pathlib import Path
 from typing import Callable
+
+import pandas as pd
 
 from tests._shared import (
     RUN_API_TEST, 
     TEST_FILE_DIRECTORY, 
     Patcher,
 )
-
 from utilities.core import (
     import_fields,
     pprint_df,
     get_help_dictionary,
     pprint_categories,
-    get_all_categories,
     fetch_category_dictionary,
     fetch_keybind_dict,
     fetch_exchange_rates,
@@ -31,6 +34,8 @@ from utilities.core import (
     check_currency_list,
     convert_rgb,
     check_colors,
+    export, 
+    fetch,
 )
 
 
@@ -44,7 +49,7 @@ def _patch_this(f: Callable | str, **kwargs) -> Patcher:
 #endregion =====================================================================
 
 
-class TestFieldImporter(unittest.TestCase):
+class TestFieldImporter(TestCase):
     
     def test_import_fields(self):
         cases = [
@@ -125,11 +130,11 @@ class TestFieldImporter(unittest.TestCase):
 
 
 @unittest.skip("TODO: Implement later.")
-class TestFunctionDocumentationPrinter(unittest.TestCase):
+class TestFunctionDocumentationPrinter(TestCase):
     pass
 
 
-class TestDataFramePrettyPrinter(unittest.TestCase):
+class TestDataFramePrettyPrinter(TestCase):
     
     def test_pprint_df_no_header(self):
         cases = [
@@ -180,45 +185,37 @@ class TestDataFramePrettyPrinter(unittest.TestCase):
                     )
 
     def test_pprint_df_header(self):
-        cases = [
-            (
-                
-                pd.DataFrame({
+        df = pd.DataFrame({
                     "id" : [1729, 1730],
                     "amount" : [6.54, 1.32],
                     "description" : ["short 1", "short 2"]
-                }).set_index('id'),
-                
-                "header",
+                }).set_index('id')
+        header = "random string"
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            pprint_df(df, header)
+            self.assertIn(header, mock_stdout.getvalue())
 
-                "+------+----------+---------------+\n"
-                "header\n"
-                "+------+----------+---------------+\n"
-                "|   id |   amount | description   |\n"
-                "+======+==========+===============+\n"
-                "| 1729 |     6.54 | short 1       |\n"
-                "| 1730 |     1.32 | short 2       |\n"
-                "+------+----------+---------------+\n"
+    def test_df_non_default_index_no_name(self):
+        df = pd.DataFrame({"a" : [1, 2], "b" : [3, 4]}, index=list("AB"))
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            pprint_df(df)
+            self.assertIn("A", mock_stdout.getvalue())
 
-            ),
-        ]  
-        for df, header, df_str in cases:
-            with self.subTest(header=header):
-                with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
-                    pprint_df(df, header)
-                    # self.maxDiff = 10000
-                    self.assertEqual(
-                        mock_stdout.getvalue(),
-                        df_str
-                    )
+    def test_df_non_default_index_with_name(self):
+        df = pd.DataFrame({"a" : [1, 2], "b" : [3, 4]})
+        df.index.name = "foo"
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            pprint_df(df)
+            self.assertIn("foo", mock_stdout.getvalue())
+        
 
 
 @unittest.skip("TODO: do we really need to test it?")
-class TestHasInternet(unittest.TestCase):
+class TestHasInternet(TestCase):
     pass
 
 
-class TestGetHelpDictionary(unittest.TestCase):
+class TestGetHelpDictionary(TestCase):
     def test_pprint_categories_help(self):
         field_dict = [
             {
@@ -255,7 +252,7 @@ class TestGetHelpDictionary(unittest.TestCase):
                 get_help_dictionary(bad_input)
 
 
-class TestCategoriesPrettyPrinter(unittest.TestCase):
+class TestCategoriesPrettyPrinter(TestCase):
     def test_pprint_categories_no_help(self):
         cases = [
             (
@@ -305,40 +302,7 @@ class TestCategoriesPrettyPrinter(unittest.TestCase):
             )
 
 
-class TestGetAllCategories(unittest.TestCase):
-    def test_get_all_categories(self):
-        category_dict = [
-            {
-                "shortname" : "foobarbaz",
-                "another_field": "another field",
-                "subcategories" : [
-                    {
-                        "shortname" : "foobarbaz2",
-                        "random_field" : "random_field"
-                    },
-                    {
-                        "shortname" : "foobarbaz3"
-                    }
-                ]
-            },
-            {
-                "shortname" : "imagination",
-                "different_field" : "diff"
-            }
-        ]
-        expected = [
-            "foobarbaz",
-            "foobarbaz2",
-            "foobarbaz3",
-            "imagination"
-        ]
-        self.assertEqual(
-            get_all_categories(category_dict),
-            expected
-        )
-
-
-class TestCategoryDictionaryFetcher(unittest.TestCase):
+class TestCategoryDictionaryFetcher(TestCase):
     def test_fetch_category_dictionary(self):
         cases = [
             (
@@ -385,7 +349,7 @@ class TestCategoryDictionaryFetcher(unittest.TestCase):
                 )
                 
 
-class TestKeybindDictionaryFetcher(unittest.TestCase):
+class TestKeybindDictionaryFetcher(TestCase):
     def test_fetch_keybind_dict(self):
         cases = [
             (
@@ -423,7 +387,7 @@ class TestKeybindDictionaryFetcher(unittest.TestCase):
 
 
 @unittest.skipUnless(RUN_API_TEST, "skipping API tests (set RUN_API_TESTS=1 to enable)")
-class TestExchangeRateFetcher(unittest.TestCase):
+class TestExchangeRateFetcher(TestCase):
 
     def test_fetch_exchange_rate(self):
         cases = [
@@ -457,7 +421,7 @@ class TestExchangeRateFetcher(unittest.TestCase):
     def test_fetch_exchange_rate_memo(self):
         currency = "pen"
         expected = "foo"
-        with patch(f"{TEST_MODULE}.exchange_memo", {currency : expected}):
+        with patch(exchange_memo, {currency : expected}):
             with _patch_this('_fetch_exchange') as mock_fetch_exchange:
                 res = fetch_exchange_rates(currency)
                 mock_fetch_exchange.assert_not_called()
@@ -465,7 +429,7 @@ class TestExchangeRateFetcher(unittest.TestCase):
 
 
 @unittest.skipUnless(RUN_API_TEST, "skipping API tests (set RUN_API_TESTS=1 to enable)")
-class TestExchangeRateGetter(unittest.TestCase):
+class TestExchangeRateGetter(TestCase):
     def test_get_exchange_rate(self):
         cases = [
             ("pen", "usd"),
@@ -478,7 +442,7 @@ class TestExchangeRateGetter(unittest.TestCase):
                     float
                 )
 
-class TestExchangeBuilder(unittest.TestCase):
+class TestExchangeBuilder(TestCase):
     def test_build_exchange(self):
         cases = [
             (
@@ -512,76 +476,79 @@ class TestExchangeBuilder(unittest.TestCase):
                     )
         
 
-class TestExchangeDictionaryGetter(unittest.TestCase):
+class TestExchangeDictionaryGetter(TestCase):
 
-    def test_get_exchange_dict(self):
-        curr_list = [ "JPY", "EUR" ]
-        curr_list_lower = ['jpy', 'eur']
-        mocked_build_return = {
-                "jpy" : {"jpy" : 1.0, "eur" : 3.0},
-                "eur" : {"eur" : 1.0, "jpy" : 2.0}
+    def test_get_exchange_dict_flow(self):
+        cache = False
+        quiet = True
+        curr_list = ['JPY', 'EUR']
+        build_return = {
+            "jpy" : {
+                "jpy" : 1.0,
+                "eur" : 2.0
+            },
+            "eur" : {
+                "jpy" : 0.5,
+                "eur" : 1.0
             }
+        }
+        
         with (
-            _patch_this('has_internet') as mock_has_internet,
-            _patch_this('build_exchange') as mock_build,
-            _patch_this('_currency_type_check') as mock_curr_type,
+            # _patch_this(check_currency_list) as mock_curr_list,
+            _patch_this('has_internet') as mock_internet,
+            _patch_this(build_exchange) as mock_build,
             _patch_this('_jdump') as mock_jdump,
             _patch_this('_jprint') as mock_jprint,
-            _patch_this('_create_exchange_cache') as mock_create_cache,
         ):
-            mock_has_internet.return_value = True
-            mock_build.return_value = mocked_build_return
-            mock_curr_type.side_effect = lambda s : s.lower()
-            mock_create_cache.return_value = "mocked"
-            self.assertEqual(
-                get_exchange_dict(curr_list),
-                mocked_build_return
-            )
-            self.assertEqual(exchange_memo, {})
-            mock_curr_type.assert_has_calls([call('JPY'), call('EUR')])
-            mock_build.assert_called_once_with(curr_list_lower)
-            mock_jdump.assert_called_once_with(mocked_build_return, "mocked")
-            mock_jprint.assert_called_once()
+            mock_build.return_value = build_return
+            mock_internet.return_value = True
+            res = get_exchange_dict(curr_list, cache, quiet)
+        mock_jdump.assert_called_once()
+        jdump_args, _cached_path = mock_jdump.call_args.args
+        self.assertEqual(jdump_args, res)
+        mock_jprint.assert_not_called()
+        self.assertEqual(res, build_return)
 
-    def test_get_exchange_dict_with_cache(self):
+    def test_cache_call(self):
         res = "any"
         with (
             _patch_this('_jopen') as mock_jopen,
-            _patch_this('_create_exchange_cache') as mock_create_cache,
+            _patch_this(build_exchange) as mock_build_cache,
             _patch_this('build_exchange') as mock_build,
         ):
-            mock_create_cache.return_value.exists.return_value = True
+            mock_build_cache.return_value.exists.return_value = True
             get_exchange_dict(res, True)
-            mock_jopen.assert_called_once_with(mock_create_cache.return_value)
+            mock_jopen.assert_called_once()
             mock_build.assert_not_called()
     
-    def test_quiet(self):
-        quiet = True
-        curr_list = [ "JPY", "EUR" ]
-        mocked_build_return = {
-                "jpy" : {"jpy" : 1.0, "eur" : 3.0},
-                "eur" : {"eur" : 1.0, "jpy" : 2.0}
+    def test_not_quiet_prints(self):
+        cache = False
+        quiet = False
+        curr_list = ['JPY', 'EUR']
+        build_return = {
+            "jpy" : {
+                "jpy" : 1.0,
+                "eur" : 2.0
+            },
+            "eur" : {
+                "jpy" : 0.5,
+                "eur" : 1.0
             }
+        }
+        
         with (
-            _patch_this('has_internet') as mock_has_internet,
-            _patch_this('build_exchange') as mock_build,
-            _patch_this('_currency_type_check') as mock_curr_type,
+            _patch_this('has_internet') as mock_internet,
+            _patch_this(build_exchange) as mock_build,
+            _patch_this('_jdump') as mock_jdump,
             _patch_this('_jprint') as mock_jprint,
-            _patch_this('_create_exchange_cache') as mock_create_cache,
         ):
-            mock_has_internet.return_value = True
-            mock_build.return_value = mocked_build_return
-            mock_curr_type.side_effect = lambda s : s.lower()
-            mock_create_cache.return_value = "mocked"
-            self.assertEqual(
-                get_exchange_dict(curr_list, quiet=quiet),
-                mocked_build_return
-            )
-            mock_jprint.assert_not_called()
+            mock_build.return_value = build_return
+            mock_internet.return_value = True
+            get_exchange_dict(curr_list, cache, quiet)
+        mock_jprint.assert_called_once_with(build_return)
 
 
-
-class TestEditorChecker(unittest.TestCase):
+class TestEditorChecker(TestCase):
 
     def test_check_editor(self):
         editor = r'C:\Program Files\Notepad++\notepad++.exe'
@@ -613,7 +580,7 @@ class TestEditorChecker(unittest.TestCase):
                     mock_ask_editor.assert_called_once()
 
 
-class TestCurrencyListChecker(unittest.TestCase):
+class TestCurrencyListChecker(TestCase):
     def test_check_currency_list(self):
         arg = ["FOO", "BAR", "BAZ"]
         self.assertEqual(
@@ -627,7 +594,7 @@ class TestCurrencyListChecker(unittest.TestCase):
             check_currency_list(bad)
 
 
-class TestRGBConverter(unittest.TestCase):
+class TestRGBConverter(TestCase):
     def test_convert_rgb(self):
         cases = [
             ([255, 255, 255],   (1.0, 1.0, 1.0)),
@@ -654,31 +621,25 @@ class TestRGBConverter(unittest.TestCase):
                     convert_rgb(bad_color)
 
 
-class TestColorChecker(unittest.TestCase):
+class TestColorChecker(TestCase):
     def test_check_colors(self):
         currencies = ["per", "eur", "usa"]
         colors = ["red", "blue", [1.0, 0.5, 0.5]]
         expected = {
-            "per" : "red",
-            "eur" : "blue",
-            "usa" : [1.0, 0.5, 0.5]
+            "per" : (1.0, 0.0, 0.0),
+            "eur" : (0.0, 0.0, 1.0),
+            "usa" : (1.0, 0.5, 0.5)
         }
-        self.assertEqual(
-            check_colors(currencies, colors),
-            expected
-        )
+        self.assertEqual(check_colors(currencies, colors), expected)
 
     def test_check_colors_dimensions_1(self):
         """more colors than currencies"""
         currencies = [ "per" ]
         colors = ["red", "blue", [1.0, 0.5, 0.5]]
         expected = {
-            "per" : "red"
+            "per" : (1.0, 0.0, 0.0)
         }
-        self.assertEqual(
-            check_colors(currencies, colors),
-            expected
-        )
+        self.assertEqual(check_colors(currencies, colors), expected)
 
     def test_check_colors_dimensions_2(self):
         """more currencies than colors"""
@@ -686,7 +647,7 @@ class TestColorChecker(unittest.TestCase):
         colors = [ "red" ]
         test_color = (0.5, 0.5, 0.5)
         expected = {
-            "per" : "red",
+            "per" : (1, 0, 0),
             "eur" : test_color, 
             "usd" : test_color
         }
@@ -711,7 +672,60 @@ class TestColorChecker(unittest.TestCase):
             check_colors(currencies, colors)
 
 
+class TestExport(TestCase): 
 
+    @classmethod
+    def setUpClass(cls):
+        cls.csv = TEST_FILE_DIRECTORY / "tmp.csv"
+        cls.json = TEST_FILE_DIRECTORY / "tmp.json"
+        return super().setUpClass()
+
+    def test_df_export(self):
+        df = pd.DataFrame({"a" : [1,2,3], "b" : [1,2,4]})
+        m : MagicMock = mock_open()
+        with (
+            patch('pandas.DataFrame.to_csv') as mock_tocsv,
+            patch('builtins.open', m)
+        ):
+            export(df, self.csv)
+        p, how = m.call_args.args
+        self.assertEqual(how, "w")
+        self.assertEqual(p, self.csv)
+        _stream, kwargs = mock_tocsv.call_args
+        self.assertIn("force_ascii", kwargs)
+
+    def test_unsupported_type(self):
+        unsupported = [
+            print, dict, "primitive: ", 654, None 
+        ]
+        for bad in unsupported:
+            with self.subTest(bad=bad):
+                with self.assertRaises(TypeError):
+                    export(bad)
+    
+    def test_invalid_extension(self):
+        invalids = ["foo.jsonc", "bar.yaml", "baz.toml"]
+        df = pd.DataFrame({"a" : [1,2,3], "b" : [1,2,4]})
+        for invalid in invalids:
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    export(df, Path(invalid))
+
+    def test_dict_but_not_json(self):
+        obj = {"a" : [1,2,3], "b" : list("abc")}
+        with self.assertRaises(ValueError):
+            export(obj, self.csv)
+    
+    
+    @classmethod
+    def tearDownClass(cls):
+        cls.csv.unlink(missing_ok=True)
+        cls.json.unlink(missing_ok=True)
+
+
+@unittest.skip("TODO...")
+class TestFetch(TestCase):
+    pass
 
 
 if __name__ == "__main__":

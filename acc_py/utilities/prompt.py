@@ -11,9 +11,10 @@ from utilities.parser import (
     parse_element_from_dict,
     parse_record_from_id,
 )
+
 from utilities.core import (
-    _jprint,
     KeybindDictType,
+    _jprint,
     ensure,
 )
 
@@ -79,7 +80,7 @@ def prompt_arithmetic_operation(
     Asks for arithmetic operation as `str`. 
     Relies on `parse_arithmetic_operation`.
     """
-    # --- type checking ---
+    # type checking
     if isinstance(user_input, int | float):
         return user_input
     ensure(lbound, float, int)
@@ -103,7 +104,7 @@ def prompt_currency(
     Parses `currency_input` to a valid currency. Relies on `parse_currency`.
     Returns upper-3-word-length ISO currency.
     """
-    # --- type checking ---
+    # type checking
     ensure(quiet, bool)
     _ensure_str_none(currency_input)
 
@@ -121,7 +122,7 @@ def prompt_date_operation(
         date_input : Optional[str | date] = None
 ) -> date:
     """Converts `str` into `datetime.date` type."""
-    # --- type checking ---
+    # type checking
     if isinstance(date_input, date):
         return date_input
     _ensure_str_none(date_input)
@@ -141,7 +142,7 @@ def prompt_double_currency(
         lbound : float = 0.0
 ) -> tuple[float, str]:
     """Converts `str` into valid (amount, currency) pair."""
-    # --- type checking ---
+    # type checking
     _ensure_str_none(double_curr_input)
     ensure(default_currency, str)
     ensure(lbound, float)
@@ -163,22 +164,22 @@ def get_from_nested_dict(
         prompt : str,
 ) -> Optional[dict | str]:
     """Gets value associated to key `uinput` If nested then recursively looks for it."""
-    # --- Type checking ---
+    # Type checking
     _ensure_str_none(uinput)
     ensure(kdict, dict)
     ensure(prompt, str)
 
-    # --- no input? interactively ask ---
+    # no input? interactively ask
     if uinput is None:
         _jprint(kdict)
         uinput = input(prompt)
 
-    # --- check if it's dictionary ---
+    # check if it's dictionary
     res = kdict.get(uinput)
     if isinstance(res, dict):
         res = get_from_nested_dict(res, None, prompt)
         return res
-    # --- try to parse, otherwise soft_print ValueError ---
+    # try to parse, otherwise soft_print ValueError
     try:
         return parse_element_from_dict(uinput, kdict)
     except ValueError as e:
@@ -193,7 +194,7 @@ def prompt_category_from_keybinds(
 ) -> str:
     """Asks valid category from keybinds interactively."""
 
-    # --- Type checking ---
+    # Type checking
     ensure(keybind_dict, dict)
     ensure(max_attempts, int)
     _ensure_str_none(keyinput)
@@ -202,15 +203,15 @@ def prompt_category_from_keybinds(
     category = None
     counter = 0
     
-    # --- main loop ---
+    # main loop
     while category is None and counter < max_attempts:
         category = get_from_nested_dict(keybind_dict, keyinput, prompt)
         keyinput = None
         counter += 1
-    # --- failure ---
+    # failure
     if category is None:
         raise RuntimeError(f"Only {max_attempts=} are allowed.")
-    # --- success ---
+    # success
     if not quiet_success:
         _success(category)
     return category
@@ -222,7 +223,7 @@ def prompt_entity_by_id(
         id_ : Optional[str | int] = None,
 ) -> Record | Conversion:
     """Returns `Record` object from given `id`."""
-    # --- type checking ---
+    # type checking
     ensure(id_, int, str, allow_none=True)
 
     kwargs = {
@@ -236,7 +237,7 @@ def prompt_entity_by_id(
     return res
 
 
-# ------------------------------------------------------
+#-----------------------------------------------
 # The following function aims to cover the following
 # possibilities
 # [categories] (e.g. ['amount', 'description']) // prolly never gonna happen
@@ -244,7 +245,7 @@ def prompt_entity_by_id(
 #    e.g. "am des cu" -> [amount, description, currency]
 # string_with_spaces_full_column
 #    e.g. "amount description" -> [amount, description]
-# ------------------------------------------------------
+#-----------------------------------------------
 
 def prompt_list_of_fields(
         user_input : Optional[str] = None
@@ -257,10 +258,10 @@ def prompt_list_of_fields(
     
     Relies on listable `parse_valid_element_list`.
     """
-    # --- typecheck ---
+    # typecheck
     _ensure_str_none(user_input)
 
-    # --- set keybinds and with it construct simple local parser ---
+    # set keybinds and with it construct simple local parser
     keybinds = {
         "d"     : "date",
         "a"     : "amount",
@@ -279,7 +280,7 @@ def prompt_list_of_fields(
                     for col in split                        ]
         return res
     
-    # --- main loop construction ---
+    # main loop construction
     kwargs = {
         "prompt" : "Write valid elements from list: ",
         "parser" : _parser
@@ -290,7 +291,7 @@ def prompt_list_of_fields(
     return res
 
 
-# ------------------------------------------------
+#-----------------------------------------
 # This function aims to return a dictionary:
 # {
 #     field1: value1,
@@ -303,14 +304,7 @@ def prompt_list_of_fields(
 # dict = {}
 # for field in fields: 
 #     dict.update( { field : validate(field) } )
-# ------------------------------------------------
-
-def _parse_description(s : str) -> str:
-    """Quick description parser, only checks non-empty string."""
-    ensure(s, str)
-    if not s:
-        raise ValueError("Got empty string.")
-    return s
+#-----------------------------------------
 
 def prompt_column_value(
         keybind_dict : KeybindDictType,
@@ -324,28 +318,32 @@ def prompt_column_value(
     * `keybind_dict` is necessary to pass to `prompt_category_from_keybinds`.
     """
     
-    # --- type check ---
+    # type check
     ensure(keybind_dict, dict)
     _ensure_str_none(fields_str)
 
-    # --- ask which columns are being fixed ---
+    # ask which columns are being fixed
     fields = prompt_list_of_fields(fields_str)
 
-    # --- main loop construction ---    
+    # main loop construction
+    def prompt_cat():
+        category = prompt_category_from_keybinds(keybind_dict)
+        return category
+    
     field_func = {
-        "date"              :   prompt_date_operation,
-        "amount"            :   prompt_arithmetic_operation,
-        "currency"          :   prompt_currency,
-        "description"       :   _parse_description,
-        "category"          :   lambda : prompt_category_from_keybinds(keybind_dict),
-        "base_amount"       :   prompt_arithmetic_operation,
-        "target_amount"     :   prompt_arithmetic_operation,
-        "base_currency"     :   prompt_currency,
-        "target_currency"   :   prompt_currency,
+        "date": prompt_date_operation,
+        "amount": prompt_arithmetic_operation,
+        "currency": prompt_currency,
+        "description": input,
+        "category": prompt_cat,
+        "base_amount": prompt_arithmetic_operation,
+        "target_amount": prompt_arithmetic_operation,
+        "base_currency": prompt_currency,
+        "target_currency": prompt_currency,
     }
     res = {}
     for field in fields:
         val = field_func[field]()
-        res.update( { field : val } )
+        res.update({ field : val })
     
     return res

@@ -1,66 +1,17 @@
 import sys
 from pathlib import Path
-import subprocess
 
 from context.context import ctx
 
 # interface independent as well
-from utilities.core import now, fexport, fimport
+from utilities.help import acccli
+from utilities.core import now, get_globals
+from utilities.file import fimport, fexport
 from utilities.parser import parse_date as pdate
-
-
-#region ==================== interface-independent  ============================
-
-
-def acccli():
-    """
-    Interactive REPL Python-backed.
-
-    Independently, the following file-based operations and miscellanea has been
-    loaded:
-    [now, fexport, fimport, fopen, pdate]
-
-    The available DB management functions are available:
-        "br": da.build_record,
-        "bc": da.build_conversion,
-        "bdf": da.build_df,
-        "e": da.edit,
-        "fetch": da.fetch,
-        "d": da.delete,
-        "r": da.read,
-        "wr": da.write_record,
-        "wc": da.write_conversion,
-        "wdf": da.write_df,
-        "Record": Record,
-        "Conversion": Conversion,
-    
-    The available plotting functions are available:
-        "p1": pp.categories_per_period, 
-        "p2": pp.expenses_time_series, 
-        "p3": pp.category_time_series, 
-        "sp": pp.savings_plot, 
-
-    Depending on the loaded module, "load" will import it's complement if 
-    required.
-    To check which functions you have available, feel free to evaluate 
-    globals().keys()
-    Evaluate acccli() to print this message again.
-    """
-    return acccli.__doc__
-
-
-def fopen(
-        p : Path | str
-)-> None:
-    """Quick file opener, relies on ctx.editor to open said file."""
-    if isinstance(p, str):
-        p = Path(p)
-    if not isinstance(p, Path):
-        raise TypeError(f"Argument {p} is not Path-like.")    
-    subprocess.call([ctx.editor, p])
-
-
-#endregion =====================================================================
+from utilities.interface import (
+    fopen, 
+    convert_currency as convcurr
+)
 
 
 #region ========================== interfaces ==================================
@@ -81,6 +32,7 @@ def load_db_api_module(*args) -> None:
         "d": da.delete,
         "r": da.read,
         "w": da.write_record,
+        "gr": da.get_record,
         "wc": da.write_conversion,
         "wdf": da.write_df,
         "Record": Record,

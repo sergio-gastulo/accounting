@@ -10,31 +10,35 @@ from pathlib import Path, WindowsPath
 from datetime import date
 from pandas import Period
 
-from utilities.prompt import (
-    prompt_currency,
-    prompt_category_from_keybinds
-)
 from utilities.core import (
-    _jopen,
-    _jrepr,
-    soft_warning,
-    confirm_action,
-    ensure,
     FieldDictType,
     KeybindDictType,
     ExchangeDictType,
     RGBType,
     APPLICATION_CACHED_DIRECTORY,
+    _jopen,
+    _jrepr,
+    soft_warning,
+    confirm_action,
+    ensure,
     import_fields,
+    check_editor,
+    check_colors,
+    pprint_categories,
+)
+from utilities.prompt import (
+    prompt_currency,
+    prompt_category_from_keybinds
+)
+from utilities.currency import (
     fetch_keybind_dict,
     fetch_category_dictionary,
-    check_editor,
     check_currency_list,
-    check_colors,
     get_exchange_dict,
-    sha256,
-    pprint_categories
 )
+from utilities.file import sha256
+
+
 
 #region ========================== new types ===================================
 
@@ -256,18 +260,18 @@ class AccountingContext:
         }
         _jsave(save_dict, path)
 
-    def pprint_cats(self, whelp : bool = False) -> None:
+    def pprint_cats(self, with_help : bool = False) -> None:
         """
         Pretty-prints categories.
 
         Parameters
         ----------
-        whelp
+        with_help
             - Defaults to False. 
             - Prints each category and its description
             - If True, print with help.
         """
-        pprint_categories(self.categories_dict, self.fields, whelp)
+        pprint_categories(self.categories_dict, self.fields, with_help)
 
 
 

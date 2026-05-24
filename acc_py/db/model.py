@@ -18,10 +18,14 @@ class Entity:
         same_type = isinstance(other, type(self))
         if not same_type:
             return False
-        return (self.id == other.id)
+        try:
+            return (self.id == other.id)
+        except AttributeError:
+            return False
 
 
-    # TODO: check if this is basically just a repr and should be renamed
+    # TODO: check if this is basically just a repr -> should be renamed to 
+    # __repr__
     def pretty(self) -> str:
         """Default class prettier. Returns all attributes with indentation."""
         cols = self.__table__.columns.keys()

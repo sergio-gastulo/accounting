@@ -41,10 +41,7 @@ from utilities.prompt import (
     prompt_arithmetic_operation,
     prompt_currency,
 )
-from db.model import (
-    Record,
-    Conversion,
-)
+from db.model import Record, Conversion
 
 
 #region ============================ utils  ====================================
@@ -150,8 +147,6 @@ def write_record(obj : Any = None) -> None:
         obj = obj.to_dict()
 
     if isinstance(obj, dict):
-        if "date" in obj:
-            obj["date_"] = obj.pop("date")
         obj = Record(**obj)
 
     if obj is None:
@@ -159,6 +154,16 @@ def write_record(obj : Any = None) -> None:
 
     ensure(obj, Record)
     obj.write(ctx.engine)
+
+
+def get_record(
+        id_ : Optional[int] = None,
+) -> Record:
+    """
+    Returns `Record` from given id_. Relies on `prompt_entity_by_id`.
+    """
+    record = prompt_entity_by_id(id_)
+    return record
 
 
 def _render_template(
@@ -172,8 +177,11 @@ def _render_template(
                 "{%if not currency %}currency, {% endif %}" \
                 "{%if not category %}category, {% endif %}"
     template: Template = Template(jinjatext)
+    # header concatenates to col1, col2, col3,
     text = template.render(**kwargs)
-    return text
+    # remove last comma:
+    cleaned = text.strip().rstrip(',')
+    return cleaned
 
 
 def _build_tmp(
@@ -188,7 +196,7 @@ def _build_tmp(
         file.write(text)
     
     # call editor and return path after quit
-    print(f"Launching {path}.")
+    print(f"Launching r'{path}'.")
     subprocess.call([ctx.editor, path])
     return path
 
@@ -300,10 +308,16 @@ def build_conversion(
     date_ = prompt_date_operation(date_)
     ensure_or_none(base_operation_str, str)
     print("Base operation: what you start with / got converted.")
-    base_amount, base_currency = prompt_double_currency(ctx.default_currency, base_operation_str)
+    base_amount, base_currency = prompt_double_currency(
+        ctx.default_currency, 
+        base_operation_str
+    )
     print("Target operation: what you get / have now.")
     ensure_or_none(target_operation_str, str)
-    target_amount, target_currency = prompt_double_currency(ctx.default_currency, target_operation_str)
+    target_amount, target_currency = prompt_double_currency(
+        ctx.default_currency, 
+        target_operation_str
+        )
     ensure_or_none(description, str)
     if not description:
         description = input("Type your description: ")
@@ -350,8 +364,8 @@ def edit(
     Parameters
     ----------
     entity
-        Defaults to `Record`, it checks whether the entity to be edited is `Record` or 
-        `Conversion`.
+        Defaults to `Record`, it checks whether the entity to be edited is 
+        `Record` or `Conversion`.
     `id_`
         The ID of the record to edit. Ignored if `entity` is provided.
     entity
@@ -469,9 +483,9 @@ def _read_conversion(
 
 
 def read(
+        max_lines : int = 20,
         entity_type : Conversion | Record = Record,
         semantic_filter : Optional[str] = None,
-        max_lines : int = 20,
 ):
     """
     Reads records from database.
@@ -479,10 +493,10 @@ def read(
 
     Parameters
     ----------
-    entity_type
-        Which table to fetch objects from. Defaults to `Record`.
     max_lines
         Maximum number of records to return. Defaults to 20.
+    entity_type
+        Which table to fetch objects from. Defaults to `Record`.
     semantic_filter
         A textual filter expression. Supported patterns:
         - str columns: exact match, `LIKE` wildcard, or regex

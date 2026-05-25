@@ -16,7 +16,7 @@ from pandas.api.types import is_string_dtype, is_numeric_dtype
 from sqlalchemy import Select, select, true, text, Engine
 from sqlalchemy.sql.elements import ColumnElement
 
-from db.model import Record, Session, Conversion
+from classes.model import Record, Session, Conversion
 
 
 DATE_COLUMN_FORMAT = "%Y-%m-%d"

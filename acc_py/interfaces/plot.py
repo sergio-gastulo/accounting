@@ -12,8 +12,8 @@ from typing import List, Iterable, Optional, TypeAlias, Literal
 from sqlalchemy import select, not_, case, extract, ColumnElement, Label, Select
 from sqlalchemy.sql import functions, func
 
-from db.model import Record
-from context.context import ctx
+from classes.model import Record
+from classes.context import ctx
 from utilities.core import RGBType, ensure, pprint_df
 from utilities.parser import parse_period
 from utilities.prompt import prompt_category_from_keybinds
@@ -60,13 +60,13 @@ def sum_currencies(
     Each output is the sum of every input amount converted to each input amount.
 
     Arguments
-    --------
+    ----
     amounts
         A dictionary with currencies and keys and their respective amounts as 
         floats.
 
     Example
-    -------
+    ---
         >>> convert_currencies({"eur": 1, "usd": 1, "pen": 1})
         {'eur': 1.92, 'usd': 2.10, 'pen' : 7.23}
     """
@@ -111,9 +111,9 @@ def _quick_filter(
         category : str,
         currency : str
 ) -> pd.DataFrame:
-    # --- why calling the database instead of filtering in pandas? ---
-    # --- wellp, when group_by(Record.category) is called, description  ---
-    # --- is lost, it can't be retrieved ---
+    # why calling the database instead of filtering in pandas?
+    # wellp, when group_by(Record.category) is called, description 
+    # is lost, it can't be retrieved
 
     q = select(Record.id, Record.date, Record.amount, Record.description)
     q = q.where(
@@ -147,13 +147,13 @@ def _set_labels(
 ) -> None:
     
     if bar is None: bar = ax.patches
-    # --- make it thread over lists of Rectangles ---
+    # make it thread over lists of Rectangles
     if isinstance(bar, Iterable) and isinstance(bar[0], Rectangle):
         for single_bar in bar:
             _set_labels(ax, max_x_value, currency, single_bar)
         return
     
-    # --- set amount label ---
+    # set amount label
     figcolor = _get_background_color()
     negcolor = _negate_color(figcolor)
     width   = bar.get_width()
@@ -167,7 +167,7 @@ def _set_labels(
         ha='left', fontsize=10, color=color
     )
 
-    # --- check if text is cutoff by the bar ---
+    # check if text is cutoff by the bar
     bbox        = txt.get_window_extent()
     bar_right   = ax.transData.transform((width, 0))[0]
     if bbox.x1 > bar_right:
@@ -192,23 +192,23 @@ def _barchart_core(
 ) -> None:
     """Displays barchart of dataframe, previously filtered by currency."""
 
-    # --- setting main bars ---
+    # setting main bars
     # TODO: change color if darkmode has been called and viceversa
     barh_color = _get_color("barchart", "default")
     ax.barh(df.index, df.total_amount, color=barh_color, align='center')
     ax.tick_params(axis='y', labelsize=10.5)
 
-    # --- set labels on each bar ---
+    # set labels on each bar
     max_val = df["total_amount"].max()
     _set_labels(ax, max_val, currency)
 
-    # --- set text top right with total sum of amounts ---
+    # set text top right with total sum of amounts
     total = df["total_amount"].sum()
     label = f'{currency} {total:.2f}'
     xy = (0.90, 0.95)
     ax.text(*xy, label, transform=ax.transAxes, ha="left", va="top", fontsize=12)
     
-    # --- append for event listener and return axis obj ---
+    # append for event listener and return axis obj
     categories = df.index.to_list()
     append.append((ax, categories, currency))
 
@@ -247,10 +247,11 @@ def _get_header(
     return header
 
 
-def _fetch_barchart_data(period : pd.Period) -> pd.DataFrame:
-    q = select(Record.currency, Record.category, TOTAL_AMOUNT_COL)
-    q = q.where(*_by_period(period), not_(INCLUDING_INFLOW))
-    q = q.group_by(Record.currency, Record.category)
+def _fetch_barchart_data(period : pd.Period) -> pd.DataFrame:    
+    q = select(Record.currency, Record.category, TOTAL_AMOUNT_COL) \
+        .where(*_by_period(period), not_(INCLUDING_INFLOW)) \
+        .group_by(Record.currency, Record.category)
+    
     df = pd.read_sql(q, ctx.engine, index_col=['currency', 'category'])
     return df
 
@@ -258,12 +259,12 @@ def _fetch_barchart_data(period : pd.Period) -> pd.DataFrame:
 def _barchart_by_period(
         period: Optional[ParsablePeriod] = None
 ) -> Figure:
-    # --- ensure valid period, maybe change to prompter? ---
+    # ensure valid period, maybe change to prompter?
     period = parse_period(period, ctx.period)
     df = _fetch_barchart_data(period)
     currencies = df.groupby(level=0)["total_amount"].count().to_dict()
 
-    # --- main figure creation ---
+    # main figure creation
     metadata = []
     nrows = len(currencies)
     heights = list(currencies.values())
@@ -273,16 +274,16 @@ def _barchart_by_period(
     )
     axs : List[Axes] = np.atleast_1d(axs)
 
-    # --- populating with horizontal bars ---
+    # populating with horizontal bars
     for i, (currency, _) in enumerate(currencies.items()):
         _barchart_core(df.loc[currency], currency, metadata, axs[i])
     
-    # --- setting plot header ---
+    # decorators
     header = _get_header(df, period)
     fig.suptitle(header)
     fig.subplots_adjust(left=0.25, right=0.95)
 
-    # --- connect on_click event ---
+    # connect on_click event
     on_click = lambda event : _pre_on_click(event, period, metadata)
     fig.canvas.mpl_connect('button_press_event', on_click)
     wtitle = f"barchart by period: {str(period)}"
@@ -298,7 +299,7 @@ def barchart_by_period(
     currency for the given period or lists of periods.
 
     Arguments
-    ---------
+    -----
     periods
         List of periods (or a single period). If a list of periods is provided,
         _barchart_by_period will be called for each element. If a single 
@@ -306,23 +307,23 @@ def barchart_by_period(
         default to ctx.period if none is provided.
 
     Returns
-    -------
+    ---
     figs
         The list of all figures generated.
 
     Notes
-    -----
+    -
     Clicking on a bar:
         - Highlights it in red. 
         - Prints the related records (date, description, amount).
     """
-    # --- check if it's a list of parsable periods ---
+    # check if it's a list of parsable periods
     if isinstance(periods, List) and isinstance(periods[0], ParsablePeriod):
         figs = [_barchart_by_period(period) for period in periods]
         plt.show()
         return figs
-    # --- as _barchar_by_period relies on parse_period, 
-    # --- typeerrors will be raised accordingly if not valid
+    # as _barchar_by_period relies on parse_period, 
+    # typeerrors will be raised accordingly if not valid
     fig = _barchart_by_period(periods)
     fig.show()
     return fig
@@ -349,14 +350,14 @@ def _scatter(
     x = timestamp + xoffset
     
     for line in ax.lines:    
-        # --- get y data associated to timestamp ---
+        # get y data associated to timestamp
         # TODO: check if period has been actually found
         pos = np.argwhere(line.get_xdata() == timestamp)
         n : int = pos[0, 0].tolist()
         y = line.get_ydata()[n]
         ax.scatter(timestamp, y, color=scatter_color, zorder=5)
 
-        # --- add label to said scatter ---
+        # add label to said scatter
         ytext = y * yoffset
         currency = line.get_label()
         text = f'{currency} {y:.2f}'
@@ -368,7 +369,7 @@ def _scattered_map(
         ax : Axes,
 ) -> None:
     """Maps `_scatter` accross valid list of parsable periods."""
-    # --- ensure period ---
+    # ensure period
     if not (isinstance(periods, List) and isinstance(periods[0], ParsablePeriod)):
         raise TypeError(f"Argument {periods=} is not a valid list of parsable periods.")
 
@@ -378,9 +379,10 @@ def _scattered_map(
 
 
 def _fetch_outflow_data() -> pd.DataFrame:
-    q = select(Record.currency, YEAR_MONTH_PERIOD_COL, TOTAL_AMOUNT_COL)
-    q = q.where(not_(INCLUDING_INFLOW))
-    q = q.group_by(Record.currency, YEAR_MONTH_PERIOD_COL)
+    q = select(Record.currency, YEAR_MONTH_PERIOD_COL, TOTAL_AMOUNT_COL) \
+        .where(not_(INCLUDING_INFLOW)) \
+        .group_by(Record.currency, YEAR_MONTH_PERIOD_COL)
+    
     df = pd.read_sql(
         q, ctx.engine, 
         parse_dates={"period": {"format" : "%Y-%m"}},
@@ -402,10 +404,10 @@ def _outflow_fig(
             by_currency = df.loc[currency.upper()] 
             ax.plot(by_currency, marker='o', color=color, label=currency)
         except KeyError:
-            soft_err = f"The given {currency=} is not available in: "
-            pprint_df(df, soft_err)
+            err = f"The given {currency=} is not available in: "
+            pprint_df(df, err)
 
-    # --- decorators ---
+    # decorators
     fig.suptitle("Outflow as a time series grouped by period")
     ax.set_xlabel('Date', labelpad=16)
     wtitle = f"scattered_outflow: {title}"
@@ -420,7 +422,7 @@ def scattered_outflow(periods : Optional[ListParsablePeriod] = None) -> Figure:
     by given `period`.
 
     Arguments
-    ---------
+    -----
     periods
         List of periods (or a single period). If a list of periods is provided,
         _scattered_outflow will be called for each element. If a single 
@@ -428,18 +430,18 @@ def scattered_outflow(periods : Optional[ListParsablePeriod] = None) -> Figure:
         default to ctx.period if None is passed.
 
     Returns
-    -------
+    ---
     figs
         The list of all figures generated.
     """
-    # --- check if it's a list of parsable periods ---
+    # check if it's a list of parsable periods
     if isinstance(periods, List) and isinstance(periods[0], ParsablePeriod):
         fig, ax = _outflow_fig("Outflow Time Series")
         _scattered_map(periods, ax)
         fig.show()
         return fig
 
-    # --- single plot. Any typeerror is raised via `parse_period`.
+    # single plot. Any typeerror is raised via `parse_period`.
     period = parse_period(periods, ctx.period)
     title = f"Outflow Time Series scattering: {str(period)}"
     fig, ax = _outflow_fig(title)
@@ -483,9 +485,9 @@ def _fill_zeroes(
 
 
 def _fetch_category_ts_data(periodcol, category, fmt, /) -> pd.DataFrame:
-    q : Select = select(Record.currency, periodcol, TOTAL_AMOUNT_COL)
-    q = q.where(Record.category == category)
-    q = q.group_by(Record.currency, 'period')
+    q = select(Record.currency, periodcol, TOTAL_AMOUNT_COL) \
+        .where(Record.category == category) \
+        .group_by(Record.currency, 'period')
     df = pd.read_sql(
         q, ctx.engine, 
         parse_dates={'period' : fmt},
@@ -503,7 +505,7 @@ def category_time_series(
     Useful for categories that should stay around a monthly / weekly average.
     
     Arguments
-    ---------
+    -----
     category
         category to be parsed via `prompt_category_from_keybinds`. If None is 
         passed, said function will be called to prompt for a valid category.
@@ -511,35 +513,35 @@ def category_time_series(
         Defaults to 'monthly'. Defines the frequency of the plot.
 
     Returns
-    -------
+    ---
     fig
         The resulting plot is returned for further end-user manipulation.
     """
 
-    # --- ensure category by default ---
+    # ensure category by default
     category = prompt_category_from_keybinds(ctx.keybinds, category)
 
     configs = _get_freq_configs(freq)
     period = configs["period_col"]
     df = _fetch_category_ts_data(period, category, configs["date_fmt"])
 
-    # --- main plot ---
+    # main plot
     fig, ax = plt.subplots()
 
-    fill_zeroes : str = configs["zeroes"]
+    zeroesfreq : str = configs["zeroes"]
     for currency in ctx.currency_list:
         color = ctx.colors[currency]
         try:
             period_df = df.loc[currency.upper()]
-            period_df = _fill_zeroes(period_df, freq=fill_zeroes)
+            period_df = _fill_zeroes(period_df, freq=zeroesfreq)
             ax.plot(period_df, color=color, marker='o', label=currency)
     
         except KeyError:
-            soft_err = f"The given {currency=} is not available in the following df:"
-            pprint_df(df, soft_err)
+            err = f"The given {currency=} is not available in the following df:"
+            pprint_df(df, err)
     
-    # --- settings configs ---
-    ax.set_title(f"{category} Time Series Plot")
+    # decorators
+    ax.set_title(f"{category.capitalize()} Time Series Plot")
     ax.set_xlabel("Spendings")
     ax.set_ylabel("Dates")
     ax.legend()
@@ -558,18 +560,16 @@ def category_time_series(
 
 
 def _fetch_savings_data() -> pd.DataFrame:
-    """Quick `saving_plot` data fetcher."""
+    """Quick `savings_plot` data fetcher."""
 
-    # --- compute savings query ---
+    # compute savings query
     is_inflow = Record.category.in_(ctx.inflow_categories)
     flow = case((is_inflow, +1), else_=-1) * Record.amount
     savings = functions.sum(flow).label('savings')
 
-    # --- query ---
-    q = select(YEAR_MONTH_PERIOD_COL, Record.currency, savings)
-    q = q.group_by('period', Record.currency)
+    q = select(YEAR_MONTH_PERIOD_COL, Record.currency, savings) \
+        .group_by('period', Record.currency)
 
-    # --- dataframe construction ---
     df = pd.read_sql(q, ctx.engine, ['period', 'currency'],
         parse_dates={'period' : {'format' : '%Y-%m'}}
     )
@@ -577,20 +577,20 @@ def _fetch_savings_data() -> pd.DataFrame:
 
 
 def _get_combined(df : pd.DataFrame) -> pd.DataFrame:
-    # --- pass by copy, do not modify original df ---
+    # pass by copy, do not modify original df
     ndf = df.copy()
 
-    # --- map lower case on currency index level ---
+    # map lower case on currency index level
     ndf.index = ndf.index.set_levels(df.index.levels[1].str.lower(), level=1)
 
-    # --- chosing currency to collapse dict to ---
+    # chosing currency to collapse dict to
     key = ctx.default_currency.lower()
-    def wrapper(s : pd.Series) -> CurrencyAmountType:
+    def wrapper(s : pd.Series) -> float:
         converted = dict(s)
         res = sum_currencies(converted)
         return res[key]
     
-    # --- apply wrapper to new dataframe after unstacking ---
+    # apply wrapper to new dataframe after unstacking
     ndf = ndf["savings"].unstack(level=0, fill_value=0).apply(wrapper)
     return ndf
 
@@ -602,29 +602,29 @@ def savings_plot() -> Figure:
     Plots their cummulative sum (`df.cumsum()`).
 
     Returns
-    -------
+    ---
     fig
         The resulting plot is returned for further end-user manipulation.
     """
 
-    # --- data fetch ---
+    # data fetch
     df = _fetch_savings_data()
 
     fig, ax = plt.subplots()
-    # --- plot per currency ---
+    # plot per currency
     for currency in ctx.currency_list:
         color = ctx.colors[currency]
         upper = currency.upper()
         period_df = df.xs(upper, level=1)
         ax.plot(period_df.cumsum(), label=upper, color=color, marker='o')
 
-    # --- combine all currencies and collapse it to ctx.default_currency ---
+    # combine all currencies and collapse it to ctx.default_currency
     ndf = _get_combined(df)
     color = _get_color("savings", "savings_color")
     label = f"comb-{ctx.default_currency.upper()}"
     ax.plot(ndf.cumsum(), color=color, label=label, marker='o')
 
-    # --- configurations ---
+    # configurations
     ax.legend()
     ax.set_xlabel("Year-month period.")
     ax.set_xlabel("Raw saving.")

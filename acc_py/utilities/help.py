@@ -4,7 +4,7 @@ def acccli():
 
     Independently, the following file-based operations and miscellanea has been
     loaded:
-    [now, fexport, fimport, fopen, pdate]
+    [now, fexport, fimport, fopen, pdate, convcurr]
 
     The available DB management functions are available:
         "br": da.build_record,

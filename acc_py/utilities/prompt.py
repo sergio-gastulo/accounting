@@ -2,7 +2,7 @@ from datetime import date
 from sqlalchemy.engine import Engine
 from typing import List, Callable, Optional
 
-from db.model import Record, Conversion
+from classes.model import Record, Conversion
 from utilities.parser import (
     parse_arithmetic_operation,
     parse_currency,

@@ -2,7 +2,7 @@
 Database API, allows user to write to DB using sqlalchemy as query wrapper.
 Heavily relies on both parser.py and py
 """
-# --- generics ---
+# generics
 from typing import List, Optional, Type, Any
 from datetime import date
 import pandas as pd
@@ -10,7 +10,7 @@ from jinja2 import Template
 from pathlib import Path
 import subprocess
 
-# --- sqlalchemy wrappers ---
+# sqlalchemy wrappers
 from sqlalchemy import (
     inspect, 
     select,
@@ -18,8 +18,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session
 
-# --- hand-coded stuff in .utilities and .context ---
-from context.context import ctx
+# hand-coded stuff in .utilities and .context
+from classes.context import ctx
 from utilities.core import (
     APPLICATION_DIRECTORY,
     pprint_df,
@@ -41,7 +41,7 @@ from utilities.prompt import (
     prompt_arithmetic_operation,
     prompt_currency,
 )
-from db.model import Record, Conversion
+from classes.model import Record, Conversion
 
 
 #region ============================ utils  ====================================
@@ -67,7 +67,7 @@ def build_record(
     Omitted arguments are prompted interactively.
 
     Parameters
-    ----------
+    ------
     `date_`
         Operation date.
     amount      
@@ -82,40 +82,40 @@ def build_record(
         Record category.
 
     Notes
-    -----
+    -
     Record is committed automatically and printed via `Record.pprint()`.
     """
 
-    # -------------------- Type checking (None are allowed) --------------------
+    # -------------------- Type checking (None are allowed) ----------------
     
-    # --- date type-check ---
+    # date type-check
     ensure_or_none(date_, date)
     date_ = prompt_date_operation(date_)
 
-    # --- if amount and currency are not specified, then prompt for pair ---
+    # if amount and currency are not specified, then prompt for pair
     if amount is None and currency is None:
         ensure_or_none(operation_str, str)
         amount, currency = prompt_double_currency(
             ctx.default_currency, operation_str)
     else:
-        # --- if any of (amount, currency) is not None, then 
-        # --- individual prompt for each is forced
+        # if any of (amount, currency) is not None, then 
+        # individual prompt for each is forced
         ensure_or_none(amount, int, float)
         amount = prompt_arithmetic_operation(amount)
         ensure_or_none(currency, str)
         currency = prompt_currency(currency)
     
-    # --- description type-check ---
+    # description type-check
     ensure_or_none(description, str)
     if description is None:
-        # --- could be empty, one can rely on edit() to change it ---
+        # could be empty, one can rely on edit() to change it
         description = input("Type your description: ")
 
-    # --- category type-check ---
+    # category type-check
     ensure_or_none(category, str)
     category = prompt_category_from_keybinds(ctx.keybinds, category)
 
-    # --- build and return ---
+    # build and return
     record = Record(
         date=date_, amount=amount, 
         currency=currency, description=description, 
@@ -129,7 +129,7 @@ def write_record(obj : Any = None) -> None:
     writes without asking for commit.
 
     Arguments
-    ---------
+    -----
     obj
         Record or Record-like expression that will be written to db. 
         - If a `pd.DataFrame`, it will rely on `write_df` and return.
@@ -209,18 +209,18 @@ def build_df(
     If `fixed_fields` is None, they're prompted interactively.
 
     Parameters
-    ----------
+    ------
     fixed_fields
         A dictionary mapping column names to fixed values 
         (e.g., {"category": "Food"}).
 
     Notes
-    -----
+    -
     - Temporary files are cleaned up after execution.
     - No support for Conversion yet.
     """
 
-    # --- type checking ---
+    # type checking
     ensure_or_none(fixed_fields, dict)
     fixed_fields = prompt_column_value(ctx.keybinds, fixed_fields)
 
@@ -233,7 +233,7 @@ def build_df(
         df[column] = value
     df.date = pd.to_datetime(df.date)
     
-    # --- if parse was successful, remove file and return ---
+    # if parse was successful, remove file and return
     tmp.unlink(missing_ok=True)
     return df
 
@@ -245,21 +245,21 @@ def write_df(df : pd.DataFrame | pd.Series) -> None:
     Otherwise, df is appeneded to database.
     
     Arguments
-    ---------
+    -----
     df
         DataFrame to be passed to database. 
     """
 
-    # --- sanitize dataframe before writing to it ---
+    # sanitize dataframe before writing to it
     ensure(df, pd.DataFrame, pd.Series)
     table_name = Record.__tablename__
     category_list = list(ctx.categories_dict.keys())
     df = sanitize_df(df, category_list)
 
-    # --- check if id is in columns or if it's the index name ---
+    # check if id is in columns or if it's the index name
     is_index_id = (df.index.name == 'id')
     if not ('id' in df.columns) and not is_index_id:
-        # --- if that is not the case, just append to db ---
+        # if that is not the case, just append to db
         df.to_sql(
             name=table_name, con=ctx.engine, 
             if_exists='append', index=False
@@ -267,7 +267,7 @@ def write_df(df : pd.DataFrame | pd.Series) -> None:
         pprint_df(df=df, header="Changes have been commited.")
         return
 
-    # --- if there is index, reset it so orient=records preserves it ---
+    # if there is index, reset it so orient=records preserves it
     if is_index_id:
         df = df.reset_index()
     as_dict = df.to_dict(orient='records')
@@ -277,7 +277,7 @@ def write_df(df : pd.DataFrame | pd.Series) -> None:
             session.bulk_update_mappings(Record, as_dict)
             session.commit()
 
-    # --- print dataframe and confirm user validation ---        
+    # print dataframe and confirm user validation ---        
     pprint_df(df)
     confirm_action(_action)
 
@@ -292,7 +292,7 @@ def build_conversion(
     Prompts the user for a currency conversion and returns it.
 
     Arugments:
-    ---------
+    -----
         date
             The date of the conversion. If None, the user is prompted.
         base_operation_str
@@ -303,7 +303,7 @@ def build_conversion(
             brief description of the conversion. If None, the user is prompted.
     """
 
-    # --- type checking and prompters ---
+    # type checking and prompters
     ensure_or_none(date_, date)
     date_ = prompt_date_operation(date_)
     ensure_or_none(base_operation_str, str)
@@ -322,7 +322,7 @@ def build_conversion(
     if not description:
         description = input("Type your description: ")
     
-    # --- build and return ---
+    # build and return
     conv = Conversion(
         date=date_, base_currency=base_currency,
         base_amount=base_amount,target_currency=target_currency,
@@ -336,7 +336,7 @@ def write_conversion(conv : Optional[Conversion] = None) -> None:
     Write conversion wrapper. Relies on `build_conversion` if `conv` is empty.
     
     Arguments
-    --------
+    ----
     conv
         Conversion to write to Database. If None is passed then 
         `build_conversion` is called to the rescue.
@@ -362,7 +362,7 @@ def edit(
     commits or rolls back.
 
     Parameters
-    ----------
+    ------
     entity
         Defaults to `Record`, it checks whether the entity to be edited is 
         `Record` or `Conversion`.
@@ -375,17 +375,17 @@ def edit(
         A space-separated list of fields to edit (`prompt_column_value`).
     """
 
-    # --- ensure that entity is correctly retrieved ---
+    # ensure that entity is correctly retrieved
     if not isinstance(entity, Conversion | Record):
         ensure_or_none(id_, int)
         entity = prompt_entity_by_id(ctx.engine, entity_type, id_)
 
-    # --- build editable dictionary and replace in entity ---
+    # build editable dictionary and replace in entity
     editables = prompt_column_value(ctx.keybinds, fields_str=fields)    
     for attr, new_val in editables.items():
         setattr(entity, attr, new_val)
 
-    # --- write ---
+    # write
     entity.write(ctx.engine)
 
 
@@ -399,7 +399,7 @@ def delete(
     By default, a Record entity will be deleted. 
     
     Arguments
-    ---------
+    -----
     entity
         Defaults to `Record`, it checks whether the entity to be edited is 
         `Record` or `Conversion`.
@@ -410,12 +410,12 @@ def delete(
         not provided, fetched via `prompt_entity_by_id`.
 
     Notes
-    -----
+    -
     - A warning message is shown before deletion to highlight that the
     operation is irreversible.
     """
 
-    # --- ensure that entity is correctly retrieved ---
+    # ensure that entity is correctly retrieved
     if not isinstance(entity, Record | Conversion):
         ensure_or_none(id_, int)
         entity = prompt_entity_by_id(ctx.engine, entity_type, id_)
@@ -436,7 +436,7 @@ def fetch(
     Relies on `parse_semantic_filter` to approve parsing.
 
     Parameters
-    ----------
+    ------
     max_lines
         Maximum number of records to return. Defaults to 20.
     semantic_filter
@@ -446,21 +446,21 @@ def fetch(
         - float columns: numeric range only
 
     Notes
-    -----
+    -
     - When `semantic_filter` is omitted, the user may be prompted interactively.
     - Results are ordered by `Record.id` (desc) and limited by `max_lines`.
     - To use SQL, use `sql: SELECT ...` (only SELECT statements are supported).
     """
     
-    # --- type checking ---
+    # type checking
     ensure(max_lines, int)
     ensure_or_none(semantic_filter, str)
 
-    # --- ask for semantic filter and parse it ---
+    # ask for semantic filter and parse it
     if semantic_filter is None:
         semantic_filter = input("Type your semantic filter: ")
     
-    # --- query constructor -- by design, there is no prompter for this ---
+    # query constructor -- by design, there is no prompter for this
     stmt = parse_semantic_filter(semantic_filter)
     stmt = stmt.limit(max_lines).order_by(desc(Record.id))
 
@@ -492,7 +492,7 @@ def read(
     Relies on `fetch` to fetch records, and `Conversions.select(true())` on Conversions.
 
     Parameters
-    ----------
+    ------
     max_lines
         Maximum number of records to return. Defaults to 20.
     entity_type
@@ -504,7 +504,7 @@ def read(
         - float columns: numeric range only
 
     Notes
-    -----
+    -
     - When `semantic_filter` is omitted, the user may be prompted interactively.
     - Results are ordered by `Record.id` (desc) and limited by `max_lines`.
     - To use SQL, use `sql: SELECT ...` (only SELECT statements are supported).

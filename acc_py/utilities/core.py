@@ -380,8 +380,8 @@ def get_globals() -> None:
     """Shows globals while removing __like__ functions."""
     keys = globals().keys()
     # remove __like__ funcs
-    clean = filter(lambda s: not s == s.replace('__', ''), keys)
-    return clean
+    clean = filter(lambda s: s == s.replace('__', ''), keys)
+    return list(clean)
 
 
 def now() -> None:
@@ -416,3 +416,26 @@ def fetch_keybind_dict(
             keybind_dict.update({item_dict["key"]: item_dict["shortname"]})
 
     return _sort_dict(keybind_dict)
+
+
+def fetch_category_dictionary(
+        field_dict: FieldDictType
+) -> dict[str, str]:
+    """
+    Fetches category_dict ({"category" : "description"}) from fields_dict.
+    """
+    res = {}
+    for item_dict in field_dict:
+        subcategories = item_dict.get("subcategories")
+        # both shortname-description guaranteed in the ctx parser
+        if subcategories:
+            for item in subcategories:
+                res.update(
+                    { item["shortname"] : item["description"] }
+                )
+        else:
+            # here too
+            res.update(
+                { item_dict["shortname"] : item_dict["description"] }
+            )
+    return res

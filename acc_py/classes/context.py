@@ -25,14 +25,14 @@ from utilities.core import (
     check_editor,
     check_colors,
     pprint_categories,
+    fetch_keybind_dict,
+    fetch_category_dictionary,
 )
 from utilities.prompt import (
     prompt_currency,
     prompt_category_from_keybinds
 )
 from utilities.currency import (
-    fetch_keybind_dict,
-    fetch_category_dictionary,
     check_currency_list,
     get_exchange_dict,
 )
@@ -117,24 +117,24 @@ def _return_dict(d : dict) -> dict:
 class AccountingContext:
 
     # ------------------------- main db configurations -------------------------
-    # --- fetched from config.json ---
+    # fetched from config.json ---
     config_path : Optional[Path]                = None
     fields_path : Optional[Path]                = None
     engine: Optional[Engine]                    = None
     editor : Optional[Path]                     = None
     fields : Optional[FieldDictType]            = None
     default_currency : Optional[str]            = None 
-    # --- built at runtime if not fetched from cache ---
+    # built at runtime if not fetched from cache ---
     keybinds : Optional[KeybindDictType]        = None
     categories_dict: Optional[StrDict]          = None
 
     # ----------------- plot configurations, not needed for db -----------------
-    # --- fetched from config.json ---
+    # fetched from config.json ---
     currency_list : Optional[List[str]]                 = None
     inflow_categories : Optional[List[str]]             = None
-    # --- fetched but built later ---
+    # fetched but built later ---
     colors: Optional[CurrencyColorDictionary]           = None
-    # --- built at runtime ---
+    # built at runtime ---
     exchange_dictionary : Optional[ExchangeDictType]    = None
     period: Optional[Period]                            = None
     matplotlib : Optional[dict[str, Any]]               = None
@@ -146,18 +146,18 @@ class AccountingContext:
         Loads last ctx state from .json. 
         Checks SHA256 sum from config_path and fields_path.
         """
-        # --- load state / cache ---
+        # load state / cache ---
         name        = "state.json"
         state_path  = APPLICATION_CACHED_DIRECTORY / name
         _path_exists(state_path)
         
-        # --- compute current sha and fetch data ---
+        # compute current sha and fetch data ---
         cached_dict         =   _jopen(state_path)
         data                =   cached_dict["data"]
         current_config_sha  =   sha256(data["config_path"])
         current_fields_sha  =   sha256(data["fields_path"])
 
-        # --- ensure sha256 match ---
+        # ensure sha256 match ---
         err = []
         if current_config_sha != (expected := cached_dict["config-sha256"]):
             err.append(f"expected {expected}, got {current_config_sha}.")
@@ -166,7 +166,7 @@ class AccountingContext:
         if err:
             raise SHA256Error(f"Mismatches: {err}.")
         
-        # --- load to self and wrap attrs ---
+        # load to self and wrap attrs ---
         self.__dict__.update(data)
         self.config_path    =   Path(self.config_path)
         self.fields_path    =   Path(self.fields_path)
@@ -189,7 +189,7 @@ class AccountingContext:
             fields_path : Path
     ) -> None:
         """Sets minimal configurations to run acccli in db mode."""
-        # --- try to fetch from cache ---
+        # try to fetch from cache ---
         try:
             self.load_from_cache()
             print("Sucessfully loaded ctx.fields from cache.")
@@ -212,17 +212,19 @@ class AccountingContext:
     def set_plot(self) -> None:
         """Sets plot configurations for styling."""
 
-        # --- ensure that 'set' is ran before this --- 
+        # ensure that 'set' is ran before this 
         if not self.config_path and not self.fields_path:
             raise RuntimeError("Run 'set' before setting 'plot' constructor.")
 
-        # --- if the attrs below exist, more likely ctx's attrs have been fetched
-        # --- via load_from_cache(), skipping this...
+        # if the attrs below exist, more likely ctx's attrs have been 
+        # fetched via load_from_cache(), skipping this...
         if self.exchange_dictionary and self.period:
-            print("More likely ctx's attrs have been fetched from load_from_cache. Skipping...")
+            msg =   "Context attributes have been fetched from cache. " \
+                    "Skipping `set_plot`."
+            print(msg)
             return
 
-        # --- proceed to load remaining attrs --- 
+        # proceed to load remaining attrs 
         config                      =   _jopen(self.config_path)
         self.currency_list          =   _set_currency_list(config.get('currency_list'))
         self.inflow_categories      =   _validate_categories(config.get('inflow-categories'), self.keybinds)
@@ -235,7 +237,7 @@ class AccountingContext:
 
     def to_cache(self, path : Optional[Path] = None) -> None:
         """Saves current ctx state to json."""
-        # --- force all fields to be fetched before saving ---
+        # force all fields to be fetched before saving ---
         if not self.period:
             self.set_plot()
 
@@ -243,10 +245,10 @@ class AccountingContext:
             name = "state.json"
             path = APPLICATION_CACHED_DIRECTORY / name
             
-        # --- load state ---
+        # load state ---
         save_dict = self.__dict__.copy()
 
-        # --- manually update unserializable ---
+        # manually update unserializable ---
         save_dict["engine"]         =   str(self.engine.url)
         save_dict["editor"]         =   str(self.editor)
         save_dict["period"]         =   str(self.period)

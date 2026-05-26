@@ -156,26 +156,26 @@ def _set_labels(
     # set amount label
     figcolor = _get_background_color()
     negcolor = _negate_color(figcolor)
-    width   = bar.get_width()
-    inside  = width > (max_x_value / 2)
-    xpos    = ( 0.5 if inside else 1.1 ) * width
-    ypos    = bar.get_y() + bar.get_height() / 2
-    color   = figcolor if inside else negcolor
-    label   = f'{width:.2f} {currency}'
-    txt     = ax.text(
+    width = bar.get_width()
+    inside = width > (max_x_value / 2)
+    xpos = ( 0.5 if inside else 1.1 ) * width
+    ypos = bar.get_y() + bar.get_height() / 2
+    color = figcolor if inside else negcolor
+    label = f'{width:.2f} {currency}'
+    txt = ax.text(
         xpos, ypos, label, va='center', 
         ha='left', fontsize=10, color=color
     )
 
     # check if text is cutoff by the bar
-    bbox        = txt.get_window_extent()
-    bar_right   = ax.transData.transform((width, 0))[0]
+    bbox = txt.get_window_extent()
+    bar_right = ax.transData.transform((width, 0))[0]
     if bbox.x1 > bar_right:
         txt.set_position((1.1 * width, ypos))
         txt.set_color(negcolor)
 
 
-def _get_color(plotkey : str, subkey : str, /) -> RGBType | None:
+def get_config(plotkey : str, subkey : str, /) -> RGBType | None:
     try:
         config = ctx.matplotlib.get("plots")
         config = config.get(plotkey)
@@ -194,8 +194,9 @@ def _barchart_core(
 
     # setting main bars
     # TODO: change color if darkmode has been called and viceversa
-    barh_color = _get_color("barchart", "default")
-    ax.barh(df.index, df.total_amount, color=barh_color, align='center')
+    barh_color = get_config("barchart", "default")
+    descriptions = df.index.map(lambda key: ctx.categories_dict[key])
+    ax.barh(descriptions, df.total_amount, color=barh_color, align='center')
     ax.tick_params(axis='y', labelsize=10.5)
 
     # set labels on each bar
@@ -223,7 +224,7 @@ def _pre_on_click(
             for bar, category in zip(ax.patches, categories):
                 contains, _ = bar.contains(event)
                 if contains:
-                    color = _get_color("barchart", "on_click")
+                    color = get_config("barchart", "on_click")
                     bar.set_color(color)
                     _quick_printer(period, category, currency)
                     ax.figure.canvas.draw()
@@ -620,7 +621,7 @@ def savings_plot() -> Figure:
 
     # combine all currencies and collapse it to ctx.default_currency
     ndf = _get_combined(df)
-    color = _get_color("savings", "savings_color")
+    color = get_config("savings", "savings_color")
     label = f"comb-{ctx.default_currency.upper()}"
     ax.plot(ndf.cumsum(), color=color, label=label, marker='o')
 

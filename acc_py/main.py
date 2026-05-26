@@ -23,6 +23,8 @@ def load_db_api_module(*args) -> None:
     # populate global namespace from db_api
     import interfaces.db_api as da
     from classes.model import Record, Conversion
+    def load():
+        load_plot_module(*args)
     exposed = {
         "br": da.build_record,
         "bc": da.build_conversion,
@@ -35,6 +37,7 @@ def load_db_api_module(*args) -> None:
         "gr": da.get_record,
         "wc": da.write_conversion,
         "wdf": da.write_df,
+        "load": load,
         "Record": Record,
         "Conversion": Conversion,
     }

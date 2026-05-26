@@ -21,6 +21,7 @@ from utilities.core import (
     check_editor,
     convert_rgb,
     check_colors,
+    fetch_category_dictionary,
 )
 
 
@@ -427,6 +428,53 @@ class TestColorChecker(TestCase):
         colors = [ "red", None ]
         with self.assertRaises(ValueError):
             check_colors(currencies, colors)
+
+
+class TestCategoryDictionaryFetcher(TestCase):
+    def test_fetch_category_dictionary(self):
+        cases = [
+            (
+                [
+                    {
+                        "shortname" : "cat_1",
+                        "description" : "category 1"
+                    },
+                    {
+                        "shortname" : "cat_2",
+                        "description" : "category 2"
+                    }
+                ],
+                {
+                    "cat_1" : "category 1",
+                    "cat_2" : "category 2",
+                },
+                "no nesting"
+            ),
+            (
+                [
+                    {
+                        "shortname" : "cat_1",
+                        "description" : "category 1",
+                        "subcategories" : [
+                            {
+                                "shortname" : "cat_2",
+                                "description" : "category 2"
+                            }
+                        ]
+                    }
+                ],
+                {
+                    "cat_2" : "category 2"
+                },
+                "nesting"
+            )
+        ]
+        for field_input, expected, label in cases:
+            with self.subTest(label=label):
+                self.assertEqual(
+                    fetch_category_dictionary(field_input),
+                    expected
+                )
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ from tests._shared import (
     mem_engine,
     TODAY
 )
-from db.model import Record, Conversion
+from classes.model import Record, Conversion
 from utilities.prompt import (
     main_loop,
     prompt_arithmetic_operation,
@@ -602,16 +602,16 @@ class TestColumnValuePrompt(TestCase):
         }
         with (
             _patch_this(prompt_list_of_fields) as mock_prompt,
-            _patch_this('_parse_description') as mock_description,
+            patch_builtin(input) as mock_input,
             _patch_this(prompt_currency) as mock_currency
         ):
             mock_prompt.return_value = res_mocked_prompt_list_fields
             mock_currency.return_value = res_mocked_currency
-            mock_description.return_value = res_mocked_description
+            mock_input.return_value = res_mocked_description
             res = prompt_column_value(keybinds, uinput)
         mock_prompt.assert_called_once_with(uinput)
         mock_currency.assert_called_once()
-        mock_description.assert_called_once()
+        mock_input.assert_called_once()
         self.assertEqual(res, expected)
 
     def test_type_err_on_input(self):

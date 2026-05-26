@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 import subprocess
 
-from core import (
+from utilities.core import (
     APPLICATION_STORAGE_DIRECTORY,
     _jdump
 )

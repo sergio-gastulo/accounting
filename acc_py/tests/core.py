@@ -1,11 +1,6 @@
 import unittest
 from unittest import TestCase
-from unittest.mock import (
-    patch, 
-    call, 
-    mock_open, 
-    MagicMock
-)
+from unittest.mock import patch, call
 import io
 import json
 from pathlib import Path
@@ -14,28 +9,18 @@ from typing import Callable
 import pandas as pd
 
 from tests._shared import (
-    RUN_API_TEST, 
     TEST_FILE_DIRECTORY, 
-    Patcher,
+    Patcher
 )
 from utilities.core import (
     import_fields,
     pprint_df,
     get_help_dictionary,
     pprint_categories,
-    fetch_category_dictionary,
     fetch_keybind_dict,
-    fetch_exchange_rates,
-    get_exchange_rate,
-    exchange_memo,
-    get_exchange_dict,
     check_editor,
-    build_exchange,
-    check_currency_list,
     convert_rgb,
     check_colors,
-    export, 
-    fetch,
 )
 
 
@@ -334,168 +319,6 @@ class TestKeybindDictionaryFetcher(TestCase):
                 )
 
 
-@unittest.skipUnless(RUN_API_TEST, "skipping API tests (set RUN_API_TESTS=1 to enable)")
-class TestExchangeRateFetcher(TestCase):
-
-    def test_fetch_exchange_rate(self):
-        cases = [
-            "pen",
-            "eur"
-        ]
-        for currency in cases:
-            with self.subTest(currency=currency):
-                res = fetch_exchange_rates(currency)
-                self.assertIsInstance(
-                    res,
-                    dict
-                )
-                for curr, exchange in res.items():
-                    with self.subTest(curr=curr):
-                        self.assertIsInstance(curr, str)
-                        self.assertIsInstance(exchange, float | int)
-
-    def test_fetch_from_bad_currency(self):
-        bad_cases = [
-            ("any-currency",    ValueError),
-            (print,             TypeError),
-            (None,              TypeError),
-            ("asd",             ValueError)
-        ]
-        for bad_currency, err in bad_cases:
-            with self.subTest(bad_currency=bad_currency):
-                with self.assertRaises(err):
-                    fetch_exchange_rates(bad_currency)
-
-    def test_fetch_exchange_rate_memo(self):
-        currency = "pen"
-        expected = "foo"
-        with patch(exchange_memo, {currency : expected}):
-            with _patch_this('_fetch_exchange') as mock_fetch_exchange:
-                res = fetch_exchange_rates(currency)
-                mock_fetch_exchange.assert_not_called()
-                self.assertEqual(res, expected)
-
-
-@unittest.skipUnless(RUN_API_TEST, "skipping API tests (set RUN_API_TESTS=1 to enable)")
-class TestExchangeRateGetter(TestCase):
-    def test_get_exchange_rate(self):
-        cases = [
-            ("pen", "usd"),
-            ("usd", "eur"),
-        ]
-        for curr1, curr2 in cases:
-            with self.subTest(curr1=curr1, curr2=curr2):
-                self.assertIsInstance(
-                    get_exchange_rate(curr1, curr2),
-                    float
-                )
-
-class TestExchangeBuilder(TestCase):
-    def test_build_exchange(self):
-        cases = [
-            (
-                ["foo", "bar", "baz"],
-                {
-                    "foo" : {
-                        "foo" : 2.0,
-                        "bar" : 2.0,
-                        "baz" : 2.0
-                    },
-                    "bar" : {
-                        "foo" : 2.0,
-                        "bar" : 2.0,
-                        "baz" : 2.0
-                    },
-                    "baz" : {
-                        "foo" : 2.0,
-                        "bar" : 2.0,
-                        "baz" : 2.0
-                    }
-                }
-            ),
-        ]
-        for curr_list, expected in cases:
-            with self.subTest(curr_list=curr_list):
-                with _patch_this('get_exchange_rate') as mock_get_exchange:
-                    mock_get_exchange.return_value = 2.0
-                    self.assertEqual(
-                        build_exchange(curr_list),
-                        expected
-                    )
-        
-
-class TestExchangeDictionaryGetter(TestCase):
-
-    def test_get_exchange_dict_flow(self):
-        cache = False
-        quiet = True
-        curr_list = ['JPY', 'EUR']
-        build_return = {
-            "jpy" : {
-                "jpy" : 1.0,
-                "eur" : 2.0
-            },
-            "eur" : {
-                "jpy" : 0.5,
-                "eur" : 1.0
-            }
-        }
-        
-        with (
-            # _patch_this(check_currency_list) as mock_curr_list,
-            _patch_this('has_internet') as mock_internet,
-            _patch_this(build_exchange) as mock_build,
-            _patch_this('_jdump') as mock_jdump,
-            _patch_this('_jprint') as mock_jprint,
-        ):
-            mock_build.return_value = build_return
-            mock_internet.return_value = True
-            res = get_exchange_dict(curr_list, cache, quiet)
-        mock_jdump.assert_called_once()
-        jdump_args, _cached_path = mock_jdump.call_args.args
-        self.assertEqual(jdump_args, res)
-        mock_jprint.assert_not_called()
-        self.assertEqual(res, build_return)
-
-    def test_cache_call(self):
-        res = "any"
-        with (
-            _patch_this('_jopen') as mock_jopen,
-            _patch_this(build_exchange) as mock_build_cache,
-            _patch_this('build_exchange') as mock_build,
-        ):
-            mock_build_cache.return_value.exists.return_value = True
-            get_exchange_dict(res, True)
-            mock_jopen.assert_called_once()
-            mock_build.assert_not_called()
-    
-    def test_not_quiet_prints(self):
-        cache = False
-        quiet = False
-        curr_list = ['JPY', 'EUR']
-        build_return = {
-            "jpy" : {
-                "jpy" : 1.0,
-                "eur" : 2.0
-            },
-            "eur" : {
-                "jpy" : 0.5,
-                "eur" : 1.0
-            }
-        }
-        
-        with (
-            _patch_this('has_internet') as mock_internet,
-            _patch_this(build_exchange) as mock_build,
-            _patch_this('_jdump') as mock_jdump,
-            _patch_this('_jprint') as mock_jprint,
-        ):
-            mock_build.return_value = build_return
-            mock_internet.return_value = True
-            get_exchange_dict(curr_list, cache, quiet)
-        mock_jprint.assert_called_once_with(build_return)
-
-
 class TestEditorChecker(TestCase):
 
     def test_check_editor(self):
@@ -526,20 +349,6 @@ class TestEditorChecker(TestCase):
                 with _patch_this('_ask_editor') as mock_ask_editor:
                     check_editor(arg)
                     mock_ask_editor.assert_called_once()
-
-
-class TestCurrencyListChecker(TestCase):
-    def test_check_currency_list(self):
-        arg = ["FOO", "BAR", "BAZ"]
-        self.assertEqual(
-            check_currency_list(arg),
-            ["foo", "bar", "baz"]
-        )
-
-    def test_check_currency_list_err(self):
-        bad = ["foo", "bar4"]
-        with self.assertRaises(ValueError):
-            check_currency_list(bad)
 
 
 class TestRGBConverter(TestCase):
@@ -618,62 +427,6 @@ class TestColorChecker(TestCase):
         colors = [ "red", None ]
         with self.assertRaises(ValueError):
             check_colors(currencies, colors)
-
-
-class TestExport(TestCase): 
-
-    @classmethod
-    def setUpClass(cls):
-        cls.csv = TEST_FILE_DIRECTORY / "tmp.csv"
-        cls.json = TEST_FILE_DIRECTORY / "tmp.json"
-        return super().setUpClass()
-
-    def test_df_export(self):
-        df = pd.DataFrame({"a" : [1,2,3], "b" : [1,2,4]})
-        m : MagicMock = mock_open()
-        with (
-            patch('pandas.DataFrame.to_csv') as mock_tocsv,
-            patch('builtins.open', m)
-        ):
-            export(df, self.csv)
-        p, how = m.call_args.args
-        self.assertEqual(how, "w")
-        self.assertEqual(p, self.csv)
-        _stream, kwargs = mock_tocsv.call_args
-        self.assertIn("force_ascii", kwargs)
-
-    def test_unsupported_type(self):
-        unsupported = [
-            print, dict, "primitive: ", 654, None 
-        ]
-        for bad in unsupported:
-            with self.subTest(bad=bad):
-                with self.assertRaises(TypeError):
-                    export(bad)
-    
-    def test_invalid_extension(self):
-        invalids = ["foo.jsonc", "bar.yaml", "baz.toml"]
-        df = pd.DataFrame({"a" : [1,2,3], "b" : [1,2,4]})
-        for invalid in invalids:
-            with self.subTest(invalid=invalid):
-                with self.assertRaises(ValueError):
-                    export(df, Path(invalid))
-
-    def test_dict_but_not_json(self):
-        obj = {"a" : [1,2,3], "b" : list("abc")}
-        with self.assertRaises(ValueError):
-            export(obj, self.csv)
-    
-    
-    @classmethod
-    def tearDownClass(cls):
-        cls.csv.unlink(missing_ok=True)
-        cls.json.unlink(missing_ok=True)
-
-
-@unittest.skip("TODO...")
-class TestFetch(TestCase):
-    pass
 
 
 if __name__ == "__main__":

@@ -100,7 +100,7 @@ class Entity:
         return new
 
 
-class Record(Entity, Base):
+class Record(Base, Entity):
 
     __tablename__ = "cuentas"
     
@@ -119,7 +119,7 @@ class Record(Entity, Base):
         )
 
 
-class Conversion(Entity, Base):
+class Conversion(Base, Entity):
 
     __tablename__ = "conversions"
 

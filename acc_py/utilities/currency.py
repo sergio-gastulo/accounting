@@ -3,9 +3,7 @@ from typing import List, Any
 import json
 import requests
 
-from core import (
-    FieldDictType,
-    KeybindDictType,
+from utilities.core import (
     ExchangeDictType,
     APPLICATION_CACHED_DIRECTORY,
     has_internet,
@@ -13,32 +11,6 @@ from core import (
     _jdump,
     _jprint,
 )
-
-
-def _sort_dict(d : dict[str, Any]) -> dict[str, Any]:
-    """Simple sorter-by-key."""
-    return { key : d[key] for key in sorted(d) }
-
-def fetch_keybind_dict(
-        field_dict : FieldDictType
-) -> KeybindDictType:
-    """Constructs keybind dictionary dict from fields_dict."""
-    keybind_dict = {}
-
-    # no KeyErrors since field_dict is first ensured on import_fields
-    for item_dict in field_dict:
-        subcategories = item_dict.get("subcategories")
-        if subcategories:
-            keybind_dict.update({
-                item_dict["key"] : _sort_dict({
-                    item["key"] : item["shortname"] 
-                    for item in subcategories
-                })
-            })
-        else:
-            keybind_dict.update({item_dict["key"]: item_dict["shortname"]})
-
-    return _sort_dict(keybind_dict)
 
 
 def _fetch_exchange(currency : str) -> dict[str, int | float]:

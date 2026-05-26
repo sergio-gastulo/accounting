@@ -3,7 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock, call
 from typing import Callable
 
-from db.model import (
+from classes.model import (
     Entity, 
     Record, 
     Conversion,
@@ -11,6 +11,7 @@ from db.model import (
     ensure,
     soft_warning,
 )
+# from utilities.core import ensure, soft_warning
 from tests._shared import (
     Patcher,
     TODAY,
@@ -20,7 +21,7 @@ from tests._shared import (
 
 #region ============================ header ====================================
 
-TEST_MODULE = 'db.model'
+TEST_MODULE = 'classes.model'
 def _patch_this(f: Callable | str, **kwargs) -> Patcher:
     return Patcher(TEST_MODULE, f, **kwargs)
 

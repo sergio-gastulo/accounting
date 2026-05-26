@@ -9,7 +9,7 @@ import pandas as pd
 from datetime import timedelta
 from typing import Callable
 
-from db.model import Record, Conversion
+from classes.model import Record, Conversion
 from tests._shared import (
     Patcher, 
     mem_engine,

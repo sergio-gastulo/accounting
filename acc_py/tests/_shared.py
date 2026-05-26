@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Callable
 from unittest.mock import MagicMock, patch
-from db.model import Base
+from classes.model import Base
 from sqlalchemy import Engine, create_engine
 from datetime import date
 

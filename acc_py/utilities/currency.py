@@ -15,29 +15,6 @@ from core import (
 )
 
 
-def fetch_category_dictionary(
-        field_dict: FieldDictType
-) -> dict[str, str]:
-    """
-    Fetches category_dict ({"category" : "description"}) from fields_dict.
-    """
-    res = {}
-    for item_dict in field_dict:
-        subcategories = item_dict.get("subcategories")
-        # both shortname-description guaranteed in the ctx parser
-        if subcategories:
-            for item in subcategories:
-                res.update(
-                    { item["shortname"] : item["description"] }
-                )
-        else:
-            # here too
-            res.update(
-                { item_dict["shortname"] : item_dict["description"] }
-            )
-    return res
-
-
 def _sort_dict(d : dict[str, Any]) -> dict[str, Any]:
     """Simple sorter-by-key."""
     return { key : d[key] for key in sorted(d) }

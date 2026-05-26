@@ -182,13 +182,6 @@ def import_fields(
     return field_dict
 
 
-# TODO: test this
-def pprintfunc(func: Callable) -> None:
-    """Simple documentation printer."""
-    print(f'{fg.cyan}Function name:{fg.reset}\n{func.__name__}\n')
-    print(f'{fg.cyan}Documentation:{fg.reset}\n{func.__doc__}')
-
-
 def pprint_df(
         df : pd.DataFrame,
         header : Optional[str] = None

@@ -129,11 +129,6 @@ class TestFieldImporter(TestCase):
                     import_fields(path)
 
 
-@unittest.skip("TODO: Implement later.")
-class TestFunctionDocumentationPrinter(TestCase):
-    pass
-
-
 class TestDataFramePrettyPrinter(TestCase):
     
     def test_pprint_df_no_header(self):
@@ -301,53 +296,6 @@ class TestCategoriesPrettyPrinter(TestCase):
                 expected
             )
 
-
-class TestCategoryDictionaryFetcher(TestCase):
-    def test_fetch_category_dictionary(self):
-        cases = [
-            (
-                [
-                    {
-                        "shortname" : "cat_1",
-                        "description" : "category 1"
-                    },
-                    {
-                        "shortname" : "cat_2",
-                        "description" : "category 2"
-                    }
-                ],
-                {
-                    "cat_1" : "category 1",
-                    "cat_2" : "category 2",
-                },
-                "no nesting"
-            ),
-            (
-                [
-                    {
-                        "shortname" : "cat_1",
-                        "description" : "category 1",
-                        "subcategories" : [
-                            {
-                                "shortname" : "cat_2",
-                                "description" : "category 2"
-                            }
-                        ]
-                    }
-                ],
-                {
-                    "cat_2" : "category 2"
-                },
-                "nesting"
-            )
-        ]
-        for field_input, expected, label in cases:
-            with self.subTest(label=label):
-                self.assertEqual(
-                    fetch_category_dictionary(field_input),
-                    expected
-                )
-                
 
 class TestKeybindDictionaryFetcher(TestCase):
     def test_fetch_keybind_dict(self):

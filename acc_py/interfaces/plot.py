@@ -219,12 +219,12 @@ def _pre_on_click(
         period : pd.Period,
         meta : List[tuple[Axes, str, str]]
 ) -> None:
+    color = get_config("barchart", "on_click")
     for ax, categories, currency in meta:
         if event.inaxes == ax:
             for bar, category in zip(ax.patches, categories):
                 contains, _ = bar.contains(event)
                 if contains:
-                    color = get_config("barchart", "on_click")
                     bar.set_color(color)
                     _quick_printer(period, category, currency)
                     ax.figure.canvas.draw()

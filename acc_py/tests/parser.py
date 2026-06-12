@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import call
+from unittest.mock import call, patch
 from unittest import TestCase
 
 import datetime
@@ -19,6 +19,7 @@ from utilities.parser import (
     parse_period,
     parse_arithmetic_operation,
     parse_currency,
+    parse_day,
     parse_date,
     parse_double_currency,
     core_semantic_filter_parse,
@@ -109,6 +110,48 @@ class TestCurrencyParser(TestCase):
                     parse_currency(currency_input)
 
 
+class TestDayParser(TestCase):
+
+    base = datetime.date(2000, 1, 1)
+
+    def test_strs(self):
+        uinput = "monday"
+        expected = datetime.date(1999, 12, 27) # monday of *that* week
+        self.assertEqual(expected, parse_day(uinput, self.base))
+
+    def test_ahead(self):
+        uinput = "sunday"
+        # despite sunday being one day ahead, we are expecting the one 
+        # from the previous week
+        expected = datetime.date(1999, 12, 26) # prev week sunday 
+        self.assertEqual(expected, parse_day(uinput, self.base))
+
+    def test_int(self):
+        uinput = "   6  "
+        expected = datetime.date(2000, 1, 6)
+        self.assertEqual(expected, parse_day(uinput, self.base))
+
+    def test_negative_int(self):
+        uinput = "   - 1  "
+        expected = datetime.date(1999, 12, 31)
+        self.assertEqual(expected, parse_day(uinput, self.base))
+
+    def test_substraction(self):
+        uinput = "yesterday"
+        expected = datetime.date(1999, 12, 31)
+        self.assertEqual(expected, parse_day(uinput, self.base))
+
+    def test_unparsable(self):
+        bad = [
+            'any',
+            'foooo bar baaaaz',
+            ''
+        ]
+        for uinput in bad:
+            with self.assertRaises(ValueError):
+                parse_day(uinput, self.base)
+
+
 class TestDateParser(TestCase):
 
     def test_date(self):
@@ -147,6 +190,21 @@ class TestDateParser(TestCase):
             with self.subTest(date_input=date_input):
                 with self.assertRaises(ValueError):
                     parse_date(date_input)
+
+    def test_special_strings(self):
+        specials = [
+            "yesterday", 
+            "           yester  ",
+            "            monday        ",
+            "su"
+        ]
+        for specialstr in specials:
+            with self.subTest(specialstr=specialstr):
+                # just ensure parse_day is being called with good arguments
+                with _patch_this(parse_day) as mocked:
+                    parse_date(specialstr)
+                day, _ = mocked.call_args.args
+                self.assertEqual(day, specialstr.strip())
 
 
 class TestDoubleCurrencyPairParser(TestCase):

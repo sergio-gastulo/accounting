@@ -9,6 +9,8 @@ from datetime import date, timedelta
 import re
 from pathlib import Path
 from io import StringIO
+from dateutil.relativedelta import relativedelta
+import dateutil.relativedelta
 
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
@@ -91,6 +93,30 @@ def _get_date_tokens(s : str) -> List[str]:
     tokens = re.sub(r'([\d ]+)(-)([\d ]+)', r'\1 \3', tokens)
     return tokens.strip().split()
 
+
+def parse_day(day: str, base: date) -> date:
+    day = day.replace(' ', '')
+    try:
+        day = int(day)
+    except ValueError:
+        day = day.upper()
+        try:
+            dayexpr = getattr(dateutil.relativedelta, day[:2])
+        except AttributeError:
+            # handle special string cases like 'yesterday'
+            if day[:4] == 'YEST':
+                return base + timedelta(days=-1)
+            raise ValueError(
+                f"String {day} could not be validated as a valid day string."
+            )
+        else:
+            return base + relativedelta(weekday=dayexpr(-1))
+    else:
+        if day < 0:
+            return base + timedelta(days=day)
+        return base.replace(day=day)
+
+
 def parse_date(date_input : str | int) -> date:
     """
     Parses dates in the following formats: '[+|-]int', 'year[-| ]month[-|]day'.
@@ -110,10 +136,7 @@ def parse_date(date_input : str | int) -> date:
             return today
 
         case [day]:
-            day = int(day)
-            if day < 0:
-                return today + timedelta(days=day)
-            return today.replace(day=day)
+            return parse_day(day, today)
 
         case [month, day]:  
             month, day = map(int, (month, day))

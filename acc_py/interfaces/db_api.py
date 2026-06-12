@@ -429,7 +429,7 @@ def delete(
 
 def fetch(
         semantic_filter : Optional[str] = None,
-        max_lines : int = 20,
+        max_lines : Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Fetches records from database.
@@ -437,23 +437,23 @@ def fetch(
 
     Parameters
     ------
-    max_lines
-        Maximum number of records to return. Defaults to 20.
     semantic_filter
         A textual filter expression. Supported patterns:
         - str columns: exact match, `LIKE` wildcard, or regex
         - int columns: exact match or numeric range
         - float columns: numeric range only
+    max_lines
+        Maximum number of records to return. Optional.
 
     Notes
-    -
-    - When `semantic_filter` is omitted, the user may be prompted interactively.
-    - Results are ordered by `Record.id` (desc) and limited by `max_lines`.
+    - When `semantic_filter` is omitted, the user is prompted interactively.
+    - Results are ordered by `Record.id` (desc) and limited by `max_lines` if 
+    provided.
     - To use SQL, use `sql: SELECT ...` (only SELECT statements are supported).
     """
     
     # type checking
-    ensure(max_lines, int)
+    ensure_or_none(max_lines, int)
     ensure_or_none(semantic_filter, str)
 
     # ask for semantic filter and parse it
@@ -462,7 +462,9 @@ def fetch(
     
     # query constructor -- by design, there is no prompter for this
     stmt = parse_semantic_filter(semantic_filter)
-    stmt = stmt.limit(max_lines).order_by(desc(Record.id))
+    if max_lines:
+        stmt = stmt.limit(max_lines)
+    stmt = stmt.order_by(desc(Record.id))
 
     try:
         df = pd.read_sql(stmt, ctx.engine, index_col='id')

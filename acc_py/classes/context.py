@@ -116,25 +116,25 @@ def _return_dict(d : dict) -> dict:
 @dataclass
 class AccountingContext:
 
-    # ------------------------- main db configurations -------------------------
-    # fetched from config.json ---
+    #- main db configurations-
+    # fetched from config.json
     config_path : Optional[Path]                = None
     fields_path : Optional[Path]                = None
     engine: Optional[Engine]                    = None
     editor : Optional[Path]                     = None
     fields : Optional[FieldDictType]            = None
     default_currency : Optional[str]            = None 
-    # built at runtime if not fetched from cache ---
+    # built at runtime if not fetched from cache
     keybinds : Optional[KeybindDictType]        = None
     categories_dict: Optional[StrDict]          = None
 
-    # ----------------- plot configurations, not needed for db -----------------
-    # fetched from config.json ---
+    #-- plot configurations, not needed for db--
+    # fetched from config.json
     currency_list : Optional[List[str]]                 = None
     inflow_categories : Optional[List[str]]             = None
-    # fetched but built later ---
+    # fetched but built later
     colors: Optional[CurrencyColorDictionary]           = None
-    # built at runtime ---
+    # built at runtime
     exchange_dictionary : Optional[ExchangeDictType]    = None
     period: Optional[Period]                            = None
     matplotlib : Optional[dict[str, Any]]               = None
@@ -143,21 +143,24 @@ class AccountingContext:
             self
     ) -> None:
         """
-        Loads last ctx state from .json. 
-        Checks SHA256 sum from config_path and fields_path.
+        Loads latest `ctx.to_cache()` context from `state_path`.
+
+        Notes
+        -----
+        - Checks SHA256 sum from config_path and fields_path before updating.
         """
-        # load state / cache ---
+        # load state / cache
         name        = "state.json"
         state_path  = APPLICATION_CACHED_DIRECTORY / name
         _path_exists(state_path)
         
-        # compute current sha and fetch data ---
+        # compute current sha and fetch data
         cached_dict         =   _jopen(state_path)
         data                =   cached_dict["data"]
         current_config_sha  =   sha256(data["config_path"])
         current_fields_sha  =   sha256(data["fields_path"])
 
-        # ensure sha256 match ---
+        # ensure sha256 match
         err = []
         if current_config_sha != (expected := cached_dict["config-sha256"]):
             err.append(f"expected {expected}, got {current_config_sha}.")
@@ -166,13 +169,14 @@ class AccountingContext:
         if err:
             raise SHA256Error(f"Mismatches: {err}.")
         
-        # load to self and wrap attrs ---
+        # load to self and wrap attrs
         self.__dict__.update(data)
         self.config_path    =   Path(self.config_path)
         self.fields_path    =   Path(self.fields_path)
         self.editor         =   Path(self.editor)
-        self.period         =   Period(self.period, 'M')
         self.engine         =   _engine(self.engine)
+        # overwrite period
+        self.period         =   _today_period()
 
 
     def delete_cache(self):
@@ -189,7 +193,7 @@ class AccountingContext:
             fields_path : Path
     ) -> None:
         """Sets minimal configurations to run acccli in db mode."""
-        # try to fetch from cache ---
+        # try to fetch from cache
         try:
             self.load_from_cache()
             print("Sucessfully loaded ctx.fields from cache.")
@@ -232,12 +236,33 @@ class AccountingContext:
         self.exchange_dictionary    =   get_exchange_dict(self.currency_list, config.get('use_cache'), quiet=True)
         self.period                 =   _today_period()
         # NOTE: we're only checking if it's a dictionary
+        # It's up to user if the configurations are actually right
         self.matplotlib             =   _return_dict(config.get("matplotlib"))
 
 
+    def update_exchange(self) -> None:
+        """Force updates to self.exchange_dictionary."""
+        self.exchange_dictionary = get_exchange_dict(
+            self.currency_list,
+            use_cache=False,
+            quiet=False
+        )
+        print(
+            "If you're fine with this exchange dictionary, you might " \
+            "want to run `ctx.to_cache()` in order to save changes."
+        )
+
+
     def to_cache(self, path : Optional[Path] = None) -> None:
-        """Saves current ctx state to json."""
-        # force all fields to be fetched before saving ---
+        """
+        Saves current ctx state to a json file.
+
+        Arguments
+        ---------
+        path
+            Optional, defaults to `/APPLICATION_CACHED_DIRECTORY/state.json.`
+        """
+        # force all fields to be fetched before saving
         if not self.period:
             self.set_plot()
 
@@ -245,10 +270,10 @@ class AccountingContext:
             name = "state.json"
             path = APPLICATION_CACHED_DIRECTORY / name
             
-        # load state ---
+        # load state
         save_dict = self.__dict__.copy()
 
-        # manually update unserializable ---
+        # manually update unserializable
         save_dict["engine"]         =   str(self.engine.url)
         save_dict["editor"]         =   str(self.editor)
         save_dict["period"]         =   str(self.period)
@@ -261,6 +286,7 @@ class AccountingContext:
             "data" : save_dict
         }
         _jsave(save_dict, path)
+
 
     def pprint_cats(self, with_help : bool = False) -> None:
         """

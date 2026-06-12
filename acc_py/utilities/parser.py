@@ -94,6 +94,12 @@ def _get_date_tokens(s : str) -> List[str]:
     return tokens.strip().split()
 
 
+def _handle_int_date(day: int, base: date) -> date:
+    if day < 0:
+        return base + timedelta(days=day)
+    return base.replace(day=day)
+
+
 def parse_day(day: str, base: date) -> date:
     day = day.replace(' ', '')
     try:
@@ -112,22 +118,33 @@ def parse_day(day: str, base: date) -> date:
         else:
             return base + relativedelta(weekday=dayexpr(-1))
     else:
-        if day < 0:
-            return base + timedelta(days=day)
-        return base.replace(day=day)
+        return _handle_int_date(day, base)
 
 
 def parse_date(date_input : str | int) -> date:
     """
-    Parses dates in the following formats: '[+|-]int', 'year[-| ]month[-|]day'.
-    Further parsing can be found on tests.parser.
+    Parses `date_input` into a valid `datetime.date` object. If it can't be
+    parsed, a ValueError is raised.
+
+    Arguments
+    ---------
+    date_input: str | int
+        The argument to be parsed. When `date_input` is `ìnt`, it's passed to 
+        _handle_int_date. If it's `str`, the following formats are supported:
+        - 'yesterday', 'mo[nday]', 'tu[esday], ...'
+        - year[separator]month[separator]day
+        - month[separtor]day
+        - [+-] day
+        - allowed separators: `-`, ` `
+    
+    Notes
+    -----
+    - All edgecases can be found in on `tests.parser.TestDateParser`.
     """
     today = date.today()
     # --- handle int case properly ---
     if isinstance(date_input, int):
-        if date_input <= 0:
-            return today + timedelta(days=date_input)
-        return today.replace(day=date_input)
+        _handle_int_date(date_input, today)
 
     tokens = _get_date_tokens(date_input)
     match tokens:

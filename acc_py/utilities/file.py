@@ -36,10 +36,10 @@ def fexport(
     obj 
         Object to be exported. Only accepts `DataFrame`, `Series` and `dict`.
     p
-        Path to export obj to. Resolves to APPLICATION_STORAGE_DIRECTORY / 
-        timestamp.json if none is provided.
+        Path to export obj to. Resolves to `APPLICATION_STORAGE_DIRECTORY / 
+        {timestamp}.json` if none is provided.
     **kwargs
-        Arugments that are passed to to_json, to_csv, ...
+        Arugments that are passed to `to_[json|csv|xml]`.
 
     Notes
    --
@@ -87,7 +87,7 @@ def fimport(
     p
         Path to fetch data from.
     **kwrags
-        Keyword arguments that are passed to read_csv, read_json, etc.
+        Keyword arguments that are passed to `read_[csv|json|xml]`.
 
     Returns
    ----

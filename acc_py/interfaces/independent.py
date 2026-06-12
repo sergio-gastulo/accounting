@@ -12,7 +12,14 @@ from utilities.file import open_file_with_editor
 
 
 def fopen(p : Path) -> None:
-    fopen.__doc__ = open_file_with_editor.__doc__
+    """
+    Opens a file `p` via `ctx.editor`.
+
+    Arguments
+    ---------
+    p
+        Path to be opened.
+    """
     open_file_with_editor(p, ctx.editor)
 
 
@@ -21,6 +28,23 @@ def convert_currency(
         basecurr: str, 
         targetcurr: str
 ) -> float:
+    """
+    Convert a (amount, currency) pair into a target currency. 
+
+    Arguments
+    ---------
+    base
+        The base amount.
+    basecurr
+        The currency associated to base.
+    targetcurr
+        To which currency the (amount, currency) pair should me converted to.
+
+    Notes
+    -----
+    - This relies on `ctx.exchange_dict`. If None is associated, function will 
+    fail ungracefully.
+    """
     
     # ensure ctx.exchange_dictionary exists.
     if ctx.exchange_dictionary is None:

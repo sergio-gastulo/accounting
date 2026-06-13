@@ -9,13 +9,13 @@ import pandas as pd
 from datetime import timedelta
 from typing import Callable
 
-from classes.model import Record, Conversion
+from pkg.classes.model import Record, Conversion
 from tests._shared import (
     Patcher, 
     mem_engine,
     TODAY
 )
-from utilities.parser import (
+from pkg.utilities.parser import (
     parse_period,
     parse_arithmetic_operation,
     parse_currency,
@@ -31,7 +31,7 @@ from utilities.parser import (
 
 #region ============================ utils =====================================
 
-TEST_MODULE = 'utilities.parser'
+TEST_MODULE = 'pkg.utilities.parser'
 def _patch_this(f: Callable | str, **kwargs) -> Patcher:
     return Patcher(TEST_MODULE, f, **kwargs)
 

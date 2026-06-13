@@ -102,7 +102,7 @@ def _get_date_tokens(s : str) -> List[str]:
 
 
 def _handle_int_date(day: int, base: date) -> date:
-    if day < 0:
+    if day <= 0:
         return base + timedelta(days=day)
     return base.replace(day=day)
 
@@ -151,7 +151,7 @@ def parse_date(date_input : str | int) -> date:
     today = date.today()
     # --- handle int case properly ---
     if isinstance(date_input, int):
-        _handle_int_date(date_input, today)
+        return _handle_int_date(date_input, today)
 
     tokens = _get_date_tokens(date_input)
     match tokens:

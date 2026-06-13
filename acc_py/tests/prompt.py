@@ -11,8 +11,8 @@ from tests._shared import (
     mem_engine,
     TODAY
 )
-from classes.model import Record, Conversion
-from utilities.prompt import (
+from pkg.classes.model import Record, Conversion
+from pkg.utilities.prompt import (
     main_loop,
     prompt_arithmetic_operation,
     prompt_category_from_keybinds,
@@ -27,7 +27,7 @@ from utilities.prompt import (
 
 #region ============================ utils =====================================
 
-TEST_MODULE = 'utilities.prompt'
+TEST_MODULE = 'pkg.utilities.prompt'
 _patch_print_buffer = patch('sys.stdout', new_callable=StringIO)
 
 

@@ -10,11 +10,14 @@ from pathlib import Path, WindowsPath
 from datetime import date
 from pandas import Period
 
-from ..utilities.core import (
+from pkg.utilities.typing import (
     FieldDictType,
     KeybindDictType,
     ExchangeDictType,
-    RGBType,
+    StrDict,
+    CurrencyColorDictionary
+)
+from pkg.utilities.core import (
     APPLICATION_CACHED_DIRECTORY,
     _jopen,
     _jrepr,
@@ -28,24 +31,15 @@ from ..utilities.core import (
     fetch_keybind_dict,
     fetch_category_dictionary,
 )
-from ..utilities.prompt import (
+from pkg.utilities.prompt import (
     prompt_currency,
     prompt_category_from_keybinds
 )
-from ..utilities.currency import (
+from pkg.utilities.currency import (
     check_currency_list,
     get_exchange_dict,
 )
-from ..utilities.file import sha256
-
-
-
-#region ========================== new types ===================================
-
-StrDict = dict[str, str]
-CurrencyColorDictionary = dict[str, RGBType | str]
-
-#endregion =====================================================================
+from pkg.utilities.file import sha256
 
 
 #region ======================== untested utils ================================
@@ -199,8 +193,13 @@ class AccountingContext:
             print("Sucessfully loaded ctx.fields from cache.")
             return
         except (SHA256Error, FileNotFoundError) as e:
-            print(f"Could not load from cache in '{APPLICATION_CACHED_DIRECTORY}'.")
-            print(e)
+            print(
+                f"Could not load from cache in '{APPLICATION_CACHED_DIRECTORY}'."
+                f"{repr(e)}"
+                f"Instead, re-fetching all data from standard configurations."
+                f"If the configurations are loaded as expected, consider running"
+                f"`ctx.to_cache()` to save changes."
+            )
 
         config                      =   _jopen(config_path)
         self.config_path            =   _path_exists(config_path)

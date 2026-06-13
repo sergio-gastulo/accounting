@@ -3,8 +3,8 @@ from typing import List
 import json
 import requests
 
+from .typing import ExchangeDictType
 from .core import (
-    ExchangeDictType,
     APPLICATION_CACHED_DIRECTORY,
     has_internet,
     _jopen,

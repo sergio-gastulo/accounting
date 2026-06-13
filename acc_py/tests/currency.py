@@ -9,7 +9,7 @@ from tests._shared import (
     RUN_API_TEST,
     Patcher
 )
-from utilities.currency import (
+from pkg.utilities.currency import (
     fetch_exchange_rates,
     get_exchange_rate,
     exchange_memo,
@@ -21,7 +21,7 @@ from utilities.currency import (
 
 #region ============================ utils  ====================================
 
-TEST_MODULE = 'utilities.currency'
+TEST_MODULE = 'pkg.utilities.currency'
 
 def _patch_this(f: Callable | str, **kwargs) -> Patcher:
     return Patcher(TEST_MODULE, f, **kwargs)

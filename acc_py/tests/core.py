@@ -12,7 +12,7 @@ from tests._shared import (
     TEST_FILE_DIRECTORY, 
     Patcher
 )
-from utilities.core import (
+from pkg.utilities.core import (
     import_fields,
     pprint_df,
     get_help_dictionary,
@@ -27,8 +27,7 @@ from utilities.core import (
 
 #region ========================= quick utils ==================================
 
-TEST_MODULE = 'utilities.core'
-
+TEST_MODULE = 'pkg.utilities.core'
 def _patch_this(f: Callable | str, **kwargs) -> Patcher:
     return Patcher(TEST_MODULE, f, **kwargs)
 

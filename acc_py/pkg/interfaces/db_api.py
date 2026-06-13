@@ -16,20 +16,20 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session
 
-from ..classes.context import ctx
-from ..utilities.core import (
+from pkg.classes.context import ctx
+from pkg.classes.model import Record, Conversion
+from pkg.utilities.core import (
     APPLICATION_DIRECTORY,
     pprint_df,
     ensure,
     confirm_action
 )
-from ..classes.model import Record, Conversion
-from ..utilities.parser import (
+from pkg.utilities.parser import (
     parse_semantic_filter,
     parse_csv_record,
     sanitize_df,
 )
-from ..utilities.prompt import (
+from pkg.utilities.prompt import (
     FixedColumnsType,
     prompt_date_operation,
     prompt_double_currency,

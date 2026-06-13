@@ -10,7 +10,7 @@ from sqlalchemy.orm import (
     mapped_column, declarative_base,
 )
 
-from ..utilities.core import ensure, soft_warning
+from pkg.utilities.core import ensure, soft_warning
 
 
 Base = declarative_base()
@@ -65,16 +65,16 @@ class Entity:
             Controls if both label and entity.pretty() are printed to sys.stdout.
             Defaults to False (yes, print, please!)
         """
-        # --- Important: type(ctx.engine) in Engine works
-        # --- but isinstance(ctx.engine, Engine) is false
-        # --- ensurer works for this case 
+        # Important: type(ctx.engine) in Engine works
+        # but isinstance(ctx.engine, Engine) is false
+        # ensurer works for this case 
         ensure(engine, Engine)
         ensure(label, str, allow_none=True)
         ensure(quiet, bool)
 
         if label is None:
             label = "The following record has been added to database:"
-        # --- write ---
+        # write ---
         with Session(engine) as session:
             session.add(self)
             session.commit()

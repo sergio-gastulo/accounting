@@ -12,7 +12,7 @@ from datetime import datetime
 from os import environ
 from typing import (
     List, Tuple, Any, Type, 
-    Callable, TypeAlias, Optional
+    Callable, Optional
 )
 
 import pandas as pd
@@ -21,15 +21,12 @@ from tkinter.filedialog import askopenfilename
 from tkinter.colorchooser import askcolor
 from matplotlib.colors import is_color_like, to_rgb
 
-
-#region ========================== new types ===================================
-
-RGBType : TypeAlias = List[int] | List[float] | Tuple[int] | Tuple[float]
-FieldDictType = List[dict[str, str | List[dict[str, str]]]]
-ExchangeDictType = dict[str, dict[str, float | int]]
-KeybindDictType = dict[str, str | dict[str, str]]
-
-#endregion =====================================================================
+from .typing import (
+    StrDict,
+    RGBType,
+    FieldDictType,
+    KeybindDictType,
+)
 
 
 #region ======================= global-variables ===============================
@@ -224,7 +221,7 @@ def has_internet(
 
 def get_help_dictionary(
         fields_dict : FieldDictType
-) -> dict[str, str]:
+) -> StrDict:
     """Returns help-dictionary from fields_dict."""
 
     if not (isinstance(fields_dict, List) and isinstance(fields_dict[0], dict)):
@@ -247,7 +244,7 @@ def get_help_dictionary(
 
 
 def pprint_categories(
-        categories_dict : dict[str, str],
+        categories_dict : StrDict,
         fields_dict : FieldDictType,
         help : bool = False
 ) -> None:
@@ -420,7 +417,7 @@ def fetch_keybind_dict(
 
 def fetch_category_dictionary(
         field_dict: FieldDictType
-) -> dict[str, str]:
+) -> StrDict:
     """
     Fetches category_dict ({"category" : "description"}) from fields_dict.
     """

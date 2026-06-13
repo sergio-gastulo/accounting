@@ -1,6 +1,5 @@
 from typing import (
     List, Iterable, Optional, 
-    TypeAlias, Literal
 )
 
 import pandas as pd
@@ -18,25 +17,24 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql import functions, func
 
-from ..classes.model import Record
-from ..classes.context import ctx
-from ..utilities.core import RGBType, ensure, pprint_df
-from ..utilities.parser import parse_period
-from ..utilities.prompt import prompt_category_from_keybinds
+from pkg.classes.model import Record
+from pkg.classes.context import ctx
+from pkg.utilities.core import RGBType, ensure, pprint_df
+from pkg.utilities.parser import parse_period
+from pkg.utilities.prompt import prompt_category_from_keybinds
+from pkg.utilities.typing import (
+    CurrencyAmountType,
+    ParsablePeriod,
+    ListParsablePeriod,
+    FrequencyType,
+)
 
 
 #region ========================== global constants ============================
 
-
-CurrencyAmountType = dict[str, float]
-ParsablePeriod : TypeAlias = str | int | pd.Period
-ListParsablePeriod : TypeAlias = List[ParsablePeriod] | ParsablePeriod
-FrequencyType : TypeAlias = Literal["m", "monthly", "w", "weekly"]
-
 INCLUDING_INFLOW = Record.category.in_(ctx.inflow_categories)
 YEAR_MONTH_PERIOD_COL : Label[str] = func.strftime('%Y-%m', Record.date).label("period")
 TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
-
 
 #endregion =====================================================================
 

@@ -5,7 +5,6 @@ It contains a variety of functions that are used in context.py, parser.py
 and prompt.py
 """
 
-import json
 import socket
 from pathlib import Path
 from datetime import datetime
@@ -27,6 +26,7 @@ from .typing import (
     FieldDictType,
     KeybindDictType,
 )
+from .jops import jopen, jprint
 
 
 #region ======================= global-variables ===============================
@@ -63,38 +63,12 @@ class fg:
 #endregion =====================================================================
 
 
-
-#region ======================= json operations ================================
-
-def _jopen(path : Path) -> dict:
-    """Load json from path."""
-    with open(path, 'r', encoding='utf8') as file:
-        res = json.load(file)
-    return res
-
-def _jrepr(d : dict) -> str:
-    """Get nice pprint str from dictionary."""
-    return json.dumps(d, indent=4)
-
-def _jprint(d : dict):
-    """Equivalent of `pprint`"""
-    print(_jrepr(d))
-
-def _jdump(d : dict, path : Path) -> None:
-    """Save dict to path. Ensures that d is a dict."""
-    ensure(d, dict)
-    with open(path, 'w') as file:
-        json.dump(d, file, indent=4)
-
-
-#endregion =====================================================================
-
-
 #region ======================== general-utils  ================================
 
 def soft_warning(s : str) -> None:
     """Print soft warning."""
     print(f"{fg.red}{s}{fg.end}")
+
 
 # TODO: test this !!!
 def ensure(
@@ -161,7 +135,7 @@ def import_fields(
     Loads ctx.fields from fields_path, ensuring str types and that 'key',
     'shortname' and 'description' are in every field item.
     """
-    field_dict = _jopen(path)
+    field_dict = jopen(path)
     errs = []
     ensured_keys = ['key', 'shortname', 'description']
 
@@ -190,6 +164,8 @@ def pprint_df(
         if is_string_dtype(df.description):
             df.description = df.description.str[:100]
 
+    # TODO: before converting to markdown, for datetime cols we could convert
+    # to a different format
     is_default = (df.index.dtype == int and df.index.name is None)
     print_df = df.to_markdown(index= not is_default, tablefmt="outline")
     
@@ -249,11 +225,11 @@ def pprint_categories(
         help : bool = False
 ) -> None:
     if not help:
-        _jprint(categories_dict)
+        jprint(categories_dict)
         return
     
     with_help = get_help_dictionary(fields_dict)
-    _jprint(with_help)
+    jprint(with_help)
 
 
 

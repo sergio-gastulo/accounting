@@ -2,9 +2,11 @@ from typing import (
     TypeAlias,
     Literal,
 )
+from datetime import date
 
+from matplotlib.axes import Axes
 from pandas import Period
-
+from sqlalchemy import ColumnElement
 
 # basic configurations types
 StrDict = dict[str, str]
@@ -16,12 +18,18 @@ CurrencyAmountType = dict[str, float]
 ExchangeDictType = dict[str, dict[str, float | int]]
 
 # period-like for plot
-ParsablePeriod : TypeAlias = str | int | Period
-ListParsablePeriod : TypeAlias = list[ParsablePeriod] | ParsablePeriod
-FrequencyType : TypeAlias = Literal["m", "monthly", "w", "weekly"]
+ParsablePeriod: TypeAlias = str | int | Period
+FrequencyType: TypeAlias = Literal["m", "monthly", "w", "weekly"]
+ValidDateArgument: TypeAlias = ParsablePeriod | list[str | int, str | int]
 
 # color types
 NumericType: TypeAlias = int | float
 RGB: TypeAlias = tuple[NumericType, NumericType, NumericType]
 RGBType: TypeAlias = list[RGB] | RGB
 CurrencyColorDictionary = dict[str, RGBType | str]
+
+# sqlalchemy types
+EntityFilter: TypeAlias = tuple[ColumnElement[bool]]
+
+# axes / figure manipulation
+MetadataType = list[tuple[Axes, str, str]]

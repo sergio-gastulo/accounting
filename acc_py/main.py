@@ -88,5 +88,6 @@ def main() -> None:
     print("For help, please evaluate acccli().")
 
 
+# TODO: expose parse_period
 if __name__ == "__main__":
     main()

@@ -14,9 +14,9 @@ from .parser import (
 
 from .core import (
     KeybindDictType,
-    _jprint,
     ensure,
 )
+from .jops import jprint
 
 
 #region ============================ utils =====================================
@@ -171,7 +171,7 @@ def get_from_nested_dict(
 
     # no input? interactively ask
     if uinput is None:
-        _jprint(kdict)
+        jprint(kdict)
         uinput = input(prompt)
 
     # check if it's dictionary
@@ -285,7 +285,7 @@ def prompt_list_of_fields(
         "prompt" : "Write valid elements from list: ",
         "parser" : _parser
     }
-    _jprint(keybinds)
+    jprint(keybinds)
     res = main_loop(user_input, **kwargs)
     _success(*res)
     return res

@@ -143,8 +143,8 @@ class TestExchangeDictionaryGetter(TestCase):
             # _patch_this(check_currency_list) as mock_curr_list,
             _patch_this('has_internet') as mock_internet,
             _patch_this(build_exchange) as mock_build,
-            _patch_this('_jdump') as mock_jdump,
-            _patch_this('_jprint') as mock_jprint,
+            _patch_this('jdump') as mock_jdump,
+            _patch_this('jprint') as mock_jprint,
         ):
             mock_build.return_value = build_return
             mock_internet.return_value = True
@@ -158,7 +158,7 @@ class TestExchangeDictionaryGetter(TestCase):
     def test_cache_call(self):
         res = "any"
         with (
-            _patch_this('_jopen') as mock_jopen,
+            _patch_this('jopen') as mock_jopen,
             _patch_this(build_exchange) as mock_build_cache,
             _patch_this('build_exchange') as mock_build,
         ):
@@ -185,8 +185,8 @@ class TestExchangeDictionaryGetter(TestCase):
         with (
             _patch_this('has_internet') as mock_internet,
             _patch_this(build_exchange) as mock_build,
-            _patch_this('_jdump') as mock_jdump,
-            _patch_this('_jprint') as mock_jprint,
+            _patch_this('jdump') as mock_jdump,
+            _patch_this('jprint') as mock_jprint,
         ):
             mock_build.return_value = build_return
             mock_internet.return_value = True

@@ -17,10 +17,9 @@ from pkg.utilities.typing import (
     StrDict,
     CurrencyColorDictionary
 )
+from pkg.utilities.jops import jopen, jrepr
 from pkg.utilities.core import (
     APPLICATION_CACHED_DIRECTORY,
-    _jopen,
-    _jrepr,
     soft_warning,
     confirm_action,
     ensure,
@@ -39,7 +38,9 @@ from pkg.utilities.currency import (
     check_currency_list,
     get_exchange_dict,
 )
-from pkg.utilities.file import sha256
+from pkg.utilities.file import (
+    sha256, SHA256Error
+)
 
 
 #region ======================== untested utils ================================
@@ -64,7 +65,7 @@ def _engine(url : str | Path | None) -> Engine:
 
 def _jsave(d : dict, p : Path) -> None:
     ensure(p, Path, WindowsPath)
-    text = _jrepr(d)
+    text = jrepr(d)
     p.write_text(text, encoding='utf-8')
 
 
@@ -84,10 +85,6 @@ def _rmdir(directory : Path) -> None:
         else:
             item.unlink()
     directory.rmdir()
-
-
-class SHA256Error(Exception):
-    pass
 
 
 def _validate_categories(categories : List[str], keybinds : StrDict) -> List[str]:
@@ -133,6 +130,7 @@ class AccountingContext:
     period: Optional[Period]                            = None
     matplotlib : Optional[dict[str, Any]]               = None
 
+
     def load_from_cache(
             self
     ) -> None:
@@ -149,7 +147,7 @@ class AccountingContext:
         _path_exists(state_path)
         
         # compute current sha and fetch data
-        cached_dict         =   _jopen(state_path)
+        cached_dict         =   jopen(state_path)
         data                =   cached_dict["data"]
         current_config_sha  =   sha256(data["config_path"])
         current_fields_sha  =   sha256(data["fields_path"])
@@ -201,7 +199,7 @@ class AccountingContext:
                 f"`ctx.to_cache()` to save changes."
             )
 
-        config                      =   _jopen(config_path)
+        config                      =   jopen(config_path)
         self.config_path            =   _path_exists(config_path)
         self.fields_path            =   _path_exists(fields_path)
         self.engine                 =   _engine(config.get('db_path'))
@@ -228,7 +226,7 @@ class AccountingContext:
             return
 
         # proceed to load remaining attrs 
-        config                      =   _jopen(self.config_path)
+        config                      =   jopen(self.config_path)
         self.currency_list          =   _set_currency_list(config.get('currency_list'))
         self.inflow_categories      =   _validate_categories(config.get('inflow-categories'), self.keybinds)
         self.colors                 =   check_colors(self.currency_list, config.get('rgb_colors'))

@@ -25,7 +25,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
 
-from ..classes.model import Record, Conversion
+from pkg.classes.model import Record, Conversion
 
 
 DATE_COLUMN_FORMAT = "%Y-%m-%d"

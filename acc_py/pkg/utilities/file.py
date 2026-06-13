@@ -5,10 +5,12 @@ import pandas as pd
 from datetime import datetime
 import subprocess
 
-from .core import (
-    APPLICATION_STORAGE_DIRECTORY,
-    _jdump
-)
+from .core import APPLICATION_STORAGE_DIRECTORY
+from .jops import jdump
+
+
+class SHA256Error(Exception):
+    pass
 
 
 # https://www.geeksforgeeks.org/python/python-program-to-find-hash-of-file/
@@ -66,7 +68,7 @@ def fexport(
 
     elif isinstance(obj, dict):
         if extension == ".json":
-            _jdump(obj, p)
+            jdump(obj, p)
         else:
             err = f"Extension {extension} is not supported for dictionaries."
             raise ValueError(err)

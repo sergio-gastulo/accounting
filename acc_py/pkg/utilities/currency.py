@@ -4,12 +4,10 @@ import json
 import requests
 
 from .typing import ExchangeDictType
+from .jops import jopen, jdump, jprint
 from .core import (
     APPLICATION_CACHED_DIRECTORY,
     has_internet,
-    _jopen,
-    _jdump,
-    _jprint,
 )
 
 
@@ -137,7 +135,7 @@ def get_exchange_dict(
     name = "exchange.json"
     cached_path = APPLICATION_CACHED_DIRECTORY / name
     if (use_cache and cached_path.exists()) or (not has_internet()):
-        res = _jopen(cached_path)
+        res = jopen(cached_path)
         return res
 
     # ensure type check and build exchange dict
@@ -145,8 +143,8 @@ def get_exchange_dict(
     curr_exchange = build_exchange(curr_list)
     
     # load to cache and print if asked
-    _jdump(curr_exchange, cached_path)
+    jdump(curr_exchange, cached_path)
     if not quiet:
-        _jprint(curr_exchange)
+        jprint(curr_exchange)
     exchange_memo.clear()
     return curr_exchange

@@ -63,11 +63,10 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## **TODO**
-- Provide `date_range` support for plotting.
-- When returning dataframe, pd.to_datetime should be called to cast dates automatically (i.e., fix bug on datetime calls and csv casting).
 - Decide whether currencies should be upper or lower case.
 - `fopen` should also resolve to /path/to/repo to read source-code quickly.
-
+- Provide better df printing for barchart.
+- Check plots are light/dark mode responsive up to user configurations.
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.
@@ -80,6 +79,7 @@ TODOs that would be useful if this project became an application for other peopl
 ### Need to elaborate
 - Think of conversion plots.
 - Provide WhatsApp message parsing.
+- When returning dataframe, pd.to_datetime should be called to cast dates automatically (i.e., fix bug on datetime calls and csv casting) (I haven't reproduced this in a while tbh).
 
 
 ## **Requirements**:

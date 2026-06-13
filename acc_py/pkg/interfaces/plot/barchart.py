@@ -15,8 +15,7 @@ from sqlalchemy import (
     select, not_, extract,
 )
 
-from pkg.classes.context import ctx
-from pkg.classes.model import Record
+from pkg.classes import ctx, Record
 from pkg.utilities.core import pprint_df
 from pkg.utilities.parser import parse_period, parse_date
 from pkg.utilities.typing import (

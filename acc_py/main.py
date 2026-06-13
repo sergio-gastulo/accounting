@@ -52,7 +52,7 @@ def load_plot_module(*args) -> None:
         ctx.set(*args)
         ctx.set_plot()
     
-    from pkg.interfaces.plotinterface import (
+    from pkg.interfaces.plot import (
         barchart_by_datefilter,
         category_time_series,
         savings_plot,

@@ -9,8 +9,7 @@ from matplotlib.dates import DateFormatter
 from pkg.utilities.core import pprint_df
 from pkg.utilities.typing import FrequencyType
 from pkg.utilities.prompt import prompt_category_from_keybinds
-from pkg.classes.model import Record
-from pkg.classes.context import ctx
+from pkg.classes import ctx, Record
 from .shared import (
     YEAR_MONTH_PERIOD_COL,
     TOTAL_AMOUNT_COL,

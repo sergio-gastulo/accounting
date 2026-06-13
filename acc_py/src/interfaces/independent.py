@@ -7,8 +7,8 @@ It's okay if most of them are just wrappers.
 """
 from pathlib import Path
 
-from classes.context import ctx
-from utilities.file import open_file_with_editor
+from ..classes.context import ctx
+from ..utilities.file import open_file_with_editor
 
 
 def fopen(p : Path) -> None:

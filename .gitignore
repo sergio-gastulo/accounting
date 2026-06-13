@@ -8,9 +8,9 @@ files/
 .vscode/
 
 # configurations files
-config.json
-fields.json
-config-test.json
+**/config.json
+**/fields.json
+**/config-test.json
 
 # playground
 acc_py/tmp.py

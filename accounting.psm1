@@ -2,7 +2,6 @@ param(
     [string[]] $flags
 )
 
-
 <#
 .SYNOPSIS
 Installs a specified version of Python on Windows.
@@ -236,8 +235,7 @@ function Test-AccountingHealth
         sqlite3.exe --version
     }
 
-    # Checking config paths
-    $configPath = Join-Path -Path $PSScriptRoot -ChildPath ".\config.json"
+    $configPath = [System.IO.Path]::Combine($PSScriptRoot, "config", "config.json")
     if(Test-Path $configPath)
     {
         Write-Host "config.json successfully found." -ForegroundColor Blue
@@ -251,7 +249,7 @@ function Test-AccountingHealth
         return
     }
     
-    $fieldsPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
+    $fieldsPath = [System.IO.Path]::Combine($PSScriptRoot, "config", "fields.json")
     if(Test-Path $fieldsPath)
     {
         Write-Host "config.json successfully found." -ForegroundColor Blue
@@ -303,8 +301,9 @@ function AccountingCommandLineInterface
     )
 
     # configuration and paths update
-    $configPath = Join-Path -Path $PSScriptRoot -ChildPath ".\config.json"
-    $fieldsPath = Join-Path -Path $PSScriptRoot -ChildPath "fields.json"
+
+    $configPath = [System.IO.Path]::Combine($PSScriptRoot, "config", "config.json")
+    $fieldsPath = [System.IO.Path]::Combine($PSScriptRoot, "config", "fields.json")
     $databasePath = (Get-Content $configPath -Raw | ConvertFrom-Json).db_path
     $pyScriptPath = Join-Path -Path $PSScriptRoot -ChildPath ".\acc_py\main.py"
 

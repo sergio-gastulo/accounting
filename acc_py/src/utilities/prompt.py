@@ -2,8 +2,8 @@ from datetime import date
 from sqlalchemy.engine import Engine
 from typing import List, Callable, Optional
 
-from classes.model import Record, Conversion
-from utilities.parser import (
+from ..classes.model import Record, Conversion
+from .parser import (
     parse_arithmetic_operation,
     parse_currency,
     parse_date,
@@ -12,7 +12,7 @@ from utilities.parser import (
     parse_record_from_id,
 )
 
-from utilities.core import (
+from .core import (
     KeybindDictType,
     _jprint,
     ensure,

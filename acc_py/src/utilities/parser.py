@@ -15,10 +15,17 @@ import dateutil.relativedelta
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 from pandas.api.types import is_string_dtype, is_numeric_dtype
-from sqlalchemy import Select, select, true, text, Engine
+from sqlalchemy import (
+    Select, 
+    Engine,
+    select, 
+    true, 
+    text, 
+)
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
 
-from classes.model import Record, Session, Conversion
+from ..classes.model import Record, Conversion
 
 
 DATE_COLUMN_FORMAT = "%Y-%m-%d"

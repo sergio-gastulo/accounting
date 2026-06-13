@@ -1,14 +1,13 @@
 import sys
 from pathlib import Path
 
-from classes.context import ctx
+from src.classes.context import ctx
 
-# interface independent as well
-from utilities.help import acccli
-from utilities.core import now, get_globals
-from utilities.file import fimport, fexport
-from utilities.parser import parse_date as pdate
-from interfaces.independent import (
+from src.utilities.help import acccli
+from src.utilities.core import now, get_globals
+from src.utilities.file import fimport, fexport
+from src.utilities.parser import parse_date as pdate
+from src.interfaces.independent import (
     fopen, 
     convert_currency as convcurr
 )
@@ -21,8 +20,8 @@ def load_db_api_module(*args) -> None:
     ctx.set(*args)
 
     # populate global namespace from db_api
-    import interfaces.db_api as da
-    from classes.model import Record, Conversion
+    import src.interfaces.db_api as da
+    from src.classes.model import Record, Conversion
     def load():
         load_plot_module(*args)
     exposed = {
@@ -53,7 +52,7 @@ def load_plot_module(*args) -> None:
         ctx.set_plot()
 
     # populate globals from plot
-    import interfaces.plot as pp    
+    import src.interfaces.plot as pp    
     pp.set_configs()
     pp.dark()
     exposed = {

@@ -1,9 +1,9 @@
 import urllib
-from typing import List, Any
+from typing import List
 import json
 import requests
 
-from utilities.core import (
+from .core import (
     ExchangeDictType,
     APPLICATION_CACHED_DIRECTORY,
     has_internet,

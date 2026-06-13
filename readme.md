@@ -63,8 +63,11 @@ It defines a list of categories. Each category contains basic metadata, and opti
 ```
 
 ## **TODO**
+- Provide `date_range` support for plotting.
 - When returning dataframe, pd.to_datetime should be called to cast dates automatically (i.e., fix bug on datetime calls and csv casting).
 - Decide whether currencies should be upper or lower case.
+- `fopen` should also resolve to /path/to/repo to read source-code quickly.
+
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.

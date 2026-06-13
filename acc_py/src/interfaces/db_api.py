@@ -2,15 +2,13 @@
 Database API, allows user to write to DB using sqlalchemy as query wrapper.
 Heavily relies on both parser.py and py
 """
-# generics
 from typing import List, Optional, Type, Any
 from datetime import date
-import pandas as pd
-from jinja2 import Template
 from pathlib import Path
 import subprocess
 
-# sqlalchemy wrappers
+import pandas as pd
+from jinja2 import Template
 from sqlalchemy import (
     inspect, 
     select,
@@ -18,20 +16,20 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session
 
-# hand-coded stuff in .utilities and .context
-from classes.context import ctx
-from utilities.core import (
+from ..classes.context import ctx
+from ..utilities.core import (
     APPLICATION_DIRECTORY,
     pprint_df,
     ensure,
     confirm_action
 )
-from utilities.parser import (
+from ..classes.model import Record, Conversion
+from ..utilities.parser import (
     parse_semantic_filter,
     parse_csv_record,
     sanitize_df,
 )
-from utilities.prompt import (
+from ..utilities.prompt import (
     FixedColumnsType,
     prompt_date_operation,
     prompt_double_currency,
@@ -41,7 +39,6 @@ from utilities.prompt import (
     prompt_arithmetic_operation,
     prompt_currency,
 )
-from classes.model import Record, Conversion
 
 
 #region ============================ utils  ====================================

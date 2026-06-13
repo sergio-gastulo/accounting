@@ -1,4 +1,10 @@
+from typing import (
+    List, Iterable, Optional, 
+    TypeAlias, Literal
+)
+
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.patches import Rectangle
@@ -6,17 +12,17 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.backend_bases import Event
 from matplotlib.colors import to_rgb
-import numpy as np
-
-from typing import List, Iterable, Optional, TypeAlias, Literal
-from sqlalchemy import select, not_, case, extract, ColumnElement, Label, Select
+from sqlalchemy import (
+    select, not_, case, extract, 
+    ColumnElement, Label
+)
 from sqlalchemy.sql import functions, func
 
-from classes.model import Record
-from classes.context import ctx
-from utilities.core import RGBType, ensure, pprint_df
-from utilities.parser import parse_period
-from utilities.prompt import prompt_category_from_keybinds
+from ..classes.model import Record
+from ..classes.context import ctx
+from ..utilities.core import RGBType, ensure, pprint_df
+from ..utilities.parser import parse_period
+from ..utilities.prompt import prompt_category_from_keybinds
 
 
 #region ========================== global constants ============================

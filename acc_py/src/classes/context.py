@@ -10,7 +10,7 @@ from pathlib import Path, WindowsPath
 from datetime import date
 from pandas import Period
 
-from utilities.core import (
+from ..utilities.core import (
     FieldDictType,
     KeybindDictType,
     ExchangeDictType,
@@ -28,15 +28,15 @@ from utilities.core import (
     fetch_keybind_dict,
     fetch_category_dictionary,
 )
-from utilities.prompt import (
+from ..utilities.prompt import (
     prompt_currency,
     prompt_category_from_keybinds
 )
-from utilities.currency import (
+from ..utilities.currency import (
     check_currency_list,
     get_exchange_dict,
 )
-from utilities.file import sha256
+from ..utilities.file import sha256
 
 
 

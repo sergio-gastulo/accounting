@@ -45,22 +45,29 @@ def load_db_api_module(*args) -> None:
 
 def load_plot_module(*args) -> None:
 
+    # populate globals from plot
     try:
         ctx.set_plot()
     except RuntimeError:
         ctx.set(*args)
         ctx.set_plot()
-
-    # populate globals from plot
-    import pkg.interfaces.plot as pp    
-    pp.set_configs()
-    pp.dark()
+    
+    from pkg.interfaces.plotinterface import (
+        barchart_by_datefilter,
+        category_time_series,
+        savings_plot,
+        scattered_outflow,
+        set_configs, 
+        dark,   
+    )
+    set_configs()
+    dark()
     exposed = {
-        "p1": pp.barchart_by_period,
-        "p2": pp.scattered_outflow,
-        "p3": pp.category_time_series,
-        "sp": pp.savings_plot,
-        "dark": pp.dark
+        "p1": barchart_by_datefilter,
+        "p2": category_time_series,
+        "p3": savings_plot,
+        "sp": scattered_outflow,
+        "dark": dark
     }
     globals().update(exposed)
 

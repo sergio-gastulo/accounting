@@ -1,8 +1,10 @@
 from typing import (
-    Iterable, Optional,
+    Iterable, Optional, Any
 )
+from datetime import date
 
 import pandas as pd
+from pandas import Period
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -10,33 +12,80 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.backend_bases import Event
 from sqlalchemy import (
-    select, not_,
+    select, not_, extract,
 )
 
-from pkg.classes.model import Record
 from pkg.classes.context import ctx
+from pkg.classes.model import Record
 from pkg.utilities.core import pprint_df
-from pkg.utilities.parser import parse_period
+from pkg.utilities.parser import parse_period, parse_date
 from pkg.utilities.typing import (
     ValidDateArgument,
     MetadataType,
     NumericType,
     ParsablePeriod,
+    EntityFilter,
 )
 
 from .shared import (
     INCLUDING_INFLOW, 
     TOTAL_AMOUNT_COL,
     sum_currencies,
-    by_datefilter,
     get_bkgcolor,
     negatecolor,
     get_config,
-    datefilter_str,
+    raise_on_empty,
 )
 
+def by_date(
+        mindate: date,
+        maxdate: date,
+) -> EntityFilter:
+    return (Record.date.between(mindate, maxdate), )
 
-#region =========================== barchart ===================================
+
+def by_period(
+        period: Period,
+) -> EntityFilter:
+    """Quick filter by period."""  
+    return (
+        extract('year', Record.date) == period.year,
+        extract('month', Record.date) == period.month
+    )
+
+
+def by_datefilter(args: Any) -> EntityFilter:
+    
+    if isinstance(args, ParsablePeriod) or args is None:
+        period = parse_period(args, ctx.period)
+        return by_period(period)
+    if isinstance(args, list | tuple):
+        datemin = parse_date(args[0])
+        datemax = parse_date(args[-1])
+        if datemin > datemax:
+            print("Arguments have been swapped to avoid empty DataFrame.")
+            return by_date(datemax, datemin) 
+        return by_date(datemin, datemax)
+
+    raise TypeError(
+        f"Argument {args} is not a valid `Period`/`datetime.date` type."
+    )
+
+
+def datefilter_str(args: Any) -> str:
+    if isinstance(args, ParsablePeriod) or args is None:
+        period = parse_period(args, ctx.period)
+        month = period.strftime('%B')
+        return f"{month}, {period.year}"
+    elif isinstance(args, list | tuple):
+        datemin = parse_date(args[0])
+        datemax = parse_date(args[-1])
+        fmt = "%B %d, %Y."
+        return f"[{datemin.strftime(fmt)}, {datemax.strftime(fmt)}]"
+        
+    raise TypeError(
+        f"Argument {args} is not a valid `Period`/`datetime.date` type."
+    )
 
 
 def quick_filter(
@@ -191,30 +240,20 @@ def get_header(
     return header
 
 
+@raise_on_empty
 def fetch_barchart_data(
         datearg: ValidDateArgument,
 ) -> pd.DataFrame:
-    q = select(
-        Record.currency, 
-        Record.category, 
-        TOTAL_AMOUNT_COL
-    ) \
-    .where(
-        *by_datefilter(datearg),
-        not_(INCLUDING_INFLOW)
-    ) \
-    .group_by(
-        Record.currency, 
-        Record.category
-    )
+    q = select(Record.currency, 
+               Record.category, 
+               TOTAL_AMOUNT_COL) \
+        .where(*by_datefilter(datearg),
+               not_(INCLUDING_INFLOW)) \
+        .group_by(Record.currency, 
+                  Record.category)
     
-    df = pd.read_sql(
-        q, ctx.engine, 
-        index_col=['currency', 'category']
-    )
-    if df.empty:
-        raise ValueError(
-            f"Got empty dataframe from query '{q}' from arguments {datearg}.")
+    df = pd.read_sql(q, ctx.engine, 
+                     index_col=['currency', 'category'])
     return df
 
 

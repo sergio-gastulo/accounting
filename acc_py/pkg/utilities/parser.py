@@ -128,7 +128,7 @@ def parse_day(day: str, base: date) -> date:
         return _handle_int_date(day, base)
 
 
-def parse_date(date_input : str | int) -> date:
+def parse_date(date_input : str | int | date) -> date:
     """
     Parses `date_input` into a valid `datetime.date` object. If it can't be
     parsed, a ValueError is raised.
@@ -148,6 +148,9 @@ def parse_date(date_input : str | int) -> date:
     -----
     - All edgecases can be found in on `tests.parser.TestDateParser`.
     """
+    if isinstance(date_input, date):
+        return date_input
+    
     today = date.today()
     # --- handle int case properly ---
     if isinstance(date_input, int):

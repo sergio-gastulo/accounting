@@ -1,25 +1,18 @@
-from typing import Iterable, Any
-from datetime import date
+from typing import Iterable
+import functools
 
-from pandas import Period
+from pandas import DataFrame
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgb
 from sqlalchemy.sql import functions, func
-from sqlalchemy import (
-    Label, extract
-)
+from sqlalchemy import Label
 
 from pkg.classes.model import Record
 from pkg.classes.context import ctx
 from pkg.utilities.typing import (
-    CurrencyAmountType, 
-    EntityFilter, 
-    ParsablePeriod,
+    CurrencyAmountType,
 )
 from pkg.utilities.typing import RGBType
-from pkg.utilities.parser import (
-    parse_date, parse_period
-)
 
 
 #region ========================== constants  ==================================
@@ -31,9 +24,6 @@ YEAR_MONTH_PERIOD_COL: Label[str] = func \
 TOTAL_AMOUNT_COL = functions.sum(Record.amount).label("total_amount")
 
 #endregion =====================================================================
-
-
-#region =========================== configs  ===================================
 
 
 def set_configs() -> None:
@@ -71,10 +61,7 @@ def get_config(
     else:
         config = config.get(plotkey)
         return config.get(subkey)
-
-
-#endregion =====================================================================
-
+    
 
 def sum_currencies(
         amounts : CurrencyAmountType
@@ -107,52 +94,11 @@ def sum_currencies(
     return res_dict
 
 
-def by_date(
-        mindate: date,
-        maxdate: date,
-) -> EntityFilter:
-    return (Record.date.between(mindate, maxdate), )
-
-
-def by_period(
-        period: Period,
-) -> EntityFilter:
-    """Quick filter by period."""  
-    return (
-        extract('year', Record.date) == period.year,
-        extract('month', Record.date) == period.month
-    )
-
-
-def by_datefilter(args: Any) -> EntityFilter:
-    
-    if isinstance(args, ParsablePeriod) or args is None:
-        period = parse_period(args, ctx.period)
-        return by_period(period)
-    if isinstance(args, list | tuple):
-        datemin = parse_date(args[0])
-        datemax = parse_date(args[-1])
-        if datemin > datemax:
-            print("Arguments have been swapped to avoid empty DataFrame.")
-            return by_date(datemax, datemin) 
-        return by_date(datemin, datemax)
-
-    raise TypeError(
-        f"Argument {args} is not a valid `Period`/`datetime.date` type."
-    )
-
-
-def datefilter_str(args: Any) -> str:
-    if isinstance(args, ParsablePeriod) or args is None:
-        period = parse_period(args, ctx.period)
-        month = period.strftime('%B')
-        return f"{month}, {period.year}"
-    elif isinstance(args, list | tuple):
-        datemin = parse_date(args[0])
-        datemax = parse_date(args[-1])
-        fmt = "%B %d, %Y."
-        return f"[{datemin.strftime(fmt)}, {datemax.strftime(fmt)}]"
-        
-    raise TypeError(
-        f"Argument {args} is not a valid `Period`/`datetime.date` type."
-    )
+def raise_on_empty(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        res = func(*args, **kwargs)
+        if isinstance(res, DataFrame) and res.empty:
+            raise ValueError(f"Query returned an empty DataFrame. Args: {args}.")        
+        return res
+    return wrapper

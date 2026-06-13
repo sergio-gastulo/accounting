@@ -20,7 +20,8 @@ ExchangeDictType = dict[str, dict[str, float | int]]
 # period-like for plot
 ParsablePeriod: TypeAlias = str | int | Period
 FrequencyType: TypeAlias = Literal["m", "monthly", "w", "weekly"]
-ValidDateArgument: TypeAlias = ParsablePeriod | list[str | int, str | int]
+ValidDateArgument: TypeAlias = ParsablePeriod | list[str | int | date, str | int | date]
+ListParsablePeriod: TypeAlias = list[ParsablePeriod]
 
 # color types
 NumericType: TypeAlias = int | float

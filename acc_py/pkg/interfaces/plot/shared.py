@@ -99,6 +99,6 @@ def raise_on_empty(func):
     def wrapper(*args, **kwargs):
         res = func(*args, **kwargs)
         if isinstance(res, DataFrame) and res.empty:
-            raise ValueError(f"Query returned an empty DataFrame. Args: {args}.")        
+            raise ValueError(f"Query returned an empty DataFrame. Args: '{args}'.")        
         return res
     return wrapper

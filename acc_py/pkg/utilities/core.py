@@ -15,7 +15,7 @@ from typing import (
 )
 
 import pandas as pd
-from pandas.api.types import is_string_dtype
+from pandas.api.types import is_string_dtype, is_datetime64_dtype
 from tkinter.filedialog import askopenfilename
 from tkinter.colorchooser import askcolor
 from matplotlib.colors import is_color_like, to_rgb
@@ -159,23 +159,32 @@ def pprint_df(
 ) -> None:
     """
     Pretty df printer. Prints index only if non-default. 
-    """    
-    if "description" in df.columns:
-        if is_string_dtype(df.description):
-            df.description = df.description.str[:100]
+    """
+    # apply some styling
+    styler = {}
+    if 'description' in df.columns and is_string_dtype(df.description):
+        styler.update({
+            'description': lambda df: df['description'].str[:100]
+        })
+    if 'date' in df.columns and is_datetime64_dtype(df.date):
+        fmt = '%B %dth, %Y'
+        styler.update({
+            'date': lambda df: df['date'].dt.strftime(fmt)
+        })
+    newdf = df.assign(**styler)
 
-    # TODO: before converting to markdown, for datetime cols we could convert
-    # to a different format
-    is_default = (df.index.dtype == int and df.index.name is None)
-    print_df = df.to_markdown(index= not is_default, tablefmt="outline")
-    
+    # prevent default index from printing
+    is_default = (df.index.dtype == int and 
+                  df.index.name is None)
+    print_df = newdf.to_markdown(index = not is_default, 
+                                 tablefmt="outline")
+
+    # provide a header if necessary
     if header:
         line = print_df.partition('\n')[0]
-        print_df = (
-            f"{line}\n"
-            f"{header}\n"
-            f"{print_df}"
-        )
+        print_df = (f"{line}\n"
+                    f"{header}\n"
+                    f"{print_df}")
     print(print_df)
 
 

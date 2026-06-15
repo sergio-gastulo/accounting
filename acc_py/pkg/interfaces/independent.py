@@ -20,7 +20,7 @@ def fopen(p : Path) -> None:
     p
         Path to be opened.
     """
-    open_file_with_editor(p, ctx.editor)
+    open_file_with_editor(p, ctx.editor, opendir=True)
 
 
 def convert_currency(

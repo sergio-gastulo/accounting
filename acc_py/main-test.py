@@ -13,10 +13,7 @@ if __name__ == "__main__":
     sys.argv.append(config["FIELDS_JSON_PATH"])
     sys.argv.append(flag)
     main()
-    from pkg.interfaces.plot.barchart import fetch_barchart_data
-    from pkg.interfaces.plot.barchart import barchart_by_datefilter
-    from datetime import date
-    date1 = date(2020, 10, 12)
-    date2 = date(2020, 11, 12)
-    res = fetch_barchart_data([date1, date2])
-    # barchart_by_datefilter()
+    from pkg.interfaces.independent import fopen
+    fopen("/acccli/acc_py/pkg/interfaces")
+    fopen("/acc_py/pkg/interfaces")
+    fopen("here")

@@ -89,5 +89,11 @@ class TestFetch(TestCase):
     pass
 
 
+@unittest.skip("TODO...")
+class TestFileOpenEditor(TestCase):
+    pass
+
+
+
 if __name__ == "__main__":
     unittest.main()

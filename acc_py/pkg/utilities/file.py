@@ -1,9 +1,11 @@
-import hashlib
-from typing import Optional
 from pathlib import Path
-import pandas as pd
+from typing import Optional
+import hashlib
 from datetime import datetime
 import subprocess
+import sys
+
+import pandas as pd
 
 from .core import APPLICATION_STORAGE_DIRECTORY
 from .jops import jdump
@@ -112,11 +114,30 @@ def fimport(
 
 def open_file_with_editor(
         p : Path | str,
-        editor: Path
+        editor: Path,
+        /,
+        opendir: bool = False,
 )-> None:
     """Quick file opener, relies on ctx.editor to open said file."""
     if isinstance(p, str):
         p = Path(p)
     if not isinstance(p, Path):
         raise TypeError(f"Argument {p} is not Path-like.")
+    
+    # resolve /acccli/ | /acc_py/ to project directory
+    # and resolve with remaning dirs
+    mainpy = Path(sys.path[0])
+    match p.parts:
+        case ["\\", "acccli", *rest]:
+            p = mainpy.parent / Path(*rest)
+        case ["\\", "acc_py" | "src", *rest]:
+            p = mainpy / Path(*rest)
+        case _:
+            pass
+
+    if p.is_dir() and not opendir:
+        print(f"Resolved Path exists but it's a directory: '{p.resolve()}'." 
+              f"Skipping as per user preferences.")
+        return
+
     subprocess.call([editor, p])

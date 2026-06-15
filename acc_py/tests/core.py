@@ -188,7 +188,14 @@ class TestDataFramePrettyPrinter(TestCase):
             pprint_df(df)
             self.assertIn("foo", mock_stdout.getvalue())
         
-
+    def test_df_formats_datetypes(self):
+        df = pd.DataFrame({"date": ['2015-08-10', '2015-08-11']})
+        df["date"] = pd.to_datetime(df["date"])
+        expected_month = "August"
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            pprint_df(df)
+            self.assertIn(expected_month, mock_stdout.getvalue())
+        
 
 @unittest.skip("TODO: do we really need to test it?")
 class TestHasInternet(TestCase):

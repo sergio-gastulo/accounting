@@ -31,22 +31,22 @@ def fexport(
         obj : pd.DataFrame | pd.Series | dict, 
         p : Optional[Path | str] = None, 
         **kwargs
-) -> None:
+) -> Path:
     """
     Quick exporter to supported extensions: csv, json and xml.
-
+    
     Arguments
-   ------
+    ---------
     obj 
         Object to be exported. Only accepts `DataFrame`, `Series` and `dict`.
     p
         Path to export obj to. Resolves to `APPLICATION_STORAGE_DIRECTORY / 
         {timestamp}.json` if none is provided.
     **kwargs
-        Arugments that are passed to `to_[json|csv|xml]`.
+        Arguments that are passed to `to_[json|csv|xml]`.
 
     Notes
-   --
+    -----
     For exporting dictionaries, only json support is allowed in the meantime.
     """
 
@@ -54,29 +54,35 @@ def fexport(
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         fname = f"_dumped_{now}.json"
         p = APPLICATION_STORAGE_DIRECTORY / fname
-    if isinstance(p, str) : p = Path(p)
+    if isinstance(p, str): 
+        p = Path(p)
 
     extension = p.suffix.lower().lstrip(".")
     supported = {"csv", "json", "xml"}
     if extension not in supported:
         raise ValueError(f"Path extension({p}) is not in {supported}.")
 
+    savemap = f"to_{extension}"
+    savemap = getattr(obj, savemap)
     if isinstance(obj, pd.DataFrame | pd.Series):
-        savemap = f"to_{extension}"
-        savemap = getattr(obj, savemap)
-        # https://stackoverflow.com/a/39612316/29272030
-        with open(p, "w", encoding='utf-8') as file:
-            savemap(file, force_ascii=False, **kwargs)
+        if extension == '.json':
+            # https://stackoverflow.com/a/39612316/29272030
+            with open(p, "w", encoding='utf-8') as file:
+                savemap(file, force_ascii=False, **kwargs)
+            return p.resolve()
+        # https://stackoverflow.com/a/43684587/29272030
+        savemap(p, encoding='utf-16', **kwargs)
+        return p.resolve()
 
-    elif isinstance(obj, dict):
+    if isinstance(obj, dict):
         if extension == ".json":
             jdump(obj, p)
-        else:
-            err = f"Extension {extension} is not supported for dictionaries."
-            raise ValueError(err)
-    else:
-        err = f"Argument {obj=} is not a dictionary, Series or DataFrame."
-        raise TypeError(err)
+            return p.resolve()
+        err = f"Extension {extension} is not supported for dictionaries."
+        raise ValueError(err)
+    
+    err = f"Argument {obj=} is not a dictionary, Series or DataFrame."
+    raise TypeError(err)
 
 
 def fimport(

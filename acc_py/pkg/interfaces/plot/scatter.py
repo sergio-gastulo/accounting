@@ -12,14 +12,12 @@ from pkg.utilities.parser import parse_period
 from pkg.utilities.core import pprint_df
 from pkg.classes.model import Record
 from pkg.classes.context import ctx
-from .shared import (
-    YEAR_MONTH_PERIOD_COL,
-    TOTAL_AMOUNT_COL,
-    INCLUDING_INFLOW,
-    negatecolor,
-    get_bkgcolor,
-    raise_on_empty,
-)
+from .shared import (YEAR_MONTH_PERIOD_COL,
+                     TOTAL_AMOUNT_COL,
+                     INCLUDING_INFLOW,
+                     negatecolor,
+                     get_bkgcolor,
+                     raise_on_empty)
 
 
 def scatter(
@@ -32,23 +30,25 @@ def scatter(
     """
     scatter_color = negatecolor(get_bkgcolor())
     timestamp = period.to_timestamp()
-    xoffset = pd.Timedelta(days=10)
     yoffset = 1.05
-    x = timestamp + xoffset
+    xtext = timestamp + pd.Timedelta(days=10)
     
     for line in ax.lines:    
         # get y data associated to timestamp
-        # TODO: check if period has been actually found
         pos = np.argwhere(line.get_xdata() == timestamp)
+        if len(pos) != 1:
+            raise ValueError(f"Could not scatter {period=} because " \
+                             "of multiples matches.")
         n : int = pos[0, 0].tolist()
         y = line.get_ydata()[n]
-        ax.scatter(timestamp, y, color=scatter_color, zorder=5)
+        ax.scatter(timestamp, y, 
+                   color=scatter_color, zorder=5)
 
-        # add label to said scatter
+        # add text to scatter
         ytext = y * yoffset
         currency = line.get_label()
         text = f'{currency} {y:.2f}'
-        ax.text(x, ytext, s=text, size=12)
+        ax.text(xtext, ytext, text, size=12)
 
 
 def scattered_map(

@@ -247,6 +247,9 @@ def write_df(df : pd.DataFrame | pd.Series) -> None:
         DataFrame to be passed to database. 
     """
 
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise TypeError(df, (pd.DataFrame, pd.Series))
+
     # sanitize dataframe before writing to it
     ensure(df, pd.DataFrame, pd.Series)
     table_name = Record.__tablename__
@@ -396,7 +399,7 @@ def delete(
     By default, a Record entity will be deleted. 
     
     Arguments
-    -----
+    ---------
     entity
         Defaults to `Record`, it checks whether the entity to be edited is 
         `Record` or `Conversion`.
@@ -407,7 +410,7 @@ def delete(
         not provided, fetched via `prompt_entity_by_id`.
 
     Notes
-    -
+    -----
     - A warning message is shown before deletion to highlight that the
     operation is irreversible.
     """
@@ -416,9 +419,6 @@ def delete(
     if not isinstance(entity, Record | Conversion):
         ensure_or_none(id_, int)
         entity = prompt_entity_by_id(ctx.engine, entity_type, id_)
-    else:
-        # TODO: ensure that entity effectively exists in database
-        pass
 
     action = lambda : entity.delete(ctx.engine)
     confirm_action(action)
@@ -433,7 +433,7 @@ def fetch(
     Relies on `parse_semantic_filter` to approve parsing.
 
     Parameters
-    ------
+    ----------
     semantic_filter
         A textual filter expression. Supported patterns:
         - str columns: exact match, `LIKE` wildcard, or regex
@@ -443,6 +443,7 @@ def fetch(
         Maximum number of records to return. Optional.
 
     Notes
+    -----
     - When `semantic_filter` is omitted, the user is prompted interactively.
     - Results are ordered by `Record.id` (desc) and limited by `max_lines` if 
     provided.

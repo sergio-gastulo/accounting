@@ -503,7 +503,6 @@ def sanitize_df(
     return df
 
 
-# TODO : test this whenever possible
 def parse_record_from_id(
         id_ : str | int,
         engine : Engine,

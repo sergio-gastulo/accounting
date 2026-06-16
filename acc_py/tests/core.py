@@ -1,6 +1,6 @@
 import unittest
 from unittest import TestCase
-from unittest.mock import patch, call
+from unittest.mock import patch, call, Mock
 import io
 import json
 from pathlib import Path
@@ -8,21 +8,18 @@ from typing import Callable
 
 import pandas as pd
 
-from tests._shared import (
-    TEST_FILE_DIRECTORY, 
-    Patcher
-)
-from pkg.utilities.core import (
-    import_fields,
-    pprint_df,
-    get_help_dictionary,
-    pprint_categories,
-    fetch_keybind_dict,
-    check_editor,
-    convert_rgb,
-    check_colors,
-    fetch_category_dictionary,
-)
+from tests._shared import (TEST_FILE_DIRECTORY, 
+                           Patcher)
+from pkg.utilities.core import (import_fields, 
+                                ensure,
+                                pprint_df, 
+                                get_help_dictionary, 
+                                pprint_categories, 
+                                fetch_keybind_dict, 
+                                check_editor, 
+                                convert_rgb, 
+                                check_colors, 
+                                fetch_category_dictionary)
 
 
 #region ========================= quick utils ==================================
@@ -32,6 +29,31 @@ def _patch_this(f: Callable | str, **kwargs) -> Patcher:
     return Patcher(TEST_MODULE, f, **kwargs)
 
 #endregion =====================================================================
+
+
+class TestEnsure(TestCase):
+
+    def test_simple_case(self):
+        ensure(True, bool)
+
+    def test_inheritance(self):
+        class Foo:
+            pass
+        class Bar(Foo):
+            pass
+        x = Bar()
+        ensure(x, Bar)
+        ensure(x, Foo)
+
+
+    def test_none(self):
+        ensure(None, Mock(), allow_none=True)
+
+    def test_err(self):
+        badtypes = [("str", int, float), (4, str)]
+        for val, *types in badtypes:
+            with self.assertRaises(TypeError):
+                ensure(val, *types)
 
 
 class TestFieldImporter(TestCase):

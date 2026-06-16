@@ -33,7 +33,6 @@ def _fetch_exchange(currency : str) -> dict[str, int | float]:
             res = res[currency]
             return res
             
-    # TODO: we should probably test this properly
     if response.status_code == 404:
         raise ValueError(
             f"Arguement '{currency}' is an invalid currency. "

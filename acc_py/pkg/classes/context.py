@@ -1,46 +1,36 @@
 """
 Main data manager for acccli. Relies heavily on utilities.core.
 """
-
 from dataclasses import dataclass
-from sqlalchemy.engine.base import Engine
-from sqlalchemy import create_engine
 from typing import List, Optional, Any
 from pathlib import Path, WindowsPath
 from datetime import date
-from pandas import Period
 
-from pkg.utilities.typing import (
-    FieldDictType,
-    KeybindDictType,
-    ExchangeDictType,
-    StrDict,
-    CurrencyColorDictionary
-)
+from pandas import Period
+from sqlalchemy.engine.base import Engine
+from sqlalchemy import create_engine
+
 from pkg.utilities.jops import jopen, jrepr
-from pkg.utilities.core import (
-    APPLICATION_CACHED_DIRECTORY,
-    soft_warning,
-    confirm_action,
-    ensure,
-    import_fields,
-    check_editor,
-    check_colors,
-    pprint_categories,
-    fetch_keybind_dict,
-    fetch_category_dictionary,
-)
-from pkg.utilities.prompt import (
-    prompt_currency,
-    prompt_category_from_keybinds
-)
-from pkg.utilities.currency import (
-    check_currency_list,
-    get_exchange_dict,
-)
-from pkg.utilities.file import (
-    sha256, SHA256Error
-)
+from pkg.utilities.file import sha256, SHA256Error
+from pkg.utilities.prompt import (prompt_currency,
+                                  prompt_category_from_keybinds)
+from pkg.utilities.currency import (check_currency_list,
+                                    get_exchange_dict)
+from pkg.utilities.typing import (FieldDictType,
+                                  KeybindDictType,
+                                  ExchangeDictType,
+                                  StrDict,
+                                  CurrencyColorDictionary)
+from pkg.utilities.core import (APPLICATION_CACHED_DIRECTORY,
+                                soft_warning,
+                                confirm_action,
+                                ensure,
+                                import_fields,
+                                check_editor,
+                                check_colors,
+                                pprint_categories,
+                                fetch_keybind_dict,
+                                fetch_category_dictionary)
 
 
 #region ======================== untested utils ================================
@@ -88,10 +78,10 @@ def _rmdir(directory : Path) -> None:
 
 
 def _validate_categories(categories : List[str], keybinds : StrDict) -> List[str]:
-    res = [
-        prompt_category_from_keybinds(keybinds, category, quiet_success=True)
-        for category in categories 
-    ]
+    res = [prompt_category_from_keybinds(keybinds, 
+                                         category, 
+                                         quiet_success=True)
+           for category in categories]
     return res
 
 
@@ -159,7 +149,7 @@ class AccountingContext:
         if current_fields_sha != (expected := cached_dict["fields-sha256"]):
             err.append(f"expected {expected}, got {current_fields_sha}.")
         if err:
-            raise SHA256Error(f"Mismatches: {err}.")
+            raise SHA256Error(f"Mismatches:\n{"\n".join(err)}.")
         
         # load to self and wrap attrs
         self.__dict__.update(data)

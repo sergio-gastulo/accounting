@@ -9,10 +9,8 @@ import socket
 from pathlib import Path
 from datetime import datetime
 from os import environ
-from typing import (
-    List, Tuple, Any, Type, 
-    Callable, Optional
-)
+from typing import (List, Tuple, Any, Type, 
+                    Callable, Optional)
 
 import pandas as pd
 from pandas.api.types import is_string_dtype, is_datetime64_dtype
@@ -20,12 +18,9 @@ from tkinter.filedialog import askopenfilename
 from tkinter.colorchooser import askcolor
 from matplotlib.colors import is_color_like, to_rgb
 
-from .typing import (
-    StrDict,
-    RGBType,
-    FieldDictType,
-    KeybindDictType,
-)
+from .typing import (StrDict, RGBType, 
+                     FieldDictType, 
+                     KeybindDictType)
 from .jops import jopen, jprint
 
 
@@ -70,26 +65,23 @@ def soft_warning(s : str) -> None:
     print(f"{fg.red}{s}{fg.end}")
 
 
-# TODO: test this !!!
 def ensure(
         value : Any, 
         *types : Type[Any], 
         allow_none : bool = False
 ) -> None:
     """Simple type-checker. `raise` instead of `soft_err`."""
-    if allow_none and (value is None):
-        return 
-    if type(value) in types:
-        return 
-
-    _get_type_name = lambda t : t.__name__.capitalize()
-    allowed_types = ', '.join(map(_get_type_name, types))
-    vartype = type(value).__name__.capitalize()
-    
-    raise TypeError(
-        f"Argument '{value}' has type '{vartype}'. "
-        f"Type must be in [{allowed_types}]."
-    )
+    if not (value is None and allow_none or
+            isinstance(value, types)):
+        
+        def get_type_name(t: Type):
+            return t.__name__.capitalize()
+        
+        allowed_types = ', '.join(map(get_type_name, types))
+        vartype = get_type_name(type(value))
+        
+        raise TypeError(f"Argument '{value}' has type '{vartype}'. "
+                        f"Type must be any of {allowed_types!r}.")
 
 
 def confirm_action(

@@ -64,9 +64,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 
 ## **TODO**
 - Decide whether currencies should be upper or lower case.
-- `fopen` should also resolve to /path/to/repo to read source-code quickly.
 - Check plots are light/dark mode responsive up to user configurations.
-- Complete test cases and check `# TODO:`s.
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.

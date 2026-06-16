@@ -6,11 +6,10 @@ from pkg.classes.context import ctx
 from pkg.utilities.help import acccli
 from pkg.utilities.core import now, get_globals
 from pkg.utilities.file import fimport, fexport
-from pkg.utilities.parser import parse_date as pdate
-from pkg.interfaces.independent import (
-    fopen, 
-    convert_currency as convcurr
-)
+from pkg.utilities.parser import (parse_date as pdate,
+                                  parse_period as pperiod)
+from pkg.interfaces.independent import (fopen, 
+                                        convert_currency as convcurr)
 
 
 #region ========================== interfaces ==================================
@@ -45,21 +44,18 @@ def load_db_api_module(*args) -> None:
 
 def load_plot_module(*args) -> None:
 
-    # populate globals from plot
     try:
         ctx.set_plot()
     except RuntimeError:
         ctx.set(*args)
         ctx.set_plot()
     
-    from pkg.interfaces.plot import (
-        barchart_by_datefilter,
-        category_time_series,
-        savings_plot,
-        scattered_outflow,
-        set_configs, 
-        dark,   
-    )
+    from pkg.interfaces.plot import (barchart_by_datefilter, 
+                                     category_time_series, 
+                                     savings_plot, 
+                                     scattered_outflow, 
+                                     set_configs,  
+                                     dark)
     set_configs()
     dark()
     exposed = {
@@ -95,6 +91,5 @@ def main() -> None:
     print("For help, please evaluate acccli().")
 
 
-# TODO: expose parse_period
 if __name__ == "__main__":
     main()

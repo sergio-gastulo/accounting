@@ -18,20 +18,17 @@ Base = declarative_base()
 
 class Entity:
 
-    def __eq__(self, other : Any):
-        same_type = isinstance(other, type(self))
-        if not same_type:
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(self, type(other)):
             return False
-        try:
-            return (self.id == other.id)
-        except AttributeError:
-            return False
+        for attr, attrval in vars(self).items():
+            if not (hasattr(other, attr) and 
+                    getattr(other, attr) == attrval):
+                return False
+        return True
 
 
-    # TODO: check if this is basically just a repr -> should be renamed to 
-    # __repr__
-    def pretty(self) -> str:
-        """Default class prettier. Returns all attributes with indentation."""
+    def __repr__(self) -> str:
         cols = self.__table__.columns.keys()
         values = {col: getattr(self, col) for col in cols}
         attrs = "\n".join(f"  {k}={v}" for k, v in values.items())
@@ -39,15 +36,11 @@ class Entity:
         wrap = f"{self_type}(\n{attrs}\n)" 
         return wrap
 
-    def pprint(self) -> None:
-        """Default pretty printer, prints self.pretty()"""
-        print(self.pretty())
-
     def write(
             self, 
-            engine : Engine, 
-            label : Optional[str] = None,
-            quiet : bool = False
+            engine: Engine, 
+            label: Optional[str] = None,
+            quiet: bool = False
     ) -> None:
         """
         Writes to database without asking for commit. 
@@ -74,16 +67,15 @@ class Entity:
 
         if label is None:
             label = "The following record has been added to database:"
-        # write ---
+        
         with Session(engine) as session:
             session.add(self)
             session.commit()
             session.refresh(self)
             if not quiet:
-                print(label)
-                self.pprint()
+                print(label, self, sep="\n")
 
-    def delete(self, engine : Engine) -> None:
+    def delete(self, engine: Engine) -> None:
         """
         Deletes a Record | Conversion directly without asking for commit. 
         Prints soft_warning message before deleting.
@@ -115,12 +107,6 @@ class Record(Base, Entity):
     description: Mapped[str] = mapped_column(String, nullable=False)
     category: Mapped[str] = mapped_column(nullable=False)
 
-    def __repr__(self) -> str:
-        return (
-            f"Record(id={self.id!r}, date={self.date!r}, "
-            f"amount={self.amount!r}, currency={self.currency!r}, "
-            f"description={self.description!r}, category={self.category!r})"
-        )
 
 
 class Conversion(Base, Entity):
@@ -135,30 +121,37 @@ class Conversion(Base, Entity):
     target_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     description: Mapped[str] = mapped_column(String,nullable=False)
 
-    def __repr__(self) -> str:
-        return (
-            f"Conversion("
-            f"id={self.id!r}, "
-            f"date={self.date!r}, "
-            f"base_currency={self.base_currency!r}, "
-            f"base_amount={self.base_amount!r}, "
-            f"target_currency={self.target_currency!r}, "
-            f"target_amount={self.target_amount!r}, "
-            f"description={self.description!r})"
-        )
-    
-    def pretty(self, inverted : bool = True) -> str:
-        """Overwritten class prettier to show exchange rate as well."""
-        ensure(inverted, bool)
-        rate = self.target_amount / self.base_amount
-        if inverted:
+
+    def get_rate(self) -> float:
+        """base * rate = target"""
+        return self.target_amount / self.base_amount
+
+
+    def __format__(self, opt: str) -> str:
+        
+        rate = self.get_rate()
+        if opt in ["inverted", "inv", "i"]:
             rate = 1 / rate
-        return (
-            f"{self.id}: {self.base_amount:,.2f} {self.base_currency}"
-            f" -> {self.target_amount:,.2f} {self.target_currency}"
-            f" @ {rate:.4f} {self.base_currency}/{self.target_currency}"
-            f"\n         {self.description}"
-        )
+            rateop = f"{self.base_currency}/{self.target_currency}"
+        else:
+            rateop = f"{self.target_currency}/{self.base_currency}"
+
+        idstr = f"{self.id:4}" if self.id else "----"
+        return  f"{idstr}: {self.base_amount:,.2f} {self.base_currency}" \
+                f" -> {self.target_amount:,.2f} {self.target_currency}" \
+                f" @ {rate:.4f} {rateop}" \
+                f"\n         {self.description}"
+
+
+    def __repr__(self) -> str:
+        return f"{self:i}"
+
+
+    # TODO: method that swaps base and target and writes to database directly
+    def invert(self):
+        pass
+
+
 
 
 def create_tables(engine: Engine) -> None:

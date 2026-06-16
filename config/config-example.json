@@ -1,15 +1,39 @@
 {
-    "db_path": "path to database",
-    "context": {
-        "currency_list": [
-            "EUR",
-            "PEN",
-            "USD"
-        ],
-        "rgb_colors": [
-            [128, 128, 255], 
-            [26, 255, 163], 
-            [255, 255, 255]
-        ]
+    "db_path": "db-path",
+    "editor_path": "C:\\Program Files\\Vim\\vim91\\vim.exe",
+    "default_currency": "USD",
+    "currency_list": [
+        "EUR",
+        "USD",
+        "JPY"
+    ],
+    "rgb_colors": [
+        [ 0.14, 0.8, 0.14 ],
+        [ 0.4, 0.6, 1 ],
+        [ 0.93, 0.27, 0.27 ]
+    ],
+    "inflow-categories" : [
+        "INGRESO", 
+        "BLIND", 
+        "INTERESES"
+    ],
+    "matplotlib" : {
+        "fontfamily" : "monospace",
+        "fontsize" : 12,
+        "plots" : {
+            "barchart" : {
+                "default" : [1, 1, 1],
+                "on_click" : [ 0, 0.74, 0.74 ] 
+            },
+            "scatter" : {
+
+            },
+            "category_ts" : {
+
+            },
+            "savings" : {
+                "savings_color" : [ 1, 1, 1 ] 
+            }
+        }
     }
 }

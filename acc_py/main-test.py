@@ -13,7 +13,7 @@ if __name__ == "__main__":
     sys.argv.append(config["FIELDS_JSON_PATH"])
     sys.argv.append(flag)
     main()
-    from pkg.interfaces.independent import fopen
-    fopen("/acccli/acc_py/pkg/interfaces")
-    fopen("/acc_py/pkg/interfaces")
-    fopen("here")
+    # from pkg.interfaces.independent import fopen
+    # fopen("/acccli/acc_py/pkg/interfaces")
+    # fopen("/acc_py/pkg/interfaces")
+    # fopen("here")

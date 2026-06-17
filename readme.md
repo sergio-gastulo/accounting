@@ -8,7 +8,6 @@ A *really simple* CLI tool to help you track accounting information from the ter
 ## **Installation**  
 1. Clone the repository into a directory included in your PowerShell module path (`$Env:PSModulePath`).  
    - More details on PowerShell module paths can be found in the [official documentation](https://learn.microsoft.com/es-es/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.5).
-	- I would recommend creating a `~\.powershell` module, add said path to `$Env:PSModulePath` and clone the repo there. 
 2. Run the following commands in PowerShell:
    ```powershell
    git clone https://github.com/sergio-gastulo/accounting.git
@@ -19,23 +18,24 @@ A *really simple* CLI tool to help you track accounting information from the ter
    Import-Module accounting
    AccountingCommandLineInterface <action> # or acccli <action>
    ```
-3. If there are python-dependencies issues, don't worry:
+3. To install dependencies:
 	```
 	cd /path/to/cloned/repo/acc_py
-	poetry install
+	uv pip install -r pyproject.toml
 	```
-	FYI: [poetry](https://python-poetry.org/) must be installed.
+	FYI: [uv](https://docs.astral.sh/uv/) must be installed.
 
 ### config.json
-Check config-example.json for an up-to-date example.
+It carries simple configurations like the path to the database, which currencies are being managed and some matplotlib configurations.
+Check [config-example.json](/config/config-example.json) for an up-to-date example.
 
 ### fields.json
 It defines a list of categories. Each category contains basic metadata, and optionally, subcategories. Field Descriptions: 
-* key (string) – Unique identifier for the category.
-* shortname (string) – A brief display name.
-* description (string) – A longer label or description for the category.
-* help (string) – Full explanation or tooltip-style guidance.
-* subcategories (array of json's, optional) – Nested categories that follow the same structure.
+* key (string) - Unique identifier for the category.
+* shortname (string) - A brief display name.
+* description (string) - A longer label or description for the category.
+* help (string) - Full explanation or tooltip-style guidance.
+* subcategories (array of key-value pairs, optional) - Nested categories that follow the same structure.
 ```js
 [
    {
@@ -61,6 +61,7 @@ It defines a list of categories. Each category contains basic metadata, and opti
 	}
 ]
 ```
+Check [fields-example.json](/config/fields-example.json) for an up-to-date example.
 
 ## **TODO**
 - Decide whether currencies should be upper or lower case.
@@ -90,7 +91,7 @@ Major  Minor  Build  Revision
 -----  -----  -----  --------
 5      1      26100  3624
 ```
-2. For `python` dependencies, check [`pyproject.toml`](acc_py/pyproject.toml).
+2. For `python` dependencies, check [`pyproject.toml`](/acc_py/pyproject.toml).
 
 3. `sqlite`:
 ```

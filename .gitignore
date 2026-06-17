@@ -4,6 +4,7 @@ files/
 # regular py-vscode trash
 **/env/
 **/.env
+**/.venv
 **/__pycache__
 .vscode/
 

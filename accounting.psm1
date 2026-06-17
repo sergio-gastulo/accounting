@@ -115,7 +115,7 @@ Installs the SQLite3 command-line tools on Windows.
 The Install-SQLite3 function downloads and installs the SQLite3 tools
 for the current system architecture (x64 or x86).  
 
-It performs the following actions:
+It performs the following Actions:
 - Verifies that the script is running with Administrator privileges.
 - Creates a dedicated installation folder under "C:\Program Files\SQLite3".
 - Downloads the official SQLite tools ZIP archive from sqlite.org.
@@ -183,6 +183,21 @@ function Install-SQLite3
 
     Write-Host "SQLite3 tools installed successfully at $sqliteFolder"
 }
+
+
+function forcePathExists {
+    param(
+        # Path to force its existence
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]
+        $Path
+    )
+    if (-not (Test-Path $Path)) {
+        $err = "Current path '$Path' does not exist."
+        Write-Error -Category InvalidArgument -ErrorAction Stop -Message $err 
+    }
+}
+
 
 
 function Test-AccountingHealth 
@@ -276,8 +291,8 @@ function Test-AccountingHealth
     
     It wraps underlying Python scripts and SQLite operations for ease of use.
 
-.PARAMETER action
-    Specifies the action to perform. Valid actions are:
+.PARAMETER Action
+    Specifies the Action to perform. Valid Actions are:
 
     - 'plot'   : Plot accounting data.
     - 'db'     : Perform database-related operations: write, edit, delete, etc.
@@ -297,20 +312,31 @@ function AccountingCommandLineInterface
     (
         [Parameter(Mandatory=$true)]
         [ValidateSet("backup", "db", "help", "plot", "sql")]
-        [string]$action
+        [string]$Action
     )
 
-    # configuration and paths update
-
-    $configPath = [System.IO.Path]::Combine($PSScriptRoot, "config", "config.json")
-    $fieldsPath = [System.IO.Path]::Combine($PSScriptRoot, "config", "fields.json")
+    $accpyDir = [System.IO.Path]::Combine($PSScriptRoot, "acc_py")
+    $configDir = [System.IO.Path]::Combine($PSScriptRoot, "config")
+    $configPath = Join-Path -Path $configDir -ChildPath "config.json"
+    $fieldsPath = Join-Path -Path $configDir -ChildPath "fields.json"
+    $pyenv = [System.IO.Path]::Combine($accpyDir, ".venv", "Scripts", "python.exe")
+    $pyScriptPath = Join-Path -Path $accpyDir -ChildPath "main.py"
     $databasePath = (Get-Content $configPath -Raw | ConvertFrom-Json).db_path
-    $pyScriptPath = Join-Path -Path $PSScriptRoot -ChildPath ".\acc_py\main.py"
 
-    
-    $pyArgs = "-i $pyScriptPath $configPath $fieldsPath $action"
+    foreach ($testpath in @(
+        $accpyDir, 
+        $configDir, 
+        $configPath, 
+        $fieldsPath, 
+        $pyenv, 
+        $pyScriptPath, 
+        $databasePath)) {
+        forcePathExists -Path $testpath
+    }
+
+    $pyArgs = "-i $pyScriptPath $configPath $fieldsPath $Action"
     $task = { Start-Process python.exe -ArgumentList $pyArgs }
-    switch ($action)
+    switch ($Action)
     {
         'plot'      { $task.Invoke() }
         'db'        { $task.Invoke() }
@@ -323,7 +349,6 @@ function AccountingCommandLineInterface
             ".backup $db_name" | sqlite3.exe $databasePath
             Write-Host "Database properly backed up: $db_name" -ForegroundColor Blue
         }
-        default { throw "Unknown action: '$action'" }
     }
 }
 

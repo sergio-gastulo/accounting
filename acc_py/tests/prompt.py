@@ -488,7 +488,7 @@ class TestRecordByIDPrompt(TestCase):
                     mock_main.return_value = record
                     res = prompt_entity_by_id(self.engine, Record, uinput)
                 mock_main.assert_called_once()
-                mock_success.assert_called_once_with(record.pretty())
+                mock_success.assert_called_once_with(record)
                 arg, kwargs = mock_main.call_args
                 self.assertEqual(arg[0], uinput)
                 self.assertIn("parser", kwargs)
@@ -517,7 +517,7 @@ class TestRecordByIDPrompt(TestCase):
                     mock_main.return_value = conv
                     res = prompt_entity_by_id(self.engine, Conversion, uinput)
                 mock_main.assert_called_once()
-                mock_success.assert_called_once_with(conv.pretty())
+                mock_success.assert_called_once_with(conv)
                 arg, kwargs = mock_main.call_args
                 self.assertEqual(arg[0], uinput)
                 self.assertIn("parser", kwargs)

@@ -233,7 +233,7 @@ def prompt_entity_by_id(
         "entity" : entity
     }
     res : Record | Conversion = main_loop(id_, **kwargs)
-    _success(res.pretty())
+    _success(res)
     return res
 
 

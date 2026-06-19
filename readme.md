@@ -66,6 +66,7 @@ Check [fields-example.json](/config/fields-example.json) for an up-to-date examp
 ## **TODO**
 - Decide whether currencies should be upper or lower case.
 - Check plots are light/dark mode responsive up to user configurations.
+- `fetch` should return dataframe with pd.to_datetime .
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.

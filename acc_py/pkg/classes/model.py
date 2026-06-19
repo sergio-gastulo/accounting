@@ -55,7 +55,7 @@ class Entity:
             Simple label that is passed to print before showing entity's pretty
             str
         `quiet`
-            Controls if both label and entity.pretty() are printed to sys.stdout.
+            Controls if both label and `entity` are printed to sys.stdout.
             Defaults to False (yes, print, please!)
         """
         # Important: type(ctx.engine) in Engine works

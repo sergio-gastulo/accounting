@@ -465,11 +465,13 @@ def fetch(
     stmt = stmt.order_by(desc(Record.id))
 
     try:
-        df = pd.read_sql(stmt, ctx.engine, index_col='id')
-        return df
-    # https://pandas.pydata.org/docs/reference/api/pandas.errors.DatabaseError.html
+        df = pd.read_sql(stmt, ctx.engine, 
+                         index_col='id',
+                         parse_dates={"date": "%Y-%m-%d"})
     except pd.errors.DatabaseError:
         raise ValueError(f"Database error found. More likely wrong query: {stmt=}.")
+    else:
+        return df
 
 
 def _read_conversion(

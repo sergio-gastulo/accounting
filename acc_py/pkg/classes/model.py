@@ -21,9 +21,10 @@ class Entity:
     def __eq__(self, other: Any) -> bool:
         if not isinstance(self, type(other)):
             return False
-        for attr, attrval in vars(self).items():
+        cols = self.__table__.columns.keys()
+        for attr in cols:
             if not (hasattr(other, attr) and 
-                    getattr(other, attr) == attrval):
+                    getattr(self, attr) == getattr(other, attr)):
                 return False
         return True
 

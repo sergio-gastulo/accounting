@@ -31,6 +31,7 @@ def _patch_this(f: Callable | str, **kwargs) -> Patcher:
 
 class TestEntity(TestCase):
     
+    # might deprecate later
     class MockedEntity(Entity):
         def __init__(self, value: int):
             super().__init__()
@@ -38,21 +39,26 @@ class TestEntity(TestCase):
             keys_mock = MagicMock(return_value=["id"])
             self.__table__ = MagicMock(columns=MagicMock(keys=keys_mock))
 
+    class MockedWithTableColumns(Entity):
+        def __init__(self, **kwargs):
+            super().__init__()
+            for attr, value in kwargs.items():
+                setattr(self, attr, value)
+            keys_mock = MagicMock(return_value=list(kwargs))
+            self.__table__ = MagicMock(columns=MagicMock(keys=keys_mock))
+
     def test_equality(self):
-        e1 = Entity()
-        e2 = Entity()
-        e1.id = e2.id = "foo"
+        e1 = e2 = self.MockedWithTableColumns(id=2)
         self.assertTrue(e1 == e2)
 
     def test_larger_equality(self):
-        e1 = Entity()
-        e2 = Entity()
-        e1.id = e2.id = "foo"
-        e1.bar = e2.bar = "foo"
-        e1.foo = e2.foo = "foo"
-        e1.different = "bar"
+        kwargs = {"id": "foo", 
+                  "bar": "foo", 
+                  "different": "hold",}
+        e1 = self.MockedWithTableColumns(**kwargs)
+        e2 = self.MockedWithTableColumns(**kwargs)
+        e1.different = None
         self.assertFalse(e1 == e2)
-
 
     def test_equality_different_types(self):
         e = Entity()
@@ -65,6 +71,7 @@ class TestEntity(TestCase):
         for entity in entities:
             with self.subTest(entity=entity):
                 self.assertFalse(e == entity)
+
     def test_repr(self):
         e = self.MockedEntity(5)
         res = repr(e)

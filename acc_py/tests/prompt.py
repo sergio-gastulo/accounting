@@ -299,7 +299,7 @@ class TestFromNestedDictGetter(TestCase):
         with (
             _patch_print_buffer, 
             patch_builtin(input) as mock_input,
-            _patch_this('_jprint') as mock_jprint,
+            _patch_this('jprint') as mock_jprint,
             _patch_this(get_from_nested_dict, wraps=get_from_nested_dict) as mock_self,
         ):
             res = get_from_nested_dict(keybinds, uinput, prompt)
@@ -313,7 +313,7 @@ class TestFromNestedDictGetter(TestCase):
         expected = "baz"        
         with (
             patch_builtin(input) as mock_input,
-            _patch_this('_jprint') as mock_jprint,
+            _patch_this('jprint') as mock_jprint,
         ):
             mock_input.return_value = "foo"
             res = get_from_nested_dict(keybinds, None, "")
@@ -335,7 +335,7 @@ class TestFromNestedDictGetter(TestCase):
 
         with (
             patch_builtin(input) as mock_input, 
-            _patch_this('_jprint') as mock_jprint,
+            _patch_this('jprint') as mock_jprint,
             _patch_this(get_from_nested_dict, wraps=get_from_nested_dict) as mock_self,
         ):
             mock_input.return_value = input_return
@@ -544,7 +544,7 @@ class TestListOfFieldsPrompt(TestCase):
         expected_from_parser = ["description", "currency", "category"]
         with (
             _patch_this(main_loop) as mock_main,
-            _patch_this('_jprint') as mock_jprint,
+            _patch_this('jprint') as mock_jprint,
             _patch_this('_success') as mock_success,
         ):
             mock_main.return_value = expected_from_parser
@@ -563,7 +563,7 @@ class TestListOfFieldsPrompt(TestCase):
         expected_from_parser = ["description", "currency", "category"]
         with (
             _patch_this(main_loop) as mock_main,
-            _patch_this('_jprint') as mock_jprint,
+            _patch_this('jprint') as mock_jprint,
             _patch_this('_success') as mock_success,
         ):
             mock_main.return_value = expected_from_parser

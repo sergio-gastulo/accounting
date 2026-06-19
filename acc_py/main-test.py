@@ -1,7 +1,10 @@
 import dotenv
 from main import main
-from pkg.classes.context import ctx
+from pkg.classes import ctx, Record
 import sys
+from tests._shared import mem_engine, TODAY
+from pkg.utilities.parser import parse_record_from_id
+
 
 if __name__ == "__main__":
 
@@ -13,7 +16,16 @@ if __name__ == "__main__":
     sys.argv.append(config["FIELDS_JSON_PATH"])
     sys.argv.append(flag)
     main()
-    # from pkg.interfaces.independent import fopen
-    # fopen("/acccli/acc_py/pkg/interfaces")
-    # fopen("/acc_py/pkg/interfaces")
-    # fopen("here")
+
+    engine = mem_engine()
+
+    record = Record(date=TODAY,
+                    amount=0.65,
+                    currency="foo",
+                    description="foo",
+                    category = "foo")
+    record.write(engine, quiet=True)
+
+    uinput = 1
+    res = parse_record_from_id(uinput, engine, Record)
+    res == record

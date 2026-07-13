@@ -1,9 +1,11 @@
-import dotenv
-from main import main
-from pkg.classes import ctx, Record
 import sys
-from tests._shared import mem_engine, TODAY
-from pkg.utilities.parser import parse_record_from_id
+import dotenv
+
+from sqlalchemy import create_engine
+
+from pkg.classes import ctx
+
+from main import main
 
 
 if __name__ == "__main__":
@@ -11,21 +13,17 @@ if __name__ == "__main__":
     config = dotenv.dotenv_values(".env")
     flag = 'plot'
 
-    # awkward but it works
+    # awkward but this works so ...
     sys.argv.append(config["CONFIG_PATH"])
     sys.argv.append(config["FIELDS_JSON_PATH"])
     sys.argv.append(flag)
     main()
+    ctx.engine = create_engine(config["DB_PATH"])
 
-    engine = mem_engine()
-
-    record = Record(date=TODAY,
-                    amount=0.65,
-                    currency="foo",
-                    description="foo",
-                    category = "foo")
-    record.write(engine, quiet=True)
-
-    uinput = 1
-    res = parse_record_from_id(uinput, engine, Record)
-    res == record
+    from pkg.interfaces.db_api import fetch, write_record, read
+    
+    # df = fetch(max_lines=20)
+    # df = df[df["category"].isin(ctx.categories_dict) & df["amount"] > 0].copy()
+    # df["description"] += " -- test2"
+    # write_record(df)
+    

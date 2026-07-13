@@ -769,7 +769,7 @@ class TestDataFrameSanitizer(TestCase):
                     "category": "category2"
                 }]),
                 pd.DataFrame([{
-                    "date": "2024-12-31",
+                    "date": datetime.date(2024, 12, 31),
                     "amount" : 65,
                     "currency" : "EUR",
                     "description": "desc",

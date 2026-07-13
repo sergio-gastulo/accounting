@@ -463,8 +463,7 @@ def sanitize_df(
         category_list : List[str]
     ) -> pd.DataFrame:
     """
-    Check that the dataframe is properly santized. Type-checks, and even 
-    transforming functions are applied to respective columns.
+    Check that the dataframe is properly santized. A new dataframe is returned.
     """
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"Argument {df=} is not a valid df.")
@@ -480,7 +479,7 @@ def sanitize_df(
         raise ValueError(f"DataFrame must contain the following columnts: {must_exist_columns}.")
     if is_numeric_dtype(df.amount):
         if not (df.amount > 0).all():
-            errors.append("df.amount contains a (or more) negatives values.")
+            errors.append("df.amount contains non-positive values.")
     else:
         errors.append("df.amount is non-numeric.")
     if not is_string_dtype(df.currency):
@@ -492,15 +491,13 @@ def sanitize_df(
     if not (is_string_dtype(df.date) or is_datetime(df.date)):
         errors.append("df.date is non-string and non-datetime-like.")
     if errors:
-        raise ValueError(f"Dataframe's columns failed type-check: {errors}.")
-
-    # -------------------- conversions after checking dtypes --------------------
-    df.currency = df.currency.str.upper()
-    if is_string_dtype(df.date):
-        df.date = pd.to_datetime(df.date)
-    # --- datetime uniformization ---
-    df.date = df.date.dt.strftime(DATE_COLUMN_FORMAT)
-    return df
+        raise ValueError(
+            f"Dataframe's columns failed type-check:"
+            "\n".join(errors)
+        )
+    
+    return df.assign(currency=df.currency.str.upper(),
+                     date=pd.to_datetime(df.date).dt.date)
 
 
 def parse_record_from_id(

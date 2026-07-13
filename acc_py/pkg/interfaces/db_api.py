@@ -13,6 +13,7 @@ from sqlalchemy import (
     inspect, 
     select,
     desc,
+    update,
 )
 from sqlalchemy.orm import Session
 
@@ -238,8 +239,8 @@ def build_df(
 def write_df(df : pd.DataFrame | pd.Series) -> None:
     """
     Writes **record** dataframe to database. Performs type-checking, column type
-    checking, and if df contains index, then it updates each record accordingly.
-    Otherwise, df is appeneded to database.
+    checking, and if `df` has index or 'id' is in columns, then it updates each 
+    record accordingly. Otherwise, df is appeneded to database table.
     
     Arguments
     -----
@@ -247,39 +248,34 @@ def write_df(df : pd.DataFrame | pd.Series) -> None:
         DataFrame to be passed to database. 
     """
 
-    if not isinstance(df, (pd.DataFrame, pd.Series)):
-        raise TypeError(df, (pd.DataFrame, pd.Series))
-
     # sanitize dataframe before writing to it
     ensure(df, pd.DataFrame, pd.Series)
     table_name = Record.__tablename__
     category_list = list(ctx.categories_dict.keys())
     df = sanitize_df(df, category_list)
 
-    # check if id is in columns or if it's the index name
-    is_index_id = (df.index.name == 'id')
-    if not ('id' in df.columns) and not is_index_id:
-        # if that is not the case, just append to db
-        df.to_sql(
-            name=table_name, con=ctx.engine, 
-            if_exists='append', index=False
-        )
-        pprint_df(df=df, header="Changes have been commited.")
-        return
+    # check if appending or replacing
+    hasidindex = (df.index.name == 'id')
 
-    # if there is index, reset it so orient=records preserves it
-    if is_index_id:
+    if 'id' not in df.columns and not hasidindex:  # appending
+        df.to_sql(table_name, ctx.engine, 
+                  if_exists='append',
+                  index=False)
+        pprint_df(df, "Changes have been commited.")
+        return None
+
+    # if there is id index, reset it so orient=records preserves it
+    if hasidindex:
         df = df.reset_index()
     as_dict = df.to_dict(orient='records')
 
     def _action():
         with Session(ctx.engine) as session:
-            session.bulk_update_mappings(Record, as_dict)
+            session.execute(update(Record), as_dict)
             session.commit()
 
-    # print dataframe and confirm user validation ---        
     pprint_df(df)
-    confirm_action(_action)
+    confirm_action(_action)  # are you sure?
 
 
 def build_conversion(

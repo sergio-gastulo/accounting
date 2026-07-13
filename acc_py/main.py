@@ -46,7 +46,7 @@ def load_plot_module(*args) -> None:
 
     try:
         ctx.set_plot()
-    except RuntimeError:
+    except RuntimeError:  # user loaded plot directly
         ctx.set(*args)
         ctx.set_plot()
     
@@ -60,9 +60,9 @@ def load_plot_module(*args) -> None:
     dark()
     exposed = {
         "p1": barchart_by_datefilter,
-        "p2": category_time_series,
-        "p3": savings_plot,
-        "sp": scattered_outflow,
+        "p2": scattered_outflow,
+        "p3": category_time_series,
+        "sp": savings_plot,
         "dark": dark
     }
     globals().update(exposed)

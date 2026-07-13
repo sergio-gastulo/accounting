@@ -38,10 +38,10 @@ def fetch_savings_data() -> pd.DataFrame:
 @raise_on_empty
 def get_combined(df : pd.DataFrame) -> pd.DataFrame:
     # pass by copy, do not modify original df
-    ndf = df.copy()
+    df = df.copy()
 
     # map lower case on currency index level
-    ndf.index = ndf.index.set_levels(df.index.levels[1].str.lower(), level=1)
+    df.index = df.index.set_levels(df.index.levels[1].str.lower(), level=1)
 
     # chosing currency to collapse dict to
     key = ctx.default_currency.lower()
@@ -51,8 +51,8 @@ def get_combined(df : pd.DataFrame) -> pd.DataFrame:
         return res[key]
     
     # apply wrapper to new dataframe after unstacking
-    ndf = ndf["savings"].unstack(level=0, fill_value=0).apply(wrapper)
-    return ndf
+    df = df["savings"].unstack(level=0, fill_value=0).apply(wrapper)
+    return df
 
 
 # alias: sp

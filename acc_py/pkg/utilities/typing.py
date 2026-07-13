@@ -8,6 +8,7 @@ from matplotlib.axes import Axes
 from pandas import Period
 from sqlalchemy import ColumnElement
 
+
 # basic configurations types
 StrDict = dict[str, str]
 FieldDictType = list[dict[str, str | list[StrDict]]]

@@ -88,7 +88,7 @@ def confirm_action(
         action : Callable,
         max_attempts : int = 3,
         *, 
-        label : str = "Confirm your action: [y/N]",
+        label : str = "Confirm your action: [y/N] ",
 ) -> None:
     for i in range(max_attempts):
         confirm = input(label)

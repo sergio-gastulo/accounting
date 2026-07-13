@@ -97,29 +97,38 @@ def _return_dict(d : dict) -> dict:
 @dataclass
 class AccountingContext:
 
-    #- main db configurations-
+    # main db configurations
     # fetched from config.json
-    config_path : Optional[Path]                = None
-    fields_path : Optional[Path]                = None
-    engine: Optional[Engine]                    = None
-    editor : Optional[Path]                     = None
-    fields : Optional[FieldDictType]            = None
-    default_currency : Optional[str]            = None 
+    config_path: Optional[Path] = None
+    fields_path: Optional[Path] = None
+    engine: Optional[Engine] = None
+    editor: Optional[Path] = None
+    fields: Optional[FieldDictType] = None
+    default_currency: Optional[str] = None 
     # built at runtime if not fetched from cache
-    keybinds : Optional[KeybindDictType]        = None
-    categories_dict: Optional[StrDict]          = None
+    keybinds: Optional[KeybindDictType] = None
+    categories_dict: Optional[StrDict] = None
 
-    #-- plot configurations, not needed for db--
+    # plot configurations, not needed for db
     # fetched from config.json
-    currency_list : Optional[List[str]]                 = None
-    inflow_categories : Optional[List[str]]             = None
+    currency_list: Optional[List[str]] = None
+    inflow_categories: Optional[List[str]] = None
     # fetched but built later
-    colors: Optional[CurrencyColorDictionary]           = None
+    colors: Optional[CurrencyColorDictionary] = None
     # built at runtime
-    exchange_dictionary : Optional[ExchangeDictType]    = None
-    period: Optional[Period]                            = None
-    matplotlib : Optional[dict[str, Any]]               = None
+    exchange_dictionary: Optional[ExchangeDictType] = None
+    period: Optional[Period] = None
+    matplotlib: Optional[dict[str, Any]] = None
 
+
+    def __repr__(self):
+        toolong = frozenset(['fields', 'keybinds', 'categories_dict'])
+        strs = [
+            f"{attr}:\t{val if attr not in toolong else "{...}"}"
+            for attr, val in self.__dict__.items()
+        ]
+        return '\n'.join(strs)
+    
 
     def load_from_cache(
             self
@@ -189,15 +198,16 @@ class AccountingContext:
                 f"`ctx.to_cache()` to save changes."
             )
 
-        config                      =   jopen(config_path)
-        self.config_path            =   _path_exists(config_path)
-        self.fields_path            =   _path_exists(fields_path)
-        self.engine                 =   _engine(config.get('db_path'))
-        self.editor                 =   check_editor(config.get("editor_path"))
-        self.fields                 =   import_fields(fields_path)
-        self.default_currency       =   prompt_currency(config.get('default_currency'), quiet=True)
-        self.keybinds               =   fetch_keybind_dict(self.fields)
-        self.categories_dict        =   fetch_category_dictionary(self.fields)
+        config = jopen(config_path)
+        self.config_path = _path_exists(config_path)
+        self.fields_path = _path_exists(fields_path)
+        self.engine = _engine(config.get('db_path'))
+        self.editor = check_editor(config.get("editor_path"))
+        self.fields = import_fields(fields_path)
+        self.default_currency = prompt_currency(config.get('default_currency'), 
+                                                quiet=True)
+        self.keybinds = fetch_keybind_dict(self.fields)
+        self.categories_dict = fetch_category_dictionary(self.fields)
 
 
     def set_plot(self) -> None:

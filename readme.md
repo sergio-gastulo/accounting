@@ -64,9 +64,16 @@ It defines a list of categories. Each category contains basic metadata, and opti
 Check [fields-example.json](/config/fields-example.json) for an up-to-date example.
 
 ## **TODO**
+- `validate_df` **SHOULD NOT** modify dataframe (any dataframe-related function actually).
+- `edit` should allow better ORM manipulation (painful to edit several records)
+	* maybe fields: Optional[str] should actually be fields: dict[str, Any].
+	* bdf should benefit from this as well
+	* OBS: `w(df)` updates automatically if 'id' is passed as a workaround.
+- Increase number of configurations to be propagated across the entire codebase.
+- Start testing both `db_api` and `plot` interfaces.
+- Start working on the CLI instead of relying on the REPL (support both though).
 - Decide whether currencies should be upper or lower case.
-- Check plots are light/dark mode responsive up to user configurations.
-- `fetch` should return dataframe with pd.to_datetime .
+- Maybe implement backup function that can be called from Python REPL.
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.
@@ -77,6 +84,7 @@ TODOs that would be useful if this project became an application for other peopl
 - Provide support for configuring paths from Command Line (probably openning File Browser?).
 
 ### Need to elaborate
+- broken fetch statement when passing sql: select with no order by?
 - Think of conversion plots.
 - Provide WhatsApp message parsing.
 - When returning dataframe, pd.to_datetime should be called to cast dates automatically (i.e., fix bug on datetime calls and csv casting) (I haven't reproduced this in a while tbh).

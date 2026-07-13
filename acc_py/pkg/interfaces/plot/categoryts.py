@@ -6,7 +6,6 @@ from sqlalchemy import select, func, Label
 from matplotlib.figure import Figure
 from matplotlib.dates import DateFormatter
 
-from pkg.utilities.core import pprint_df
 from pkg.utilities.typing import FrequencyType
 from pkg.utilities.prompt import prompt_category_from_keybinds
 from pkg.classes import ctx, Record
@@ -104,13 +103,13 @@ def category_time_series(
     for currency in ctx.currency_list:
         color = ctx.colors[currency]
         try:
-            period_df = df.loc[currency.upper()]
+            period_df = df.loc[currency.upper()]    
+        except KeyError:
+            err = f"The given {currency=} is not available in the plotted df."
+            print(err)
+        else:
             period_df = fill_zeroes(period_df, freq=zeroesfreq)
             ax.plot(period_df, color=color, marker='o', label=currency)
-    
-        except KeyError:
-            err = f"The given {currency=} is not available in the following df:"
-            pprint_df(df, err)
     
     # decorators
     ax.set_title(f"{category.capitalize()} Time Series Plot")

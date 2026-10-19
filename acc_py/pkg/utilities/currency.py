@@ -39,7 +39,7 @@ def _fetch_exchange(currency : str) -> dict[str, int | float]:
             f"Full response: {response.text}."
         )
     else:
-        raise RuntimeError(f"Unkown state. Full response: {response.text}.")
+        raise RuntimeError(f"Unknown state. Full response: {response.text}.")
 
 def _currency_type_check(currency : str) -> str:
     """Simple currency type check."""

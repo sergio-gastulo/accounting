@@ -15,9 +15,12 @@ from pkg.classes.context import ctx
 from .shared import (YEAR_MONTH_PERIOD_COL,
                      TOTAL_AMOUNT_COL,
                      INCLUDING_INFLOW,
+                     PERIOD_COL_LABEL,
+                     PERIOD_FORMAT,
                      negatecolor,
                      get_bkgcolor,
                      raise_on_empty)
+from .timeseries import plot
 
 
 def scatter(
@@ -33,7 +36,7 @@ def scatter(
     yoffset = 1.05
     xtext = timestamp + pd.Timedelta(days=10)
     
-    for line in ax.lines:    
+    for line in ax.get_lines():
         # get y data associated to timestamp
         pos = np.argwhere(line.get_xdata() == timestamp)
         if len(pos) != 1:
@@ -44,11 +47,12 @@ def scatter(
         ax.scatter(timestamp, y, 
                    color=scatter_color, zorder=5)
 
-        # add text to scatter
+        # add text to scatter and decorate
         ytext = y * yoffset
         currency = line.get_label()
         text = f'{currency} {y:.2f}'
         ax.text(xtext, ytext, text, size=12)
+        line.set_marker("o")
 
 
 def scattered_map(
@@ -68,20 +72,19 @@ def scattered_map(
 
 
 @raise_on_empty
-def get_outflow_data() -> pd.DataFrame:
-    q = select(Record.currency, 
+def fetch_outflow_data() -> pd.DataFrame:
+    q = select(Record.currency,
                YEAR_MONTH_PERIOD_COL, 
                TOTAL_AMOUNT_COL) \
         .where(not_(INCLUDING_INFLOW)) \
         .group_by(Record.currency, 
                   YEAR_MONTH_PERIOD_COL)
     
-    df = pd.read_sql(
-        q, ctx.engine, 
-        parse_dates={"period": {"format" : "%Y-%m"}},
-        index_col=['currency', 'period']
-    )    
-    return df
+    df = pd.read_sql(q, ctx.engine,
+                     parse_dates={PERIOD_COL_LABEL: {"format" : PERIOD_FORMAT}},
+                     index_col=[Record.currency.key, PERIOD_COL_LABEL])
+    df.index.rename({PERIOD_COL_LABEL: Record.date.key}, inplace=True)
+    return df 
 
 
 def outflow(
@@ -89,16 +92,8 @@ def outflow(
 ) -> tuple[Figure, Axes]:
     """`scattered_outflow` main figure. Not a single scatter is performed."""
     
-    df = get_outflow_data()
-    fig, ax = plt.subplots()
-    for currency in ctx.currency_list:
-        color = ctx.colors[currency]
-        try:
-            by_currency = df.loc[currency.upper()] 
-            ax.plot(by_currency, marker='o', color=color, label=currency)
-        except KeyError:
-            err = f"The given {currency=} is not available in: "
-            pprint_df(df, err)
+    df = fetch_outflow_data()
+    fig, ax = plot(df, combine=True)
 
     # decorators
     fig.suptitle("Outflow as a time series grouped by period")
@@ -109,7 +104,7 @@ def outflow(
     return fig, ax
 
 
-def scattered_outflow(periods : Optional[list[ParsablePeriod]] = None) -> Figure:
+def scattered_outflow(periods : Optional[list[ParsablePeriod]] = None):
     """
     Plot spendings (complement of `inflow_categories`) as a time series grouped 
     by given `period`.
@@ -139,5 +134,5 @@ def scattered_outflow(periods : Optional[list[ParsablePeriod]] = None) -> Figure
     title = f"Outflow Time Series scattering: {str(period)}"
     fig, ax = outflow(title)
     scatter(period, ax)
-    fig.show()
-    return fig
+    fig.canvas.draw()
+    plt.show()

@@ -34,7 +34,7 @@ def fetch_savings_data() -> pd.DataFrame:
 
 
 # alias: sp
-def savings_plot() -> Figure:
+def savings_plot() -> None:
     """
     Plots savings (inflow - outflow) per Year-Month in accumulation form. 
     Plots their cummulative sum (`df.cumsum()`).

@@ -20,6 +20,7 @@ from pkg.utilities.typing import RGBType
 PERIOD_COL_LABEL = "period"
 PERIOD_FORMAT = '%Y-%m'
 MATPLOTLIB_MONTH_FORMAT = '%Y-%b'
+MATPLOTLIB_DAY_FORMAT = '%B %d, %Y'
 YEAR_MONTH_PERIOD_COL: Label[str] = func \
                                     .strftime(PERIOD_FORMAT, Record.date) \
                                     .label(PERIOD_COL_LABEL)

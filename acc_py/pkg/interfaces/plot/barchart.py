@@ -1,6 +1,4 @@
-from typing import (
-    Iterable, Optional, Any
-)
+from typing import Iterable, Optional, Any
 from datetime import date
 
 import pandas as pd
@@ -11,49 +9,48 @@ from matplotlib.patches import Rectangle
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.backend_bases import Event
-from sqlalchemy import (
-    select, not_, extract,
-)
+from sqlalchemy import (select, 
+                        not_, 
+                        extract,)
 
 from pkg.classes import ctx, Record
 from pkg.utilities.core import pprint_df
 from pkg.utilities.parser import parse_period, parse_date
-from pkg.utilities.typing import (
-    ValidDateArgument,
-    MetadataType,
-    NumericType,
-    ParsablePeriod,
-    EntityFilter,
-)
+from pkg.utilities.typing import (ValidDateArgument,
+                                  MetadataType,
+                                  NumericType,
+                                  ParsablePeriod,
+                                  EntityFilter,)
 
-from .shared import (
-    INCLUDING_INFLOW, 
-    TOTAL_AMOUNT_COL,
-    sum_currencies,
-    get_bkgcolor,
-    negatecolor,
-    get_config,
-    raise_on_empty,
-)
+from .shared import (INCLUDING_INFLOW,
+                     TOTAL_AMOUNT_COL,
+                     MATPLOTLIB_DAY_FORMAT,
+                     sum_currencies,
+                     get_bkgcolor,
+                     negatecolor,
+                     get_config,
+                     raise_on_empty,)
 
 def by_date(
         mindate: date,
         maxdate: date,
 ) -> EntityFilter:
+    """Quick filter Record by date"""
+    # needs to be a tuple, 
+    # since it's later passed as f(*by_date())
     return (Record.date.between(mindate, maxdate), )
 
 
 def by_period(
         period: Period,
 ) -> EntityFilter:
-    """Quick filter by period."""  
-    return (
-        extract('year', Record.date) == period.year,
-        extract('month', Record.date) == period.month
-    )
+    """Quick filter Record by period."""
+    return (extract('year', Record.date) == period.year,
+            extract('month', Record.date) == period.month)
 
 
 def by_datefilter(args: Any) -> EntityFilter:
+    """Parse arguments and return `by_date` or `by_period` filter."""
     
     if isinstance(args, ParsablePeriod) or args is None:
         period = parse_period(args, ctx.period)
@@ -66,12 +63,13 @@ def by_datefilter(args: Any) -> EntityFilter:
             return by_date(datemax, datemin) 
         return by_date(datemin, datemax)
 
-    raise TypeError(
-        f"Argument {args} is not a valid `Period`/`datetime.date` type."
-    )
+    raise ValueError(
+        f"Argument '{args}' could not be parsed as period nor datetime.")
 
 
 def datefilter_str(args: Any) -> str:
+    """Stringify datetime filter for plot header."""
+
     if isinstance(args, ParsablePeriod) or args is None:
         period = parse_period(args, ctx.period)
         month = period.strftime('%B')
@@ -79,12 +77,11 @@ def datefilter_str(args: Any) -> str:
     elif isinstance(args, list | tuple):
         datemin = parse_date(args[0])
         datemax = parse_date(args[-1])
-        fmt = "%B %d, %Y."
+        fmt = MATPLOTLIB_DAY_FORMAT
         return f"[{datemin.strftime(fmt)}, {datemax.strftime(fmt)}]"
         
-    raise TypeError(
-        f"Argument {args} is not a valid `Period`/`datetime.date` type."
-    )
+    raise ValueError(
+        f"Argument '{args}' could not be parsed as period nor datetime.")
 
 
 def quick_filter(
@@ -96,21 +93,17 @@ def quick_filter(
     # wellp, when group_by(Record.category) is called, description 
     # is lost, it can't be retrieved
 
-    q = select(Record.id, 
-               Record.date,
-               Record.amount, 
-               Record.description
-            ) \
-            .where(
-                *by_datefilter(datearg),
-                Record.category == category, 
-                Record.currency == currency
-            ) \
-            .order_by(
-                Record.amount.desc(), 
-                Record.date.desc()
-            )
-    return pd.read_sql(q, ctx.engine, 'id')
+    q = (select(Record.id,
+                Record.date,
+                Record.amount, 
+                Record.description)
+            .where(*by_datefilter(datearg),
+                   Record.category == category,
+                   Record.currency == currency)
+            .order_by(Record.amount.desc(),
+                      Record.date.desc()))
+    
+    return pd.read_sql(q, ctx.engine, Record.id.key)
 
 
 def quick_printer(
@@ -124,7 +117,7 @@ def quick_printer(
         f"Currency: {currency},"
         f"Total: {df_category.amount.sum()}"
     )
-    pprint_df(df_category, header=header)
+    pprint_df(df_category, header)
 
 
 def set_labels(
@@ -133,8 +126,9 @@ def set_labels(
         currency: str,
         bar: Rectangle | Iterable[Rectangle] = None,
 ) -> None:
+    """Set labels at top rigth corner of `ax`."""
     
-    if bar is None: 
+    if bar is None:
         bar = ax.patches
     # make it thread over lists of Rectangles
     if isinstance(bar, Iterable) and isinstance(bar[0], Rectangle):
@@ -151,12 +145,11 @@ def set_labels(
     ypos = bar.get_y() + bar.get_height() / 2
     color = figcolor if inside else negcolor
     label = f'{width:.2f} {currency}'
-    txt = ax.text(
-        xpos, ypos, label, va='center', 
-        ha='left', fontsize=10, color=color
-    )
+    txt = ax.text(xpos, ypos, label,
+                  va='center', ha='left',
+                  fontsize=10, color=color)
 
-    # check if text is cutoff by the bar
+    # check if text is cutoff by the bar and adjust
     bbox = txt.get_window_extent()
     bar_right = ax.transData.transform((width, 0))[0]
     if bbox.x1 > bar_right:
@@ -164,49 +157,46 @@ def set_labels(
         txt.set_color(negcolor)
 
 
-def barchart_core(
+def _barchart(
         df: pd.DataFrame,
         currency: str,
         append: list,
         ax: Axes
 ) -> None:
-    """Displays barchart of dataframe, previously filtered by currency."""
+    """Displays barchart of `df`, previously filtered by `currency`."""
 
     barh_color = get_config("barchart", "default")
     descriptions = df.index.map(
         lambda key: ctx.categories_dict[key]
     )
-    ax.barh(
-        descriptions, df.total_amount, 
-        color=barh_color, align='center'
-    )
+    ax.barh(descriptions, df[Record.amount.key], 
+            color=barh_color, align='center')
     ax.tick_params(axis='y', labelsize=10.5)
 
     # set labels on each bar
-    max_val = df["total_amount"].max()
+    max_val = df[Record.amount.key].max()
     set_labels(ax, max_val, currency)
 
     # set text top right corner with total sum of amounts per currency
-    total = df["total_amount"].sum()
+    total = df[Record.amount.key].sum()
     label = f'{currency} {total:.2f}'
-    xy = (0.90, 0.95)
-    ax.text(
-        *xy, label, 
-        transform=ax.transAxes, 
-        ha="left", va="top", 
-        fontsize=12
-    )
+    x, y = 0.90, 0.95
+    ax.text(x, y, label,
+            transform=ax.transAxes,
+            ha="left", va="top",
+            fontsize=12)
     
     # append for event listener
     categories = df.index.to_list()
     append.append((ax, categories, currency))
 
 
-def pre_on_click(
+def on_click(
         event: Event,
         datearg: ValidDateArgument,
         meta: MetadataType,
 ) -> None:
+    """Event listener"""
     color = get_config("barchart", "on_click")
     for ax, categories, currency in meta:
         if event.inaxes == ax:
@@ -222,7 +212,10 @@ def get_header(
         df: pd.DataFrame,
         datearg: ValidDateArgument
 ) -> str:
-    amounts = df.groupby(level=0)["total_amount"].sum()
+    """Get barchart header."""
+
+    # NOTE: is this efficient?
+    amounts = df.groupby(level=0)[Record.amount.key].sum()
     amounts.index = amounts.index.str.lower()
     res = sum_currencies(amounts.to_dict())
     pretty = ', '.join([
@@ -232,10 +225,8 @@ def get_header(
 
     datestr = datefilter_str(datearg)
     title = f"Outflow registered on {datestr}."
-    header = (
-        f"{title}\n"
-        f"Total accumulated: {pretty}"
-    )
+    header = (f"{title}\n"
+              f"Total accumulated: {pretty}")
     return header
 
 
@@ -243,43 +234,52 @@ def get_header(
 def fetch_barchart_data(
         datearg: ValidDateArgument,
 ) -> pd.DataFrame:
-    q = select(Record.currency, 
-               Record.category, 
-               TOTAL_AMOUNT_COL) \
-        .where(*by_datefilter(datearg),
-               not_(INCLUDING_INFLOW)) \
-        .group_by(Record.currency, 
-                  Record.category)
+    """Get data for barchart, grouped by."""
     
-    df = pd.read_sql(q, ctx.engine, 
-                     index_col=['currency', 'category'])
-    return df
+    q = (select(Record.currency,
+                Record.category,
+                TOTAL_AMOUNT_COL)
+        .where(*by_datefilter(datearg),
+               not_(INCLUDING_INFLOW))
+        .group_by(Record.currency, 
+                  Record.category))
+    
+    indexes = [Record.currency.key, Record.category.key]
+    return pd.read_sql(q, ctx.engine, indexes)
 
 
 def core_barchart(
         datearg: Optional[ValidDateArgument] = None
 ) -> Figure:
-    
+    """
+    Plots barchart from `datearg` filter. 
+    Iterates on `_barchart` for each currency in fetched df.
+    """
+
+    # data fetch
     df = fetch_barchart_data(datearg)    
-    currencies = df.groupby(level=0)["total_amount"].count().to_dict()
+    currencies = (df
+                  .groupby(level=Record.currency.key)
+                  [Record.amount.key]
+                  .count()
+                  .to_dict())
 
     # main figure creation
     metadata = []
-    nrows = len(currencies)
+    nrows, ncols = len(currencies), 1
     heights = list(currencies.values())
-    fig, axs = plt.subplots(
-        nrows, 1, sharex=True,
-        gridspec_kw={'height_ratios': heights}
-    )
+    fig, axs = plt.subplots(nrows, ncols, 
+                            sharex=True,
+                            gridspec_kw={'height_ratios': heights})
     axs: list[Axes] = np.atleast_1d(axs)
 
     # populating with horizontal bars
-    for i, (currency, _) in enumerate(currencies.items()):
-        barchart_core(df.loc[currency], currency, metadata, axs[i])
+    for ax, currency in zip(axs, currencies):
+        _barchart(df.loc[currency], currency, metadata, ax)
     
     # connect on_click event
-    on_click = lambda event: pre_on_click(event, datearg, metadata)
-    fig.canvas.mpl_connect('button_press_event', on_click)
+    elistener = lambda event: on_click(event, datearg, metadata)
+    fig.canvas.mpl_connect('button_press_event', elistener)
 
     # decorators
     header = get_header(df, datearg)
@@ -297,7 +297,7 @@ def barchart_by_datefilter(
 ) -> list[Figure]:
     """
     Displays a barchart from database records grouped by category and 
-    currency for the given period or lists of periods.
+    currency for the given period or lists of periods or parsable date-filters.
 
     Arguments
     -----

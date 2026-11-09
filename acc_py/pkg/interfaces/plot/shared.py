@@ -9,10 +9,10 @@ from sqlalchemy import Label
 
 from pkg.classes.model import Record
 from pkg.classes.context import ctx
-from pkg.utilities.typing import (
+from pkg.coreutils.typing import (
     CurrencyAmountType,
 )
-from pkg.utilities.typing import RGBType
+from pkg.coreutils.typing import RGBType
 
 
 #region ========================== constants  ==================================

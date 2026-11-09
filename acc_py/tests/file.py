@@ -15,7 +15,7 @@ from tests._shared import (
     TEST_FILE_DIRECTORY,
     Patcher
 )
-from pkg.utilities.file import (
+from pkg.coreutils.file import (
     fimport, 
     fexport, 
     open_file_with_editor,
@@ -24,7 +24,7 @@ from pkg.utilities.file import (
 
 #region ============================ utils  ====================================
 
-TEST_MODULE = 'pkg.utilities.files'
+TEST_MODULE = 'pkg.coreutils.files'
 
 def _patch_this(f: Callable | str, **kwargs) -> Patcher:
     return Patcher(TEST_MODULE, f, **kwargs)

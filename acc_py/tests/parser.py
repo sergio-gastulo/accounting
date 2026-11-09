@@ -15,7 +15,7 @@ from tests._shared import (
     mem_engine,
     TODAY
 )
-from pkg.utilities.parser import (
+from pkg.coreutils.parser import (
     parse_period,
     parse_arithmetic_operation,
     parse_currency,
@@ -31,7 +31,7 @@ from pkg.utilities.parser import (
 
 #region ============================ utils =====================================
 
-TEST_MODULE = 'pkg.utilities.parser'
+TEST_MODULE = 'pkg.coreutils.parser'
 def _patch_this(f: Callable | str, **kwargs) -> Patcher:
     return Patcher(TEST_MODULE, f, **kwargs)
 

@@ -1,13 +1,11 @@
-from .shared import (
-    dark,
-    set_configs,   
-)
+from .shared import (dark,
+                     set_configs,)
 
 from .barchart import barchart_by_datefilter
 from .categoryts import category_time_series
 from .savings import savings_plot
 from .scatter import scattered_outflow
-
+from .timeseries import plot
 
 __all__ = [
     "dark",
@@ -15,5 +13,6 @@ __all__ = [
     "barchart_by_datefilter",
     "category_time_series",
     "savings_plot",
-    "scattered_outflow"   
+    "scattered_outflow",
+    "plot"
 ]

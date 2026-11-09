@@ -1,13 +1,17 @@
+"""File managament module."""
+
 from pathlib import Path
 from typing import Optional
 import hashlib
 from datetime import datetime
 import subprocess
 import sys
+from os import environ
+from tkinter.filedialog import askopenfilename
 
 import pandas as pd
 
-from .core import APPLICATION_STORAGE_DIRECTORY
+from .paths import APPLICATION_STORAGE_DIRECTORY
 from .jops import jdump
 
 
@@ -118,6 +122,40 @@ def fimport(
     return df
 
 
+def askeditor() -> Path:
+    """Asks for a valid file editor."""
+    program_files = environ['ProgramFiles']
+    title = "Select your preferred text editor."
+    allowed = [("Exe", "*.exe")]
+    
+    # you ain't leaving unless a valid .exe is provided
+    while not editor_path:
+        print("An editor file is mandatory for editing, please pick one.")
+        editor_path = askopenfilename(initialdir=program_files, 
+                                      title=title,
+                                      filetypes=allowed)
+    return Path(editor_path)
+
+
+def check_editor(editor_path : Path | str | None) -> Path:
+    """Check if path is a valid .exe"""
+
+    # wrap Path type
+    if isinstance(editor_path, str):
+        editor_path = Path(editor_path)
+
+    if isinstance(editor_path, Path):
+        # check if it's a valid executable
+        if editor_path.exists() and editor_path.suffix == ".exe":
+            return editor_path
+        return askeditor()
+    
+    if editor_path is None:
+        return askeditor()
+
+    raise TypeError(f"{editor_path=} is not a valid argument.")
+
+
 def open_file_with_editor(
         p : Path | str,
         editor: Path,
@@ -147,3 +185,14 @@ def open_file_with_editor(
         return
 
     subprocess.call([editor, p])
+
+
+
+# https://stackoverflow.com/a/49782093/29272030
+def rmdir(directory : Path) -> None:
+    for item in directory.iterdir():
+        if item.is_dir():
+            rmdir(item)
+        else:
+            item.unlink()
+    directory.rmdir()

@@ -1,56 +1,49 @@
+from typing import (List, Callable,
+                    Optional, TypeVar,)
 from datetime import date
-from sqlalchemy.engine import Engine
-from typing import List, Callable, Optional
 
-from ..classes.model import Record, Conversion
-from .parser import (
-    parse_arithmetic_operation,
-    parse_currency,
-    parse_date,
-    parse_double_currency,
-    parse_element_from_dict,
-    parse_record_from_id,
-)
+from sqlalchemy import Engine
 
-from .core import (
-    KeybindDictType,
-    ensure,
-)
+from .parser import (parse_arithmetic_operation,
+                     parse_currency,
+                     parse_date,
+                     parse_double_currency,
+                     parse_record_from_id,)
+from .typing import KeybindDictType, FixedColumnsType
+from .dictops import resolve_value
 from .jops import jprint
 
 
 #region ============================ utils =====================================
 
-FixedColumnsType = dict[str, str | int | float | date]
+DATE_SUCCESS_FORMAT = "%a %d %b %Y"
 
-def _success(*s : str) -> None:
+T = TypeVar(name="T")
+
+
+def success(*s : str) -> None:
     """Quick success printer that wraps `repr` on `*s`."""
     if len(s) == 1:
         res = s[0]
     else:
         res = ', '.join(map(repr, s))
-    print(f"Success: {res}")
+    print(f"Success: {res}.")
 
 
-def _soft_error(e : ValueError | TypeError) -> None:
-    """Simple exception printer. Same style as raise -- does not raise anything."""
-    s = f"{type(e).__name__}: {e}"
-    print(s)
+def softerror(e: Exception) -> None:
+    """Prints the exception message but does not raises it."""
+    print(f"{type(e).__name__}: {e}")
 
-
-def _ensure_str_none(arg : str | None) -> None:
-    """Quick `str` | `None` ensurer."""
-    ensure(arg, str, allow_none=True)
 
 #endregion =====================================================================
 
 
 def main_loop(
-        uinput : Optional[str],
-        prompt : str,
-        parser : Callable,
-        on_error : Callable = _soft_error,
-        max_attempts : int = 5,
+        uinput: Optional[str],
+        prompt: str,
+        parser: Callable,
+        on_error: Callable = softerror,
+        max_attempts: int = 5,
         **kwargs
 ):
     """
@@ -83,8 +76,6 @@ def prompt_arithmetic_operation(
     # type checking
     if isinstance(user_input, int | float):
         return user_input
-    ensure(lbound, float, int)
-    _ensure_str_none(user_input)
 
     kwargs = {
         "prompt" : "Type valid aithmetic operation: ",
@@ -92,7 +83,7 @@ def prompt_arithmetic_operation(
         "lbound" : lbound
     }
     res = main_loop(user_input, **kwargs)
-    _success(res)
+    success(res)
     return res
 
 
@@ -104,9 +95,6 @@ def prompt_currency(
     Parses `currency_input` to a valid currency. Relies on `parse_currency`.
     Returns upper-3-word-length ISO currency.
     """
-    # type checking
-    ensure(quiet, bool)
-    _ensure_str_none(currency_input)
 
     kwargs = {
         "prompt" : "Currency in ISO format: ", 
@@ -114,7 +102,7 @@ def prompt_currency(
     }
     res = main_loop(currency_input, **kwargs)
     if not quiet:
-        _success(res)
+        success(res)
     return res
 
 
@@ -125,14 +113,13 @@ def prompt_date_operation(
     # type checking
     if isinstance(date_input, date):
         return date_input
-    _ensure_str_none(date_input)
 
     kwargs = {
         "prompt" : "Insert date operation: ",
         "parser" : parse_date
     }
     res : date = main_loop(date_input, **kwargs)
-    _success(res.strftime("%a %d %b %Y"))
+    success(res.strftime(DATE_SUCCESS_FORMAT))
     return res
 
 
@@ -143,9 +130,6 @@ def prompt_double_currency(
 ) -> tuple[float, str]:
     """Converts `str` into valid (amount, currency) pair."""
     # type checking
-    _ensure_str_none(double_curr_input)
-    ensure(default_currency, str)
-    ensure(lbound, float)
     
     kwargs = {
         "prompt" : "Type double-currency operation: ",
@@ -154,7 +138,7 @@ def prompt_double_currency(
         "lbound" : lbound
     }
     amount, currency = main_loop(double_curr_input, **kwargs)
-    _success(amount, currency)
+    success(amount, currency)
     return amount, currency
 
 
@@ -165,9 +149,6 @@ def get_from_nested_dict(
 ) -> Optional[dict | str]:
     """Gets value associated to key `uinput` If nested then recursively looks for it."""
     # Type checking
-    _ensure_str_none(uinput)
-    ensure(kdict, dict)
-    ensure(prompt, str)
 
     # no input? interactively ask
     if uinput is None:
@@ -181,23 +162,20 @@ def get_from_nested_dict(
         return res
     # try to parse, otherwise soft_print ValueError
     try:
-        return parse_element_from_dict(uinput, kdict)
+        return resolve_value(uinput, kdict)
     except ValueError as e:
-        _soft_error(e)
+        softerror(e)
 
 
 def prompt_category_from_keybinds(
         keybind_dict : KeybindDictType,
         keyinput : Optional[str] = None,
         max_attempts : int = 5,
-        quiet_success : bool = False,
+        quietsuccess : bool = False,
 ) -> str:
     """Asks valid category from keybinds interactively."""
 
     # Type checking
-    ensure(keybind_dict, dict)
-    ensure(max_attempts, int)
-    _ensure_str_none(keyinput)
 
     prompt = "Type the corresponding key from the dictionary above: "
     category = None
@@ -212,29 +190,9 @@ def prompt_category_from_keybinds(
     if category is None:
         raise RuntimeError(f"Only {max_attempts=} are allowed.")
     # success
-    if not quiet_success:
-        _success(category)
+    if not quietsuccess:
+        success(category)
     return category
-
-
-def prompt_entity_by_id(
-        engine : Engine, 
-        entity: Conversion | Record,
-        id_ : Optional[str | int] = None,
-) -> Record | Conversion:
-    """Returns `Record` object from given `id`."""
-    # type checking
-    ensure(id_, int, str, allow_none=True)
-
-    kwargs = {
-        "prompt" : "Type id to be filtered: ",
-        "parser" : parse_record_from_id,
-        "engine" : engine,
-        "entity" : entity
-    }
-    res : Record | Conversion = main_loop(id_, **kwargs)
-    _success(res)
-    return res
 
 
 #-----------------------------------------------
@@ -259,7 +217,6 @@ def prompt_list_of_fields(
     Relies on listable `parse_valid_element_list`.
     """
     # typecheck
-    _ensure_str_none(user_input)
 
     # set keybinds and with it construct simple local parser
     keybinds = {
@@ -276,7 +233,7 @@ def prompt_list_of_fields(
     def _parser( unsplit_cols : str ) -> List[str]:
         """Takes user input and splits it, while calling core parser."""
         split = unsplit_cols.strip().split()
-        res =  [    parse_element_from_dict(col, keybinds)
+        res =  [    resolve_value(col, keybinds)
                     for col in split                        ]
         return res
     
@@ -287,7 +244,7 @@ def prompt_list_of_fields(
     }
     jprint(keybinds)
     res = main_loop(user_input, **kwargs)
-    _success(*res)
+    success(*res)
     return res
 
 
@@ -319,8 +276,6 @@ def prompt_column_value(
     """
     
     # type check
-    ensure(keybind_dict, dict)
-    _ensure_str_none(fields_str)
 
     # ask which columns are being fixed
     fields = prompt_list_of_fields(fields_str)
@@ -346,4 +301,21 @@ def prompt_column_value(
         val = field_func[field]()
         res.update({ field : val })
     
+    return res
+
+
+def prompt_entity_by_id(
+        engine: Engine, 
+        entity: T,
+        id_: Optional[str | int] = None,
+) -> T:
+    """Returns `Record` object from given `id`."""
+    kwargs = {
+        "prompt": "Type id to be filtered: ",
+        "parser": parse_record_from_id,
+        "engine": engine,
+        "entity": entity
+    }
+    res = main_loop(id_, **kwargs)
+    success(res)
     return res

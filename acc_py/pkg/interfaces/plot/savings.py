@@ -1,7 +1,6 @@
 import pandas as pd
 from sqlalchemy import select, case
 from sqlalchemy.sql import functions
-from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
 from pkg.classes.model import Record
@@ -20,7 +19,7 @@ def fetch_savings_data() -> pd.DataFrame:
     # compute savings query
     is_inflow = Record.category.in_(ctx.inflow_categories)
     flow = case((is_inflow, +1), else_=-1) * Record.amount
-    savings = functions.sum(flow).label('savings')
+    savings = functions.sum(flow).label(Record.amount.key)
 
     currency = Record.currency
     q = (select(YEAR_MONTH_PERIOD_COL, 

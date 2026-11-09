@@ -1,7 +1,4 @@
-from typing import (
-    TypeAlias,
-    Literal,
-)
+from typing import TypeAlias, Literal
 from datetime import date
 
 from matplotlib.axes import Axes
@@ -13,6 +10,7 @@ from sqlalchemy import ColumnElement
 StrDict = dict[str, str]
 FieldDictType = list[dict[str, str | list[StrDict]]]
 KeybindDictType = dict[str, str | dict[str, str]]
+FixedColumnsType = dict[str, str | int | float | date]
 
 # exchange related stuff
 CurrencyAmountType = dict[str, float]
@@ -23,6 +21,8 @@ ParsablePeriod: TypeAlias = str | int | Period
 FrequencyType: TypeAlias = Literal["m", "monthly", "w", "weekly"]
 ValidDateArgument: TypeAlias = ParsablePeriod | list[str | int | date, str | int | date]
 ListParsablePeriod: TypeAlias = list[ParsablePeriod]
+MetadataType = list[tuple[Axes, str, str]]
+
 
 # color types
 NumericType: TypeAlias = int | float
@@ -32,6 +32,3 @@ CurrencyColorDictionary = dict[str, RGBType | str]
 
 # sqlalchemy types
 EntityFilter: TypeAlias = tuple[ColumnElement[bool]]
-
-# axes / figure manipulation
-MetadataType = list[tuple[Axes, str, str]]

@@ -1,17 +1,32 @@
-import urllib
 from typing import List
-import json
+import urllib
+import socket
 import requests
+import json
+import re
 
 from .typing import ExchangeDictType
 from .jops import jopen, jdump, jprint
-from .core import (
-    APPLICATION_CACHED_DIRECTORY,
-    has_internet,
-)
+from .paths import APPLICATION_CACHED_DIRECTORY
 
 
-def _fetch_exchange(currency : str) -> dict[str, int | float]:
+# https://stackoverflow.com/a/33117579/29272030
+def has_internet(
+        host: str = "8.8.8.8", 
+        port: int = 443, 
+        timeout: int = 3
+) -> bool:
+    """Check if internet is available."""
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error as ex:
+        print(ex)
+        return False
+
+
+def fetch_exchange(currency : str) -> dict[str, int | float]:
     """
     Fetch full list of currency exchanges associated to currency.
     """
@@ -41,38 +56,36 @@ def _fetch_exchange(currency : str) -> dict[str, int | float]:
     else:
         raise RuntimeError(f"Unknown state. Full response: {response.text}.")
 
-def _currency_type_check(currency : str) -> str:
-    """Simple currency type check."""
-    if not isinstance(currency, str):
-        raise TypeError(f"{currency=} is not string type.")
-    if len(currency) != 3:
-        raise ValueError(f"{currency=} is not in valid ISO format.")
-    return currency.lower()
 
-def check_currency_list(currency_list : List[str]) -> List[str]:
+def to_currency(currency: str | list[str]) -> str:
     """
-    Threads over currency_list and validates currency type. 
-    Returns currency in lower case. 
+    Check that currency is a 3-word-length `str` and returns in lowercase.
     """
-    return [_currency_type_check(curr) for curr in currency_list]
+    if isinstance(currency, list):
+        return list(map(to_currency, currency))
+
+    currency = currency.strip().lower()
+    if re.match(r'^[a-z]{3}$', currency):
+        return currency
+    raise ValueError(f"{currency=} is not a valid currency.")
 
 
 exchange_memo = {}
 def fetch_exchange_rates(
         currency : str
-) -> dict : 
+) -> dict:
     """
     Fetch exchange rate**S** from a given currency and update to exchange_memo if
     non-existent. Type checks are included. 
     """
-    currency = _currency_type_check(currency)
+    currency = to_currency(currency)
     # if memoized, call it
     if currency in exchange_memo:
         return exchange_memo[currency]
 
     # if not, then update exchange_memo
-    res = _fetch_exchange(currency)
-    exchange_memo.update( { currency : res } )
+    res = fetch_exchange(currency)
+    exchange_memo.update({currency: res})
     return res
 
 
@@ -85,8 +98,8 @@ def get_exchange_rate(
     under the hood. Type checks are implemented.
     """    
     # type checking
-    currency_1 = _currency_type_check(currency_1)
-    currency_2 = _currency_type_check(currency_2)
+    currency_1 = to_currency(currency_1)
+    currency_2 = to_currency(currency_2)
 
     # unnecessary fetch is prevented
     if currency_1 == currency_2:
@@ -97,32 +110,27 @@ def get_exchange_rate(
     if currency_2 in res:
         return res[currency_2]
     
-    err =   f"{currency_2=} does not exist in exchange" \
-            f"dictionary for {currency_1=}."
-    raise ValueError(err)
+    raise ValueError(f"{currency_2=} does not exist in exchange" 
+                     f"dictionary for {currency_1=}.")
     
 
 
-def build_exchange(curr_list : List[str]) -> ExchangeDictType:
+def build_exchange(curr_list: List[str]) -> ExchangeDictType:
     """
     Builds exchange dictionary from a list of currencies. 
     Check tests for a full check of coverage.
     """
-    res = {
-        curr1: {
-            curr2: get_exchange_rate(curr1, curr2) 
-            for curr2 in curr_list
-        }
-        for curr1 in curr_list                              
-    }
+    res = {curr1: {curr2: get_exchange_rate(curr1, curr2) 
+                   for curr2 in curr_list}
+           for curr1 in curr_list}
     return res
 
 
 # NOTE: delete quiet? refactor tests.core.TestExchangeDictionaryGetter
 def get_exchange_dict(
-        curr_list : List[str],
-        use_cache : bool = False,
-        quiet : bool = False
+        curr_list: List[str],
+        use_cache: bool = False,
+        quiet: bool = False
 ) -> ExchangeDictType:
     """
     Builds exchange dictionary from curr_list. However, first tries to load 

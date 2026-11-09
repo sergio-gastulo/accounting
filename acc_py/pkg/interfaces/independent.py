@@ -1,14 +1,14 @@
 """
 Not to populate main.py with interface-independent functions, 
 they're defined from an already loaded `ctx`. Remember, these functions cannot
-be imported from other any other `utilities` submodule, since we more likely 
+be imported from other any other `coreutils` submodule, since we more likely 
 would end up in some sort of ImportError: circular import.
 It's okay if most of them are just wrappers.
 """
 from pathlib import Path
 
 from pkg.classes.context import ctx
-from pkg.utilities.file import open_file_with_editor
+from pkg.coreutils.file import open_file_with_editor
 
 
 def fopen(p : Path) -> None:

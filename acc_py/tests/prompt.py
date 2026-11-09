@@ -12,7 +12,7 @@ from tests._shared import (
     TODAY
 )
 from pkg.classes.model import Record, Conversion
-from pkg.utilities.prompt import (
+from pkg.coreutils.prompt import (
     main_loop,
     prompt_arithmetic_operation,
     prompt_category_from_keybinds,
@@ -21,13 +21,12 @@ from pkg.utilities.prompt import (
     prompt_date_operation,
     prompt_double_currency,
     prompt_list_of_fields,
-    prompt_entity_by_id,
     get_from_nested_dict
 )
 
 #region ============================ utils =====================================
 
-TEST_MODULE = 'pkg.utilities.prompt'
+TEST_MODULE = 'pkg.coreutils.prompt'
 _patch_print_buffer = patch('sys.stdout', new_callable=StringIO)
 
 

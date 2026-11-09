@@ -3,10 +3,10 @@ from pathlib import Path
 
 from pkg.classes.context import ctx
 
-from pkg.utilities.help import acccli
-from pkg.utilities.core import now, get_globals
-from pkg.utilities.file import fimport, fexport
-from pkg.utilities.parser import (parse_date as pdate,
+from pkg.coreutils.help import acccli
+from pkg.coreutils.core import now, get_globals
+from pkg.coreutils.file import fimport, fexport
+from pkg.coreutils.parser import (parse_date as pdate,
                                   parse_period as pperiod)
 from pkg.interfaces.independent import (fopen, 
                                         convert_currency as convcurr)
@@ -55,7 +55,8 @@ def load_plot_module(*args) -> None:
                                      savings_plot, 
                                      scattered_outflow, 
                                      set_configs,  
-                                     dark)
+                                     dark,
+                                     plot)
     set_configs()
     dark()
     exposed = {
@@ -63,7 +64,8 @@ def load_plot_module(*args) -> None:
         "p2": scattered_outflow,
         "p3": category_time_series,
         "sp": savings_plot,
-        "dark": dark
+        "dark": dark,
+        "plot": plot
     }
     globals().update(exposed)
 

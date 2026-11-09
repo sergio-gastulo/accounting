@@ -2,15 +2,14 @@ from typing import Any, Optional
 import datetime
 from copy import deepcopy
 
-from sqlalchemy import (
-    String, Date, Numeric, Engine
-)
-from sqlalchemy.orm import (
-    Mapped, Session,
-    mapped_column, declarative_base,
-)
-
-from pkg.utilities.core import ensure, soft_warning
+from sqlalchemy import (String,
+                        Date,
+                        Numeric,
+                        Engine,)
+from sqlalchemy.orm import (Mapped,
+                            Session,
+                            mapped_column,
+                            declarative_base,)
 
 
 Base = declarative_base()
@@ -28,7 +27,6 @@ class Entity:
                 return False
         return True
 
-
     def __repr__(self) -> str:
         cols = self.__table__.columns.keys()
         values = {col: getattr(self, col) for col in cols}
@@ -38,8 +36,8 @@ class Entity:
         return wrap
 
     def write(
-            self, 
-            engine: Engine, 
+            self,
+            engine: Engine,
             label: Optional[str] = None,
             quiet: bool = False
     ) -> None:
@@ -59,12 +57,6 @@ class Entity:
             Controls if both label and `entity` are printed to sys.stdout.
             Defaults to False (yes, print, please!)
         """
-        # Important: type(ctx.engine) in Engine works
-        # but isinstance(ctx.engine, Engine) is false
-        # ensurer works for this case 
-        ensure(engine, Engine)
-        ensure(label, str, allow_none=True)
-        ensure(quiet, bool)
 
         if label is None:
             label = "The following record has been added to database:"
@@ -81,8 +73,6 @@ class Entity:
         Deletes a Record | Conversion directly without asking for commit. 
         Prints soft_warning message before deleting.
         """
-        ensure(engine, Engine)
-        soft_warning("Warning: you may lose data permanently.")
         with Session(engine) as session:
             session.delete(self)
             session.commit()
@@ -151,7 +141,6 @@ class Conversion(Base, Entity):
     # TODO: method that swaps base and target and writes to database directly
     def invert(self):
         pass
-
 
 
 

@@ -7,9 +7,8 @@ from sqlalchemy import select, not_
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from pkg.utilities.typing import ParsablePeriod
-from pkg.utilities.parser import parse_period
-from pkg.utilities.core import pprint_df
+from pkg.coreutils.typing import ParsablePeriod
+from pkg.coreutils.parser import parse_period
 from pkg.classes.model import Record
 from pkg.classes.context import ctx
 from .shared import (YEAR_MONTH_PERIOD_COL,

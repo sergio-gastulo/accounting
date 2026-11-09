@@ -1,97 +1,46 @@
 """
-Main data manager for acccli. Relies heavily on utilities.core.
+Main data manager for acccli. Relies heavily on coreutils
 """
 from dataclasses import dataclass
 from typing import List, Optional, Any
-from pathlib import Path, WindowsPath
+from pathlib import Path
 from datetime import date
 
 from pandas import Period
 from sqlalchemy.engine.base import Engine
 from sqlalchemy import create_engine
 
-from pkg.utilities.jops import jopen, jrepr
-from pkg.utilities.file import sha256, SHA256Error
-from pkg.utilities.prompt import (prompt_currency,
-                                  prompt_category_from_keybinds)
-from pkg.utilities.currency import (check_currency_list,
-                                    get_exchange_dict)
-from pkg.utilities.typing import (FieldDictType,
+from pkg.coreutils.paths import APPLICATION_CACHED_DIRECTORY
+from pkg.coreutils.typing import (FieldDictType,
                                   KeybindDictType,
                                   ExchangeDictType,
                                   StrDict,
                                   CurrencyColorDictionary)
-from pkg.utilities.core import (APPLICATION_CACHED_DIRECTORY,
-                                soft_warning,
-                                confirm_action,
-                                ensure,
-                                import_fields,
+from pkg.coreutils.jops import jopen, jdump
+from pkg.coreutils.file import (SHA256Error,
+                                sha256,
                                 check_editor,
-                                check_colors,
-                                pprint_categories,
-                                fetch_keybind_dict,
-                                fetch_category_dictionary)
+                                rmdir,)
+from pkg.coreutils.dictops import (import_fields,
+                                   pprint_categories,
+                                   fetch_keybind_dict,
+                                   fetch_category_dictionary,)
+from pkg.coreutils.prompt import (prompt_currency,
+                                  prompt_category_from_keybinds)
+from pkg.coreutils.currency import (to_currency,
+                                    get_exchange_dict)
+from pkg.coreutils.colors import fg, check_colors
 
 
-#region ======================== untested utils ================================
-
-def _set_currency_list(currencies : List[str]) -> List[str]:
-    if currencies is None:
-        raise ValueError(f"A list of the managed currencies must be provided.")
-    return check_currency_list(currencies)
-
-
-def _today_period() -> Period:
-    return Period(date.today(), 'M')
-
-
-def _engine(url : str | Path | None) -> Engine:
-    if url is None:
+def to_engine(engineurl: str | Path | None) -> Engine:
+    """
+    Create engine from `engineurl`. If not provided, inmemory db is created.
+    """
+    if engineurl is None:
         return create_engine("sqlite://")
-    if 'sqlite' in url:
-        return create_engine(url)
-    return create_engine(f"sqlite:///{url}")
-
-
-def _jsave(d : dict, p : Path) -> None:
-    ensure(p, Path, WindowsPath)
-    text = jrepr(d)
-    p.write_text(text, encoding='utf-8')
-
-
-def _path_exists(p : str | Path) -> Path:
-    if isinstance(p, str):
-        p = Path(p)
-    if p.exists():
-        return p
-    raise FileNotFoundError(f"Path {p} does not exist.")
-
-
-# https://stackoverflow.com/a/49782093/29272030
-def _rmdir(directory : Path) -> None:
-    for item in directory.iterdir():
-        if item.is_dir():
-            _rmdir(item)
-        else:
-            item.unlink()
-    directory.rmdir()
-
-
-def _validate_categories(categories : List[str], keybinds : StrDict) -> List[str]:
-    res = [prompt_category_from_keybinds(keybinds, 
-                                         category, 
-                                         quiet_success=True)
-           for category in categories]
-    return res
-
-
-def _return_dict(d : dict) -> dict:
-    ensure(d, dict)
-    return d
-
-
-#endregion =====================================================================
-
+    if 'sqlite' in engineurl:
+        return create_engine(engineurl)
+    return create_engine(f"sqlite:///{engineurl}")
 
 
 @dataclass
@@ -143,13 +92,14 @@ class AccountingContext:
         # load state / cache
         name        = "state.json"
         state_path  = APPLICATION_CACHED_DIRECTORY / name
-        _path_exists(state_path)
+        if not state_path.exists():
+            raise FileNotFoundError(f"Path {state_path} does not exist.")
         
         # compute current sha and fetch data
-        cached_dict         =   jopen(state_path)
-        data                =   cached_dict["data"]
-        current_config_sha  =   sha256(data["config_path"])
-        current_fields_sha  =   sha256(data["fields_path"])
+        cached_dict = jopen(state_path)
+        data = cached_dict["data"]
+        current_config_sha = sha256(data["config_path"])
+        current_fields_sha = sha256(data["fields_path"])
 
         # ensure sha256 match
         err = []
@@ -162,19 +112,24 @@ class AccountingContext:
         
         # load to self and wrap attrs
         self.__dict__.update(data)
-        self.config_path    =   Path(self.config_path)
-        self.fields_path    =   Path(self.fields_path)
-        self.editor         =   Path(self.editor)
-        self.engine         =   _engine(self.engine)
-        # overwrite period
-        self.period         =   _today_period()
+        self.config_path = Path(self.config_path)
+        self.fields_path = Path(self.fields_path)
+        self.editor = Path(self.editor)
+        self.engine = to_engine(self.engine)
+        
+        # overwrite period, always
+        self.period = Period(date.today(), 'M')
 
 
-    def delete_cache(self):
+    def delete_cache(self, force: bool = False):
         """Removes all files in APPLICATION_CACHED_DIRECTORY."""
-        soft_warning("Warning: you will lose these files completely.")
-        action = lambda : _rmdir(APPLICATION_CACHED_DIRECTORY)
-        confirm_action(action)
+        if not force:
+            warning_ = "Warning: you will lose these files completely."
+            print(f"{fg.red}{warning_}{fg.reset}"
+                  "In order to actually delete cache, please set force=False.")
+            return None
+
+        rmdir(APPLICATION_CACHED_DIRECTORY)
         print(f"All files in {APPLICATION_CACHED_DIRECTORY} have been removed.")
 
 
@@ -188,20 +143,27 @@ class AccountingContext:
         try:
             self.load_from_cache()
             print("Sucessfully loaded ctx.fields from cache.")
-            return
+            return None
         except (SHA256Error, FileNotFoundError) as e:
-            print(
-                f"Could not load from cache in '{APPLICATION_CACHED_DIRECTORY}'."
-                f"{repr(e)}"
-                f"Instead, re-fetching all data from standard configurations."
-                f"If the configurations are loaded as expected, consider running"
-                f"`ctx.to_cache()` to save changes."
-            )
+            print(f"Could not load from cache in " 
+                  f"'{APPLICATION_CACHED_DIRECTORY}'."
+                  f"{repr(e)}"
+                  f"Instead, re-fetching all data from standard configurations."
+                  f"If the configurations are loaded as expected," 
+                  f"consider running ctx.to_cache() to save changes.")
 
         config = jopen(config_path)
-        self.config_path = _path_exists(config_path)
-        self.fields_path = _path_exists(fields_path)
-        self.engine = _engine(config.get('db_path'))
+
+        if (path := Path(config_path)).exists():
+            self.config_path = path
+        else:
+            raise FileNotFoundError(f"Config path: {config_path} could not be found.")
+        if (path := Path(fields_path)).exists():
+            self.fields_path = path
+        else:
+            raise FileNotFoundError(f"Fields path: {fields_path} could not be found.")
+
+        self.engine = to_engine(config.get('db_path'))
         self.editor = check_editor(config.get("editor_path"))
         self.fields = import_fields(fields_path)
         self.default_currency = prompt_currency(config.get('default_currency'), 
@@ -220,34 +182,37 @@ class AccountingContext:
         # if the attrs below exist, more likely ctx's attrs have been 
         # fetched via load_from_cache(), skipping this...
         if self.exchange_dictionary and self.period:
-            msg =   "Context attributes have been fetched from cache. " \
-                    "Skipping `set_plot`."
-            print(msg)
-            return
+            print("Context attributes have been fetched from cache."
+                  "Skipping `set_plot`.")
+            return None
 
         # proceed to load remaining attrs 
-        config                      =   jopen(self.config_path)
-        self.currency_list          =   _set_currency_list(config.get('currency_list'))
-        self.inflow_categories      =   _validate_categories(config.get('inflow-categories'), self.keybinds)
-        self.colors                 =   check_colors(self.currency_list, config.get('rgb_colors'))
-        self.exchange_dictionary    =   get_exchange_dict(self.currency_list, config.get('use_cache'), quiet=True)
-        self.period                 =   _today_period()
-        # NOTE: we're only checking if it's a dictionary
-        # It's up to user if the configurations are actually right
-        self.matplotlib             =   _return_dict(config.get("matplotlib"))
+        config = jopen(self.config_path)
+
+        if currencies := config.get('currency_list') is None:
+            raise ValueError(f"A list of managed currencies must be provided.")        
+        self.currency_list = to_currency(currencies)
+
+        self.inflow_categories = [prompt_category_from_keybinds(self.keybinds,
+                                                                category,
+                                                                quietsuccess=True)
+                                  for category in config.get('inflow-categories')]
+        self.colors = check_colors(self.currency_list, 
+                                   config.get('rgb_colors'))
+        self.exchange_dictionary = get_exchange_dict(self.currency_list, 
+                                                     config.get('use_cache'), 
+                                                     quiet=True)
+        self.period = Period(date.today(), 'M')
+        self.matplotlib = config.get("matplotlib")
 
 
     def update_exchange(self) -> None:
         """Force updates to self.exchange_dictionary."""
-        self.exchange_dictionary = get_exchange_dict(
-            self.currency_list,
-            use_cache=False,
-            quiet=False
-        )
-        print(
-            "If you're fine with this exchange dictionary, you might " \
-            "want to run `ctx.to_cache()` in order to save changes."
-        )
+        self.exchange_dictionary = get_exchange_dict(self.currency_list,
+                                                     use_cache=False,
+                                                     quiet=False)
+        print("If you're fine with this exchange dictionary, you might "
+              "want to run `ctx.to_cache()` in order to save changes.")
 
 
     def to_cache(self, path : Optional[Path] = None) -> None:
@@ -271,21 +236,21 @@ class AccountingContext:
         save_dict = self.__dict__.copy()
 
         # manually update unserializable
-        save_dict["engine"]         =   str(self.engine.url)
-        save_dict["editor"]         =   str(self.editor)
-        save_dict["period"]         =   str(self.period)
-        save_dict["config_path"]    =   str(self.config_path)
-        save_dict["fields_path"]    =   str(self.fields_path)
+        save_dict["engine"] = str(self.engine.url)
+        save_dict["editor"] = str(self.editor)
+        save_dict["period"] = str(self.period)
+        save_dict["config_path"] = str(self.config_path)
+        save_dict["fields_path"] = str(self.fields_path)
 
         save_dict = {
             "config-sha256" : sha256(self.config_path),
             "fields-sha256" : sha256(self.fields_path),
             "data" : save_dict
         }
-        _jsave(save_dict, path)
+        jdump(save_dict, path)
 
 
-    def pprint_cats(self, with_help : bool = False) -> None:
+    def pprint_cats(self, help_: bool = False) -> None:
         """
         Pretty-prints categories.
 
@@ -296,7 +261,7 @@ class AccountingContext:
             - Prints each category and its description
             - If True, print with help.
         """
-        pprint_categories(self.categories_dict, self.fields, with_help)
+        pprint_categories(self.categories_dict, self.fields, help_)
 
 
 

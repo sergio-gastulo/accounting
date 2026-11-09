@@ -3,13 +3,11 @@ from typing import Optional
 import pandas as pd
 import matplotlib.pyplot as plt
 from sqlalchemy import select, func, Label
-from matplotlib.figure import Figure
-from matplotlib.axes import Axes
 
 from matplotlib.dates import DateFormatter
 
-from pkg.utilities.typing import FrequencyType
-from pkg.utilities.prompt import prompt_category_from_keybinds
+from pkg.coreutils.typing import FrequencyType
+from pkg.coreutils.prompt import prompt_category_from_keybinds
 from pkg.classes import ctx, Record
 from .timeseries import plot
 from .shared import (PERIOD_COL_LABEL, 

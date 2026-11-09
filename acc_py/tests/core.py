@@ -10,7 +10,7 @@ import pandas as pd
 
 from tests._shared import (TEST_FILE_DIRECTORY, 
                            Patcher)
-from pkg.utilities.core import (import_fields, 
+from pkg.coreutils.core import (import_fields, 
                                 ensure,
                                 pprint_df, 
                                 get_help_dictionary, 
@@ -24,7 +24,7 @@ from pkg.utilities.core import (import_fields,
 
 #region ========================= quick utils ==================================
 
-TEST_MODULE = 'pkg.utilities.core'
+TEST_MODULE = 'pkg.coreutils.core'
 def _patch_this(f: Callable | str, **kwargs) -> Patcher:
     return Patcher(TEST_MODULE, f, **kwargs)
 
@@ -54,6 +54,10 @@ class TestEnsure(TestCase):
         for val, *types in badtypes:
             with self.assertRaises(TypeError):
                 ensure(val, *types)
+
+    def test_dictionary(self):
+        ensure({"x": 1}, dict)
+        ensure(dict(kwarg=5), dict)
 
 
 class TestFieldImporter(TestCase):
@@ -217,7 +221,15 @@ class TestDataFramePrettyPrinter(TestCase):
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             pprint_df(df)
             self.assertIn(expected_month, mock_stdout.getvalue())
-        
+
+    def test_year_isnt_printed(self):
+        df = pd.DataFrame({"date": ['2015-08-10', '2015-08-10']})
+        df["date"] = pd.to_datetime(df["date"])
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            pprint_df(df)
+            self.assertNotIn("2010", mock_stdout.getvalue())
+
+           
 
 @unittest.skip("TODO: do we really need to test it?")
 class TestHasInternet(TestCase):

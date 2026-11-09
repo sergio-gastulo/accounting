@@ -63,9 +63,10 @@ def date_plot(
         s: pd.Series,
         **kwargs
 ) -> tuple[Figure, Axes]:
-    """Plot a Series with `datetime` index."""
+    """Plot a Series with `datetime` index. 
+    `kwargs` are passed to `pd.Series.plot()`"""
 
-    ax = s.sort_index().plot(label=s.name.title())
+    ax: Axes = s.sort_index().plot(label=s.name.title(), **kwargs)
     ax.set_xlabel(Record.date.key.title())
     ax.set_ylabel(Record.amount.key.title())
     ax.legend()

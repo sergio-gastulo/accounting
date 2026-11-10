@@ -9,11 +9,6 @@ import dateutil.relativedelta
 
 from pandas import Period
 
-
-class ParseDateError(Exception):
-    pass
-
-
 def parse_intday(day: int, basedate: date) -> date:
     if day <= 0:
         return basedate + timedelta(day)
@@ -33,7 +28,7 @@ def parse_day(day: str, basedate: date) -> date:
             # handle special string cases like 'yesterday'
             if day[:4] == 'YEST':
                 return basedate + timedelta(days=-1)
-            raise ParseDateError(
+            raise ValueError(
                 f"String {day=!r} could not be validated as a valid day string."
             )
         else:
@@ -56,7 +51,7 @@ def parse_month(month: str):
         return months.index(month)
     except ValueError:
         # translate error message
-        raise ParseDateError(f"Argument '{month=!r}' is not a valid month.")
+        raise ValueError(f"Argument '{month=!r}' is not a valid month.")
 
 
 def get_date_tokens(s : str) -> List[str]:
@@ -123,7 +118,7 @@ def parse_date(date_input : str | int | date) -> date:
             return date(year=year, month=month, day=day)
 
         case _ :
-            raise ParseDateError(f"Could not parse: {date_input=!r}.")
+            raise ValueError(f"Could not parse: {date_input=!r}.")
 
 
 

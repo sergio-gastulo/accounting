@@ -70,8 +70,7 @@ class Entity:
 
     def delete(self, engine: Engine) -> None:
         """
-        Deletes a Record | Conversion directly without asking for commit. 
-        Prints soft_warning message before deleting.
+        Deletes a Record | Conversion directly without asking for commit.
         """
         with Session(engine) as session:
             session.delete(self)

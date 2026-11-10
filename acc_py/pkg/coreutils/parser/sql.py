@@ -15,51 +15,100 @@ from pkg.classes.model import Record
 from .dates import parse_date
 
 
-class ParseSQLQueryError(ValueError):
+T = TypeVar(name="T")
+
+SIGNS = {
+    "<": "__lt__",
+    ">": "__gt__",
+    ">=": "__ge__",
+    "<=": "__le__",
+    "=": "__eq__",
+    "==": "__eq__"
+}
+INVERTED_SIGN = {
+    "__lt__": "__gt__",
+    "__gt__": "__lt__",
+    "__ge__": "__le__",
+    "__le__": "__ge__",
+}
+
+
+class ParseSQLError(Exception):
     pass
 
 
-T = TypeVar(name="T")
-
-
-def range_filter(
+def ordering_filter(
         filter_: str,
-        colname: str,
-        map_: Callable,
+        map_: Callable = float,
 ) -> ColumnElement[bool]:
-    """Filter a numeric-like sql query. Returns parsed SQLAlchemy query."""
-
-    column: ColumnElement = getattr(Record, colname)
+    """
+    Converts a totally ordered column sql and returns it parsed into a valid 
+    SQLAlchemy query.
     
-    repatterns = [
-        re.compile(f"{colname} between (?P<lower>.+?) and (?P<upper>.+?)"),
-        re.compile(f"(?P<lower>.+?) <=? {colname} <=? (?P<upper>.+?)"),
-        re.compile(f"(?P<upper>.+?) >=? {colname} >=? (?P<lower>.+?)"),
-    ]
-    s = filter_.strip()
-    for pattern in repatterns:
-        if m := pattern.fullmatch(s):
-            lower, upper = map(map_, [m["lower"], m["upper"]])
-            return and_(lower <= column, column <= upper) 
+    Arguments
+    ---------
+    filter
+        String to be converted into a valid SQLAlchemy query.
+    map_
+        Map that converts non-column values into a valid Python expressions.
+    """
 
-    repatterns = [
-        re.compile(f"(?P<lower>.+?) <=? {colname}"),
-        re.compile(f"{colname} >=? (?P<lower>.+?)"),
-    ]
-    for pattern in repatterns:
-        if m := pattern.fullmatch(s):
-            return column >= map_(m["lower"])
+    s = filter_.strip().lower()
+    betweenpattern = re.compile(r"(?P<leftvalue>.+?)[\s]*"
+                                r"(?P<leftsign>[<>=]+|between)"
+                                r"[\s]*(?P<middlevalue>.+?)[\s]*"
+                                r"(?:(?P<rightsign>[<>=]+|and)"
+                                r"[\s]*(?P<rightvalue>.+?))?")
 
-    repatterns = [
-        re.compile(f"(?P<upper>.+?) >=? {colname}"),
-        re.compile(f"{colname} <=? (?P<upper>.+?)"),
-    ]
-    for pattern in repatterns:
-        if m := pattern.fullmatch(s):
-            return column >= map_(m["upper"])
-        
-    raise ParseSQLQueryError(
-        f"Could not understand range filter: {filter_=!r}.")
+    if not (m := betweenpattern.fullmatch(s)):
+        raise ParseSQLError(f"Argument '{s}' is not an ordering parsable query.")
+
+    if m["leftsign"] == "between":  # between-like query
+        try:
+            column: ColumnElement = getattr(Record, m["leftvalue"])
+        except AttributeError:
+            raise ParseSQLError(f"Not a between-like query: '{s}'.")
+        left = map_(m["middlevalue"])
+        right = map_(m["rightvalue"])
+        return column.between(left, right)
+
+    if (leftsign := m["leftsign"]) not in SIGNS:  # between query handled above
+        raise ParseSQLError(f"Not a valid sign: '{m["leftsign"]}'.")
+    leftsign = SIGNS[leftsign]
+
+    if (rightsign := m["rightsign"]):  # a sign x sign b
+        if rightsign not in SIGNS:
+            raise ParseSQLError(f"Sign '{rightsign}' is not valid.")
+        rightsign = SIGNS[rightsign]
+        # invertings since a sign x -> x ~sign a
+        leftsign = INVERTED_SIGN[leftsign]  
+        try:
+            column: ColumnElement = getattr(Record, m["middlevalue"])
+        except AttributeError:
+            raise ParseSQLError(f"Not a ordering query: '{s}'.")
+        left = map_(m["leftvalue"])
+        right = map_(m["rightvalue"])
+        # int.__lt__(Record.column) fails with NotImplemented
+        leftcol = getattr(column, leftsign)(left)
+        rightcol = getattr(column, rightsign)(right)
+        return and_(leftcol, rightcol)
+
+    if m["rightvalue"]:
+        raise ParseSQLError(f"Not a valid query: '{s}'.")
+
+    # case x sign a or a sign x
+    if hasattr(Record, colname := m["leftvalue"]):  # x > a
+        column = getattr(Record, colname)
+        left = map_(m["middlevalue"])
+    elif hasattr(Record, colname := m["middlevalue"]):  # a < x
+        column = getattr(Record, colname)
+        left = map_(m["leftvalue"])
+        leftsign = INVERTED_SIGN[leftsign]  # a sign x -> x ~sign a
+    else:
+        raise ParseSQLError(f"No valid column found in '{s}'.")
+
+    return getattr(column, leftsign)(left)
+
 
 
 def string_filter(
@@ -84,7 +133,7 @@ def string_filter(
             return column.regexp_match(regex)
 
         case _:
-            raise ParseSQLQueryError(
+            raise ValueError(
                 f"Could not understand string filter: {filter_=!r}.")
 
 
@@ -93,18 +142,18 @@ def date_filter(
         colname: str
 ) -> ColumnElement[bool]:
     """Filter by date, as a string or with datetime arithmetic."""
-    filterfuncs = ((range_filter, {"mapper": parse_date}),
+    filterfuncs = ((ordering_filter, {"map_": parse_date}),
                    (string_filter, {}))
 
     for func, kwargs in filterfuncs:
         try:
             boolcol = func(filter_, colname, **kwargs)
-        except ParseSQLQueryError:
+        except ValueError:
             continue
         else:
             return boolcol
 
-    raise ParseSQLQueryError(f"Could not parse date query: {filter_=!r}.")
+    raise ValueError(f"Could not parse date query: {filter_=!r}.")
 
 
 
@@ -116,7 +165,7 @@ def sql_filter(filter_: str):
     if Record.date.key in filter_:
         return date_filter(filter_, Record.date.key)
     if Record.amount.key in filter_:
-        return range_filter(filter_, Record.amount.key)
+        return ordering_filter(filter_, Record.amount.key, float)
     
     match filter_.split():
         case [Record.description.key | 
@@ -124,11 +173,11 @@ def sql_filter(filter_: str):
               Record.category.key] as colname, *_:
             return string_filter(filter_, colname)
         case Record.id.key as colname, *_:
-            return range_filter(filter_, colname, int)
+            return ordering_filter(filter_, colname, int)
         case [ ] | "true" | "True":
             return true()
         case _:
-            raise ParseSQLQueryError(
+            raise ValueError(
                 f"Could not understand query: {filter_=!r}.")
 
 

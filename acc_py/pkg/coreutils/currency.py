@@ -5,9 +5,9 @@ import requests
 import json
 import re
 
+from .paths import APPLICATION_CACHED_DIRECTORY
 from .typing import ExchangeDictType
 from .jops import jopen, jdump, jprint
-from .paths import APPLICATION_CACHED_DIRECTORY
 
 
 # https://stackoverflow.com/a/33117579/29272030
@@ -64,6 +64,9 @@ def to_currency(currency: str | list[str]) -> str:
     if isinstance(currency, list):
         return list(map(to_currency, currency))
 
+    if not isinstance(currency, str):
+        raise TypeError(f"Argument {currency=!r} is not str.")
+
     currency = currency.strip().lower()
     if re.match(r'^[a-z]{3}$', currency):
         return currency
@@ -75,8 +78,8 @@ def fetch_exchange_rates(
         currency : str
 ) -> dict:
     """
-    Fetch exchange rate**S** from a given currency and update to exchange_memo if
-    non-existent. Type checks are included. 
+    Fetch exchange rate**S** from a given currency and update 
+    `exchange_memo` if non-existent. 
     """
     currency = to_currency(currency)
     # if memoized, call it
@@ -94,7 +97,7 @@ def get_exchange_rate(
         currency_2 : str
 )-> float | int:
     """
-    Gets exchange rate between curr_1 and curr_2. Calls fetch_exchange_rate
+    Gets exchange rate between `curr_1` and `curr_2`. Calls fetch_exchange_rate
     under the hood. Type checks are implemented.
     """    
     # type checking
@@ -146,7 +149,7 @@ def get_exchange_dict(
         return res
 
     # ensure type check and build exchange dict
-    curr_list = check_currency_list(curr_list)
+    curr_list = to_currency(curr_list)
     curr_exchange = build_exchange(curr_list)
     
     # load to cache and print if asked

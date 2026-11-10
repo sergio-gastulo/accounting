@@ -51,9 +51,9 @@ class TestCurrencyParser(TestCase):
 
     def test_currency(self):
         cases = [
-            ('sdD',         'SDD'),
-            ('USD',         'USD'),
-            ('  pen   ',    'PEN'),
+            ('sdD', 'SDD'),
+            ('USD', 'USD'),
+            ('  pen   ', 'PEN'),
         ]
         for curr, expected_curr in cases:
             with self.subTest(currency=curr):
@@ -83,18 +83,16 @@ class TestDoubleCurrencyPairParser(TestCase):
         def_curr = 'DCU'
         places_ = 3
         cases = [
-            ('=5+2 usd           ',     ('=5+2', 'usd'),                (7, 'USD'),         False),
-            ('+5.5 - 2.5/2.5 pen',      ('+5.5 - 2.5/2.5', 'pen'),      (6.5, 'PEN'),       False),
-            ('   -5+9.00     ',         ('-5+9.00', '-5+9.00'),         (4., 'DCU'),        True),
-            ('   2.2 eur     ',         ('2.2', 'eur'),                 (2.2, 'EUR'),       False),
-            ('2.2',                     ('2.2', '2.2'),                 (2.2, 'DCU'),       True),
+            ('=5+2 usd           ', ('=5+2', 'usd'), (7, 'USD'), False),
+            ('+5.5 - 2.5/2.5 pen', ('+5.5 - 2.5/2.5', 'pen'), (6.5, 'PEN'), False),
+            ('   -5+9.00     ', ('-5+9.00', '-5+9.00'), (4., 'DCU'), True),
+            ('   2.2 eur     ', ('2.2', 'eur'), (2.2, 'EUR'), False),
+            ('2.2', ('2.2', '2.2'), (2.2, 'DCU'), True),
         ]
         for raw_input, (arg_arith, arg_curr), (e_amount, e_currency), use_default in cases:
             with self.subTest(raw_input=raw_input):
-                with (
-                    patchthis(parse_arithmetic_operation) as mock_arith,
-                    patchthis(parse_currency) as mock_curr
-                ):
+                with (patchthis(parse_arithmetic_operation) as mock_arith,
+                      patchthis(parse_currency) as mock_curr):
                     mock_arith.return_value = e_amount
                     if use_default:
                         mock_curr.side_effect = [ValueError, e_currency]
@@ -113,15 +111,14 @@ class TestDoubleCurrencyPairParser(TestCase):
         lbound = -9999
         def_curr = 'DEF'
         cases = [
-            ('=5+5 usd usd',        ValueError),
-            ('5.       5',          ValueError),
-            ('2.2 / foo',           ValueError),
-            ('pen',                 ValueError),
-            ('',                    ValueError),
-            ('               ',     ValueError),
+            '=5+5 usd usd',
+            '5.       5',
+            '2.2 / foo',
+            'pen',
+            '',
+            '               ',
         ]
         for raw_input, err in cases:
             with self.subTest(raw_input=raw_input):
-                with self.assertRaises(err):
+                with self.assertRaises(ValueError):
                     parse_double_currency(def_curr, raw_input, lbound)
-

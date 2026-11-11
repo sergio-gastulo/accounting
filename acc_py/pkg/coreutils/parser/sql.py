@@ -113,8 +113,12 @@ def ordering_query(
     return getattr(column, leftsign)(left)
 
 
-def cleanstr(s: list[str]) -> str:
-    return re.sub(r"['\"]", "", ' '.join(s)).strip()
+def cleanstr(s: str | list[str]) -> str:
+    """Remove quotes from text and strip it."""
+    p = re.compile(r"['\"]")
+    if isinstance(s, str):
+        return p.sub("", s).strip()
+    return p.sub("", ' '.join(s)).strip()
 
 def string_query(
         query: str,
@@ -252,11 +256,11 @@ def parse_semantic_query(
         return select(Record).where(*sql)
 
     p = re.compile(r"\[(?P<insqbrackets>.*?)\]")
-    kwargs = dict(literal_binds=True)
     dialect = sqlite.dialect()
+    kwargs = dict(literal_binds=True)
     def repl(m: re.Match):
         sql = sql_query(m["insqbrackets"])
-        compiled = sql.compile(dialect=dialect, 
+        compiled = sql.compile(dialect=dialect,
                                compile_kwargs=kwargs)
         return str(compiled)
     

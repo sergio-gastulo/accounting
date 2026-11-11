@@ -18,13 +18,14 @@ class fg:
     reset   = '\033[39m'
 
     
-
+# some types
 RGB: TypeAlias = tuple[int, int, int] | tuple[float, float, float]
 RGBType: TypeAlias = list[RGB] | RGB
 
 
 def convert_singlecord(c : int | float) -> int | float:
-    """Converts `c` from [0, 255] to [0, 1]."""
+    """Converts `int` from [0, 255] to [0, 1]. 
+    If `float`, verifies `c` in `[0, 1]`."""
     
     # 8 bit base integer check
     if isinstance(c, int) and 0 <= c <= 255:

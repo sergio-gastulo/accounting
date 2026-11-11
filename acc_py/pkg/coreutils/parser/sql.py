@@ -8,10 +8,10 @@ from sqlalchemy import (TextClause,
                         select,
                         text,)
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.elements import BinaryExpression
+from sqlalchemy.dialects import sqlite
 
 from pkg.classes.model import Record
-
 from .dates import parse_date
 
 
@@ -30,6 +30,7 @@ INVERTED_SIGN = {
     "__gt__": "__lt__",
     "__ge__": "__le__",
     "__le__": "__ge__",
+    "__eq__": "__eq__"
 }
 
 
@@ -37,23 +38,25 @@ class ParseSQLError(Exception):
     pass
 
 
-def ordering_filter(
-        filter_: str,
+def ordering_query(
+        query: str,
         map_: Callable = float,
-) -> ColumnElement[bool]:
+) -> BinaryExpression:
     """
-    Converts a totally ordered column sql and returns it parsed into a valid 
+    Converts a totally ordered sql column and returns it parsed into a valid 
     SQLAlchemy query.
     
     Arguments
     ---------
-    filter
+    query
         String to be converted into a valid SQLAlchemy query.
-    map_
+    `map_`
         Map that converts non-column values into a valid Python expressions.
+        Whenever `map_` fails, it is recommended that it fails with
+        `ValueError`.
     """
 
-    s = filter_.strip().lower()
+    s = query.strip().lower()
     betweenpattern = re.compile(r"(?P<leftvalue>.+?)[\s]*"
                                 r"(?P<leftsign>[<>=]+|between)"
                                 r"[\s]*(?P<middlevalue>.+?)[\s]*"
@@ -65,7 +68,7 @@ def ordering_filter(
 
     if m["leftsign"] == "between":  # between-like query
         try:
-            column: ColumnElement = getattr(Record, m["leftvalue"])
+            column: BinaryExpression = getattr(Record, m["leftvalue"])
         except AttributeError:
             raise ParseSQLError(f"Not a between-like query: '{s}'.")
         left = map_(m["middlevalue"])
@@ -80,12 +83,12 @@ def ordering_filter(
         if rightsign not in SIGNS:
             raise ParseSQLError(f"Sign '{rightsign}' is not valid.")
         rightsign = SIGNS[rightsign]
-        # invertings since a sign x -> x ~sign a
-        leftsign = INVERTED_SIGN[leftsign]  
+        # inverting sign since "a sign x" -> "x ~sign a"
+        leftsign = INVERTED_SIGN[leftsign]
         try:
-            column: ColumnElement = getattr(Record, m["middlevalue"])
+            column: BinaryExpression = getattr(Record, m["middlevalue"])
         except AttributeError:
-            raise ParseSQLError(f"Not a ordering query: '{s}'.")
+            raise ParseSQLError(f"Not an ordering query: '{s}'.")
         left = map_(m["leftvalue"])
         right = map_(m["rightvalue"])
         # int.__lt__(Record.column) fails with NotImplemented
@@ -110,93 +113,155 @@ def ordering_filter(
     return getattr(column, leftsign)(left)
 
 
+def cleanstr(s: list[str]) -> str:
+    return re.sub(r"['\"]", "", ' '.join(s)).strip()
 
-def string_filter(
-        filter_: str,
-        colname: str,
-) -> ColumnElement[bool]:
-    """Filter a string column, including wildcards (% %) and regex."""
+def string_query(
+        query: str,
+) -> BinaryExpression:
+    """
+    Converts a string-like query and returns it parsed into a valid 
+    SQLAlchemy query.
+    
+    Arguments
+    ---------
+    query
+        String to be converted into a valid SQLAlchemy query.
+    """
 
-    column: ColumnElement = getattr(Record, colname)
-    match filter_.split():
-        case [colname, "like", *wildcard]:
-            wildcard = (' '.join(wildcard)
-                        .replace("'", "")
-                        .replace('"', ''))
+    s = query.strip().split()
+    colname, s = s[0], s[1:]
+    try:
+        column: BinaryExpression = getattr(Record, colname.lower())
+    except AttributeError:
+        raise ParseSQLError(f"Column {colname=!r} does not exist.")
+
+    match s:
+        case ["like" | "wildcard", *wildcard] if wildcard:
+            wildcard = cleanstr(wildcard)
             return column.like(wildcard)
         
-        case [colname, "=" | "equal" | "equals" | "eq", elem] | [colname, elem]:
-            return column == elem
-
-        case [colname, "r" | "regex" | "regexp", *regex]:
-            regex = ' '.join(regex)
+        case ["regex" | "regexp", *regex] if regex:
+            regex = cleanstr(regex)
             return column.regexp_match(regex)
 
+        case ["=" | "==" | "equal" | "equals" | "eq", *elem] if elem:
+            elem = cleanstr(elem)
+            return column == elem
+
+        case [elem] if not re.match(r"(?:like|wildcard|regexp?|==?|eq(?:ual(?:s)?)?)", elem):
+            elem = cleanstr(elem)
+            return column == elem
+
         case _:
-            raise ValueError(
-                f"Could not understand string filter: {filter_=!r}.")
+            raise ParseSQLError(
+                f"Could not understand string filter: {query=!r}.")
 
 
-def date_filter(
-        filter_: str,
-        colname: str
-) -> ColumnElement[bool]:
-    """Filter by date, as a string or with datetime arithmetic."""
-    filterfuncs = ((ordering_filter, {"map_": parse_date}),
-                   (string_filter, {}))
+def date_query(
+        query: str
+) -> BinaryExpression:
+    """
+    Converts a date-like query and returns it parsed into a valid 
+    SQLAlchemy query.
+    
+    Arguments
+    ---------
+    query
+        String to be converted into a valid SQLAlchemy query.
+
+    Notes
+    -----
+    * First `ordering_query` is tried. If it fails, it goes to `string_query`.
+    * Queries matching the pattern `date [= | ==] datearg` are parsed
+    to `parse_date`. To pass the query as string-like, consider `[eq | equal]` 
+    instead.
+    """
+    filterfuncs = ((ordering_query, {"map_": parse_date}),
+                   (string_query, {}))
 
     for func, kwargs in filterfuncs:
         try:
-            boolcol = func(filter_, colname, **kwargs)
-        except ValueError:
+            boolcol = func(query, **kwargs)
+        except ParseSQLError:
             continue
         else:
             return boolcol
 
-    raise ValueError(f"Could not parse date query: {filter_=!r}.")
+    raise ParseSQLError(f"Could not parse date query: {query=!r}.")
 
 
-
-def sql_filter(filter_: str):
+def sql_query(query: str):
     """
-    Parses a single sql statement into a semantically-valid SQL query 
-    and returns it. The query is not validated, only parsed.
-    """
-    if Record.date.key in filter_:
-        return date_filter(filter_, Record.date.key)
-    if Record.amount.key in filter_:
-        return ordering_filter(filter_, Record.amount.key, float)
+    Converts `query` into a valid SQLAlchemy query. 
     
-    match filter_.split():
-        case [Record.description.key | 
-              Record.currency.key | 
-              Record.category.key] as colname, *_:
-            return string_filter(filter_, colname)
-        case Record.id.key as colname, *_:
-            return ordering_filter(filter_, colname, int)
-        case [ ] | "true" | "True":
+    Arguments
+    ---------
+    query
+        String to be converted to SQLAlchemy query.
+    
+    Notes
+    -----
+    * Depending on which keywords are found in `query`, the parsing is 
+    delegated to `(?:date|ordering|string)_query`.
+    * Empty and "all" | "true" like statements evaluate to true().
+    """
+    if Record.date.key in query:
+        return date_query(query)
+    if re.match(f"{Record.amount.key}|{Record.id.key}", query):
+        return ordering_query(query)
+    
+    match query.split():
+        case _, *res if res:
+            return string_query(query)
+        case [truelike] if re.match(r"^(?i:all|true)$", truelike) :
+            return true()
+        case [ ]:
             return true()
         case _:
-            raise ValueError(
-                f"Could not understand query: {filter_=!r}.")
+            raise ParseSQLError(f"Could not parse {query=!r}.")
 
 
-def parse_semantic_filter(filter_: str) -> TextClause:
+def parse_semantic_query(
+        query: str,
+        *,
+        separator: str = '&&'
+) -> TextClause:
     """
-    Takes a string filter and
-        * splits it by `&&` and parses it, given that `&&` is in `filter_`,
-        * replaces every `[...]` by parsing the content with `sql_filter` 
-        and returns a `text` sql statement.
-    """
-    if "&&" in filter_:
-        sql_ = [sql_filter(stmt) for stmt in filter_.split("&&")]
-        return select(Record).where(*sql_)
-
-    p = re.compile(r"\[(.*?)\]")
-    def repl(m: re.Match):
-        return sql_filter(m.group(0))
+    Converts `query` into a valid `select * from table where ...` 
+    SQLAlchemy query or plain SQL text. 
     
-    return text(p.sub(repl, filter_))
+    Arguments
+    ---------
+    query
+        String to be converted to SQLAlchemy query.
+    separator
+        Respect to what characters to split `query`. The concatenation after
+        parsing is `and_`.
+
+    Notes
+    -----
+    * If no `separator` is found in `query`, it will replace every `[...]`
+    via `sql_query`. Then `text` is called. This is passed literally as:
+    `select(Record).where(text(string))`.
+    """
+
+    if separator in query:
+        pattern = re.compile(rf"[\s]*{separator}[\s]*")
+        sql = (sql_query(stmt) for stmt in pattern.split(query.strip()))
+        return select(Record).where(*sql)
+
+    p = re.compile(r"\[(?P<insqbrackets>.*?)\]")
+    kwargs = dict(literal_binds=True)
+    dialect = sqlite.dialect()
+    def repl(m: re.Match):
+        sql = sql_query(m["insqbrackets"])
+        compiled = sql.compile(dialect=dialect, 
+                               compile_kwargs=kwargs)
+        return str(compiled)
+    
+    return select(Record).where(text(p.sub(repl, query)))
+
 
 
 def parse_record_from_id(

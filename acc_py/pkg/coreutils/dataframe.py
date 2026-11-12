@@ -1,12 +1,20 @@
 import datetime
 from pathlib import Path
+from io import StringIO
 
 import pandas as pd
 from pandas.api.types import (is_numeric_dtype,
                               is_string_dtype,
-                              is_datetime64_any_dtype,)
+                              is_datetime64_any_dtype,
+                              is_integer_dtype,)
 
 from pkg.classes.model import Record
+
+
+DATE_YEAR_FORMAT = '%B %dth, %Y'
+DATE_MONTH_FORMAT = '%B %dth'
+DATE_DAY_FORMAT = "%d"
+MAX_LONG_STR_DISPLAY = 100
 
 
 def is_datetime(s: pd.Series) -> bool:
@@ -18,20 +26,41 @@ def is_datetime(s: pd.Series) -> bool:
     return False
 
 
-def has_record_columns(df: pd.DataFrame) -> bool:
-    """Check if dataframe contains `Record` columns."""
-    for col in df.columns:
-        if col not in Record.__table__.c:
+def has_recordid(df: pd.DataFrame) -> bool:
+    """Checks if `df` contains valid `Record.id` structure.
+    
+    Notes
+    -----
+    * This is, `id` is the name of `df.index` or it's in 
+    `df.columns` but is `int`-like.
+    """
+    if df.index.name == Record.id.key:
+        if Record.id.key in df.columns:
             return False
-    return True
+        return True if is_integer_dtype(df.index) else False
+    if Record.id.key not in df.columns:
+        return False
+    return is_integer_dtype(df[Record.id.key])
 
 
-def isin_category(
-        s: pd.Series,
-        categorylist: list[str]
-) -> bool:
-    """Check if `s` contains categories included in `categorylist`."""
-    return s.isin(categorylist).all()
+def is_record_like(df: pd.DataFrame) -> bool:
+    """
+    Checks if `df.columns == Record.columns`.
+
+    Notes
+    -----
+    * `df` can have `id` index. It can also be a column.
+    * `df` muts contain *every* `Record` column.
+    """
+
+    columns = sorted(Record.__table__.c.keys())
+    if has_recordid(df):
+        if df.index.name:
+            return columns == sorted(df.columns.tolist() + ["id"])
+        return sorted(columns) == sorted(df.columns)
+        
+    columns.remove(Record.id.key)
+    return columns == sorted(df.columns)
 
 
 def sanitize_df(
@@ -46,9 +75,9 @@ def sanitize_df(
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"Argument {df=} is not a valid df.")
 
-    # verify
+    # verification
     errors : list[str] = []
-    if not has_record_columns(df):
+    if not is_record_like(df):
         raise ValueError(f"DataFrame does not contain Record columns only.")
 
     # sanitation
@@ -58,16 +87,18 @@ def sanitize_df(
     else:
         errors.append("df.amount is non-numeric.")
 
-    if not is_string_dtype(df.currency):
+    if not is_string_dtype(df[Record.currency.key]):
         errors.append("df.currency is non-string.")
     
-    if not is_string_dtype(df.description):
+    if not is_string_dtype(df[Record.description.key]):
         errors.append("df.description is non-string.")
+
+    isin_index = df[Record.category.key].isin(category_list)
+    if not isin_index.all():
+        errors.append(f"The following entries are not in the specified list"
+                      f"{df[isin_index]}")
     
-    if not isin_category(df[Record.category.key], category_list):
-        errors.append(f"df.category contains a category that is not in {category_list}.")
-    
-    if not is_datetime(df[Record.date.keys]):
+    if not is_datetime(df[Record.date.key]):
         errors.append("df.date is non-string and non-datetime-like.")
     
     if errors:
@@ -83,7 +114,7 @@ def sanitize_df(
 def castto_record(
         df: pd.DataFrame
 ) -> pd.DataFrame:
-    """Converts `df` to a valid Record DataFrame."""
+    """Casts `df` to a valid Record DataFrame type."""
     
     type_mapping = {
         Record.date.key: "datetime64[ns]",
@@ -100,13 +131,21 @@ def castto_record(
 
 
 def open_recorddf(
-        path: Path
+        arg: Path | str
 ) -> pd.DataFrame:
     """
-    Simple cast_csv_types wrapper. Reads content from path and returns 
-    casted dataframe.  
-    """ 
-    df = pd.read_csv(path,
+    Converts `arg` into a casted-to-record DataFrame.
+
+    Arguments
+    ---------
+    arg
+        If `str`, it's passed with a StringIO wrapper.
+    """
+
+    if isinstance(arg, str):
+        arg = StringIO(arg)
+
+    df = pd.read_csv(arg,
                     encoding='utf-8',
                     skipinitialspace=True)
     df.columns = df.columns.str.strip()
@@ -118,31 +157,35 @@ def pprint_df(
         header: str | None = None
 ) -> None:
     """
-    Pretty df printer. Prints index only if non-default. 
+    Prints `df` after styling.
+
+    Notes
+    -----
+    * For datetime-like columns, pre-specified date format headers are passed.
+    * For str columns, a max threshold for displaying strings is passed
     """
     
     # apply some styling
     styler = {}
-    if 'description' in df.columns and is_string_dtype(df.description):
-        # NOTE: add 100 to config
-        styler.update({
-            'description': lambda df: df['description'].str[:100] 
-        })
-    if 'date' in df.columns and is_datetime64_any_dtype(df.date):
-        years = len(df["date"].dt.year.unique())
-        fmt = '%B %dth, %Y' if years > 1 else '%B %dth'
-        styler.update({
-            'date': lambda df: df['date'].dt.strftime(fmt)
-        })
-    df = df.assign(**styler)
+    for colname in df.columns:
+        c = df.get(colname)
 
+        if is_datetime64_any_dtype(c):
+            years = c.dt.year.nunique()
+            fmt = DATE_YEAR_FORMAT if years > 1 else DATE_MONTH_FORMAT
+            styler.update({colname: c.dt.strftime(fmt)})
+
+        elif is_string_dtype(c):
+            styler.update({colname: c.str[:MAX_LONG_STR_DISPLAY]})
+
+    df = df.assign(**styler)
     # prevent default index from printing
     is_default = (df.index.dtype == int and 
-                  df.index.name is None)
+                  not df.index.name)
     df = df.to_markdown(index = not is_default, 
                         tablefmt="outline")
 
-    # provide a header if necessary
+    # provide a header if passed
     if header:
         line = df.partition('\n')[0]
         df = (f"{line}\n"

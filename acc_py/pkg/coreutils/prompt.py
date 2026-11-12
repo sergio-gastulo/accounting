@@ -1,56 +1,101 @@
-from typing import (List, Callable,
-                    Optional, TypeVar,)
+from typing import Callable, TypeVar
 from datetime import date
+from functools import wraps
 
 from sqlalchemy import Engine
 
-from .parser import (parse_arithmetic_operation,
-                     parse_currency,
-                     parse_date,
-                     parse_double_currency,
-                     parse_record_from_id,)
+from .parser.arith_curr import (DEFAULT_LOWER_BOUND,
+                                parse_arithmetic_operation,
+                                parse_currency,
+                                parse_double_currency,)
+from .parser.dates import parse_date
+from .parser.sql import parse_record_from_id
 from .typing import KeybindDictType, FixedColumnsType
 from .dictops import resolve_value
 from .jops import jprint
+from .colors import fg
 
-
-#region ============================ utils =====================================
 
 DATE_SUCCESS_FORMAT = "%a %d %b %Y"
-
+MAX_ATTEMPTS_LOOP = 5
 T = TypeVar(name="T")
 
 
-def success(*s : str) -> None:
-    """Quick success printer that wraps `repr` on `*s`."""
-    if len(s) == 1:
-        res = s[0]
-    else:
-        res = ', '.join(map(repr, s))
-    print(f"Success: {res}.")
+def success(*s: str) -> None:
+    """Quick success printer that wraps `repr` on every string in `s`."""
+    res = s[0] if len(s) == 1 else ', '.join(map(repr, s)) 
+    print(f"{fg.green}Success: {res}.{fg.reset}")
 
 
 def softerror(e: Exception) -> None:
-    """Prints the exception message but does not raises it."""
-    print(f"{type(e).__name__}: {e}")
+    """Prints `e` without raising it."""
+    print(f"{fg.red}{type(e).__name__}: {e}.{fg.reset}")
 
 
-#endregion =====================================================================
+def early_return(classinfo):
+    """Return first argument directly if `isinstance(., classinfo)` 
+    evaluates to `True`."""
+    def decorator(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            first_arg = args[0]
+            if isinstance(first_arg, classinfo):
+                return first_arg
+            res = func(*args, **kwargs)
+            return res
+        return wrapped
+    return decorator
+
+
+def type_check(classinfo, *, narg: int = 0):
+    """Raise TypeError if `n`th argument is not of type `classinfo`."""
+    def decorator(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            first_arg = args[narg]
+            if not isinstance(first_arg, classinfo):
+                raise TypeError(
+                    f"Argument '{first_arg}' is not of type `str`.")
+            res = func(*args, **kwargs)
+            return res
+        return wrapped
+    return decorator
+
 
 
 def main_loop(
-        uinput: Optional[str],
+        uinput: str | None,
         prompt: str,
         parser: Callable,
         on_error: Callable = softerror,
-        max_attempts: int = 5,
+        max_attempts: int = MAX_ATTEMPTS_LOOP,
         **kwargs
 ):
     """
-    Main loop event. Asks for valid `uinput` until parser returns success or
-    `max_attempts` is reached (in which case `RuntimeError` is raised). 
-    Quietly prints `ValueError` and `TypeError` to let end-user know that 
-    `uinput` is effectively wrong. Any other error is raised and loop is broken.
+    Loops until getting a valid answer at most `max_attempts` times. 
+
+    Arguments
+    ---------
+    uinput
+        User input that gets passed at first. If `parser` successfully parser 
+        `uinput` at first try, it is returned silently.
+    prompt
+        What will be prompted as in `input(prompt)`.
+    parser
+        Function that gets applied to `uinput` for validation. Ideally, 
+        `parser` should only raise `ValueError` when failing.
+    on_error
+        Function that gets called when parser fails. Defaults to `soft_error`.
+    max_attempts
+        Self explanatory.
+    kwargs
+        Passed to `parser`.
+
+    Notes
+    -----
+    * `TypeError`s are interpreted as "please try again". `ValueError` falls 
+    under this category as well.
+    * Any other `Exception` is raised and the loop finishes.
     """
     for _ in range(max_attempts):
         if uinput is None:
@@ -65,134 +110,128 @@ def main_loop(
     raise RuntimeError(f"No valid input after {max_attempts} attempts.")
 
 
+@early_return(int | float)
+@type_check(str)
 def prompt_arithmetic_operation(
-        user_input : Optional[str | float | int] = None, 
-        lbound: float = 0.0
+        user_input: str | float | int | None = None, 
+        lbound: int | float = DEFAULT_LOWER_BOUND
 ) -> float | int :
     """
-    Asks for arithmetic operation as `str`. 
-    Relies on `parse_arithmetic_operation`.
+    Prompt for arithmetic-like operation.
     """
-    # type checking
-    if isinstance(user_input, int | float):
-        return user_input
-
-    kwargs = {
-        "prompt" : "Type valid aithmetic operation: ",
-        "parser" : parse_arithmetic_operation,
-        "lbound" : lbound
-    }
-    res = main_loop(user_input, **kwargs)
+    res = main_loop(user_input,
+                    prompt="Type valid arithmetic operation: ",
+                    parser=parse_arithmetic_operation,
+                    lbound=lbound)
     success(res)
     return res
 
 
+@early_return(date)
+@type_check(str)
+def prompt_date_operation(
+        date_input: str | date | None = None
+) -> date:
+    """Converts `str` into `datetime.date` type."""
+    res: date = main_loop(date_input,
+                          prompt="Insert date operation: ",
+                          parser=parse_date)
+    success(res.strftime(DATE_SUCCESS_FORMAT))
+    return res
+
+
+@type_check(str)
 def prompt_currency(
-        currency_input : Optional[str] = None,
-        quiet : bool = True
+        currency_input: str | None = None,
+        quiet: bool = True
 ) -> str:
     """
-    Parses `currency_input` to a valid currency. Relies on `parse_currency`.
+    Converts `currency_input` to a valid currency. Relies on `parse_currency`.
     Returns upper-3-word-length ISO currency.
     """
-
-    kwargs = {
-        "prompt" : "Currency in ISO format: ", 
-        "parser" : parse_currency
-    }
-    res = main_loop(currency_input, **kwargs)
+    res = main_loop(currency_input,
+                    prompt="Currency in ISO format: ",
+                    parser=parse_currency,)
     if not quiet:
         success(res)
     return res
 
 
-def prompt_date_operation(
-        date_input : Optional[str | date] = None
-) -> date:
-    """Converts `str` into `datetime.date` type."""
-    # type checking
-    if isinstance(date_input, date):
-        return date_input
-
-    kwargs = {
-        "prompt" : "Insert date operation: ",
-        "parser" : parse_date
-    }
-    res : date = main_loop(date_input, **kwargs)
-    success(res.strftime(DATE_SUCCESS_FORMAT))
-    return res
-
-
+@type_check(str, narg=1)
 def prompt_double_currency(
-        default_currency : str,
-        double_curr_input : str | None = None, 
-        lbound : float = 0.0
+        default_currency: str | None = None,
+        double_curr_input: str | None = None, 
+        lbound : float = DEFAULT_LOWER_BOUND
 ) -> tuple[float, str]:
     """Converts `str` into valid (amount, currency) pair."""
-    # type checking
-    
-    kwargs = {
-        "prompt" : "Type double-currency operation: ",
-        "parser" : parse_double_currency,
-        "default_currency" : default_currency,
-        "lbound" : lbound
-    }
-    amount, currency = main_loop(double_curr_input, **kwargs)
+    amount, currency = main_loop(double_curr_input,
+                                 prompt="Type double-currency operation: ",
+                                 parser=parse_double_currency,
+                                 default_currency=default_currency,
+                                 lbound=lbound)
     success(amount, currency)
     return amount, currency
 
 
+@type_check(str | None, narg=1)
 def get_from_nested_dict(
-        kdict : KeybindDictType, 
-        uinput : Optional[str], 
-        prompt : str,
-) -> Optional[dict | str]:
-    """Gets value associated to key `uinput` If nested then recursively looks for it."""
-    # Type checking
-
-    # no input? interactively ask
+        kdict: KeybindDictType,
+        uinput: str | None,
+        prompt: str,
+) -> dict | str | None:
+    """Gets the value of a nested dictionary `kdict` interactively."""
     if uinput is None:
         jprint(kdict)
         uinput = input(prompt)
-
-    # check if it's dictionary
-    res = kdict.get(uinput)
+    res = kdict.get(uinput, None)
     if isinstance(res, dict):
         res = get_from_nested_dict(res, None, prompt)
         return res
-    # try to parse, otherwise soft_print ValueError
     try:
         return resolve_value(uinput, kdict)
     except ValueError as e:
         softerror(e)
 
 
+@type_check(str | None, narg=1)
 def prompt_category_from_keybinds(
-        keybind_dict : KeybindDictType,
-        keyinput : Optional[str] = None,
-        max_attempts : int = 5,
-        quietsuccess : bool = False,
+        keybind_dict: KeybindDictType,
+        keyinput: str | None = None,
+        max_attempts: int = MAX_ATTEMPTS_LOOP,
+        quietonsuccess: bool = False,
 ) -> str:
     """Asks valid category from keybinds interactively."""
-
-    # Type checking
 
     prompt = "Type the corresponding key from the dictionary above: "
     category = None
     counter = 0
     
-    # main loop
     while category is None and counter < max_attempts:
         category = get_from_nested_dict(keybind_dict, keyinput, prompt)
         keyinput = None
         counter += 1
-    # failure
     if category is None:
         raise RuntimeError(f"Only {max_attempts=} are allowed.")
-    # success
-    if not quietsuccess:
+    if not quietonsuccess:
         success(category)
     return category
+
+
+
+@type_check(int | str | None, narg=-1)
+def prompt_entity_by_id(
+        engine: Engine, 
+        entity: T,
+        id_: str | int | None = None,
+) -> T:
+    """Returns `Record` object from given `id`."""
+    res = main_loop(id_,
+                    prompt="Type id to be filtered: ",
+                    parser=parse_record_from_id,
+                    engine=engine,
+                    entity=entity)
+    success(res)
+    return res
 
 
 #-----------------------------------------------
@@ -205,9 +244,10 @@ def prompt_category_from_keybinds(
 #    e.g. "amount description" -> [amount, description]
 #-----------------------------------------------
 
+@type_check(str | None)
 def prompt_list_of_fields(
-        user_input : Optional[str] = None
-) -> List[str]:
+        user_input: str | None = None
+) -> list[str]:
     """
     Prompts list of fields from manually crafted keybinds dict. Possible 
     escenarios include:
@@ -216,7 +256,6 @@ def prompt_list_of_fields(
     
     Relies on listable `parse_valid_element_list`.
     """
-    # typecheck
 
     # set keybinds and with it construct simple local parser
     keybinds = {
@@ -230,7 +269,7 @@ def prompt_list_of_fields(
         "t_am"  : "target_amount",
         "t_c"   : "target_currency",
     }
-    def _parser( unsplit_cols : str ) -> List[str]:
+    def _parser( unsplit_cols : str ) -> list[str]:
         """Takes user input and splits it, while calling core parser."""
         split = unsplit_cols.strip().split()
         res =  [    resolve_value(col, keybinds)
@@ -263,6 +302,7 @@ def prompt_list_of_fields(
 #     dict.update( { field : validate(field) } )
 #-----------------------------------------
 
+@type_check(str | None, narg=-1)
 def prompt_column_value(
         keybind_dict : KeybindDictType,
         fields_str : str | None = None
@@ -274,8 +314,6 @@ def prompt_column_value(
     * Only used when writing dataframe or writing list. 
     * `keybind_dict` is necessary to pass to `prompt_category_from_keybinds`.
     """
-    
-    # type check
 
     # ask which columns are being fixed
     fields = prompt_list_of_fields(fields_str)
@@ -301,21 +339,4 @@ def prompt_column_value(
         val = field_func[field]()
         res.update({ field : val })
     
-    return res
-
-
-def prompt_entity_by_id(
-        engine: Engine, 
-        entity: T,
-        id_: Optional[str | int] = None,
-) -> T:
-    """Returns `Record` object from given `id`."""
-    kwargs = {
-        "prompt": "Type id to be filtered: ",
-        "parser": parse_record_from_id,
-        "engine": engine,
-        "entity": entity
-    }
-    res = main_loop(id_, **kwargs)
-    success(res)
     return res

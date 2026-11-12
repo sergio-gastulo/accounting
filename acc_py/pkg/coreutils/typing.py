@@ -3,7 +3,7 @@ from datetime import date
 
 from matplotlib.axes import Axes
 from pandas import Period
-from sqlalchemy import ColumnElement
+from sqlalchemy import BinaryExpression
 
 
 # basic configurations types
@@ -31,4 +31,4 @@ RGBType: TypeAlias = list[RGB] | RGB
 CurrencyColorDictionary = dict[str, RGBType | str]
 
 # sqlalchemy types
-EntityFilter: TypeAlias = tuple[ColumnElement[bool]]
+EntityFilter: TypeAlias = tuple[BinaryExpression]

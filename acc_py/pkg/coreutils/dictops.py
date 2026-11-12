@@ -85,15 +85,15 @@ def fetch_keybind_dict(
     """Constructs keybind dictionary dict from fields_dict."""
     keybind_dict = {}
 
-    for item in sorted(field_dict):
+    for item in field_dict:
         sub = item.get("subcategories")
         if sub:
-            d = {item["key"]: item["shortname"] for item in sub}
+            d = {item_["key"]: item_["shortname"] for item_ in sub}
             keybind_dict.update({item["key"]: sort_dict(d)})
         else:
             keybind_dict.update({item["key"]: item["shortname"]})
 
-    return keybind_dict
+    return sort_dict(keybind_dict)
 
 
 
@@ -107,8 +107,8 @@ def fetch_category_dictionary(
     for item in field_dict:
         sub = item.get("subcategories")
         if sub:
-            for item in sub:
-                res.update({item["shortname"] : item["description"]})
+            for item_ in sub:
+                res.update({item_["shortname"] : item_["description"]})
         else:
             res.update({item["shortname"] : item["description"]})
     return res

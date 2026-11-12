@@ -20,7 +20,7 @@ from pkg.coreutils.dataframe import (pprint_df,
                                      open_recorddf,
                                      sanitize_df,)
 from pkg.coreutils.colors import fg
-from pkg.coreutils.parser import parse_semantic_filter
+from pkg.coreutils.parser.sql import parse_semantic_query
 from pkg.coreutils.prompt import (FixedColumnsType,
                                   prompt_date_operation,
                                   prompt_double_currency,
@@ -381,7 +381,7 @@ def fetch(
 ) -> pd.DataFrame:
     """
     Fetches records from database.
-    Relies on `parse_semantic_filter` to approve parsing.
+    Relies on `parse_semantic_query` to approve parsing.
 
     Parameters
     ----------
@@ -398,7 +398,7 @@ def fetch(
     """
 
     # query constructor -- by design, there is no prompter for this
-    stmt = parse_semantic_filter(semantic_filter)
+    stmt = parse_semantic_query(semantic_filter)
     if max_lines:
         stmt = stmt.limit(max_lines)
     stmt = stmt.order_by(desc(Record.id))

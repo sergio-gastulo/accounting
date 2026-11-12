@@ -69,6 +69,8 @@ class TestDateParser(TestCase):
             ('10',              TODAY.replace(day=10)),
             ('10 08',           TODAY.replace(month=10, day=8)),
             ('  2025-12 31 ',   datetime.date(year=2025, month=12, day=31)), 
+            # TODO: fix below
+            # ('  2025-12-31 ',   datetime.date(year=2025, month=12, day=31)), 
             ('2025 12 31',      datetime.date(year=2025, month=12, day=31)), 
             ('25 12 31',        datetime.date(year=2025, month=12, day=31)), 
             ('today',           TODAY),

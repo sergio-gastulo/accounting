@@ -4,10 +4,9 @@ from pathlib import Path
 from pkg.classes.context import ctx
 
 from pkg.coreutils.help import acccli
-from pkg.coreutils.core import now, get_globals
 from pkg.coreutils.file import fimport, fexport
-from pkg.coreutils.parser import (parse_date as pdate,
-                                  parse_period as pperiod)
+from pkg.coreutils.parser.dates import (parse_date as pdate,
+                                        parse_period as pperiod)
 from pkg.interfaces.independent import (fopen, 
                                         convert_currency as convcurr)
 
@@ -32,7 +31,6 @@ def load_db_api_module(*args) -> None:
         "d": da.delete,
         "r": da.read,
         "w": da.write_record,
-        "gr": da.get_record,
         "wc": da.write_conversion,
         "wdf": da.write_df,
         "load": load,

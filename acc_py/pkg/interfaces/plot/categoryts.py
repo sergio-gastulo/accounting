@@ -8,7 +8,8 @@ from matplotlib.dates import DateFormatter
 
 from pkg.coreutils.typing import FrequencyType
 from pkg.coreutils.prompt import prompt_category_from_keybinds
-from pkg.classes import ctx, Record
+from pkg.classes.context import ctx
+from pkg.classes.model import Record
 from .timeseries import plot
 from .shared import (PERIOD_COL_LABEL, 
                      YEAR_MONTH_PERIOD_COL, 

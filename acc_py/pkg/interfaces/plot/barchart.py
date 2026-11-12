@@ -13,9 +13,10 @@ from sqlalchemy import (select,
                         not_, 
                         extract,)
 
-from pkg.classes import ctx, Record
+from pkg.classes.context import ctx
+from pkg.classes.model import Record
 from pkg.coreutils.dataframe import pprint_df
-from pkg.coreutils.parser import parse_period, parse_date
+from pkg.coreutils.parser.dates import parse_period, parse_date
 from pkg.coreutils.typing import (ValidDateArgument,
                                   MetadataType,
                                   NumericType,

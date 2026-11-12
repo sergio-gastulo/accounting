@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Callable
 from unittest.mock import MagicMock, patch
-from pkg.classes.model import Base
-from sqlalchemy import Engine, create_engine
 from datetime import date
 
+from sqlalchemy import Engine, create_engine
+from pkg.classes.model import Base
 
 
 #region ========================== variables ===================================
@@ -19,24 +19,28 @@ TODAY = date.today()
 
 #region =========================== patches ====================================
 
-def _patch_func_from_module(
-        this_module : str, 
+def patchfunc(
+        module: str, 
         func: Callable | str, 
         **kwargs
 ) -> MagicMock:
+    """
+    Create a `MagicMock` object that patches a function from a given module.
+    """
     if isinstance(func, str):
         call = func
     elif isinstance(func, Callable):
         call = func.__name__
     else:
         raise TypeError(f"Got invalid Callable | str from {func=}.")
-    return patch(f"{this_module}.{call}", **kwargs)
+    return patch(f"{module}.{call}", **kwargs)
 
 
 class Patcher:
-    def __init__(self, module : str, f: Callable | str, **kwargs) -> None:
+    """Create a ContextManager that allows function patching."""
+    def __init__(self, module: str, f: Callable | str, **kwargs) -> None:
         self._f = f
-        self._patcher = _patch_func_from_module(module, f, **kwargs)
+        self._patcher = patchfunc(module, f, **kwargs)
         self._mock: MagicMock | None = None
 
     def __enter__(self) -> MagicMock:
@@ -50,8 +54,8 @@ class Patcher:
 def patch_builtin(f: Callable, **kwargs) -> Patcher:
     if not isinstance(f, Callable):
         raise TypeError(f"{f=} invalid builtin callable.")
-
     return Patcher("builtins", f, **kwargs)
+
 
 #endregion =====================================================================
 

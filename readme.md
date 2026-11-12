@@ -64,11 +64,19 @@ It defines a list of categories. Each category contains basic metadata, and opti
 Check [fields-example.json](/config/fields-example.json) for an up-to-date example.
 
 ## **TODO**
-- `validate_df` **SHOULD NOT** modify dataframe (any dataframe-related function actually).
-- `edit` should allow better ORM manipulation (painful to edit several records)
-	* maybe fields: Optional[str] should actually be fields: dict[str, Any].
-	* bdf should benefit from this as well
-	* OBS: `w(df)` updates automatically if 'id' is passed as a workaround.
+- date parsing should support: "lowerbound < date < upperbound"
+- date parsing could allow: `date.month = foo`-like filtering.
+- `datetime.date` should be allowed when writing dataframe.
+- `bdf`: whenever date is passed, `pdate()` should be called on said column.
+- build a simple `plot` -- let us run our own queries. This function should cover the cases
+	* df has [currency, date] | [date, currency] index
+	* df has date index, and n columns of currency
+- `edit` instead of asking for a simple id, could print the last 20 ids (via `read`).
+	- broken btw...
+- definitely easier category manipulation in general (ORM insert delete update category from fields.json)
+- Check if `get_from_id` is actually worth implementing: think about use cases.
+
+- expose all parsers with "p" prefix (e.g. parse_date -> pdate).
 - Increase number of configurations to be propagated across the entire codebase.
 - Start testing both `db_api` and `plot` interfaces.
 - Start working on the CLI instead of relying on the REPL (support both though).
@@ -85,9 +93,15 @@ TODOs that would be useful if this project became an application for other peopl
 
 ### Need to elaborate
 - broken fetch statement when passing sql: select with no order by?
+- `edit` should allow better ORM manipulation (painful to edit several records)
+	* maybe fields: Optional[str] should actually be fields: dict[str, Any].
+	* bdf should benefit from this as well
+	* OBS: `w(df)` updates automatically if 'id' is passed as a workaround.
+	* WORKAROUND: just use `fetch` and `pd.DataFrame` manipulation.
 - Think of conversion plots.
 - Provide WhatsApp message parsing.
 - When returning dataframe, pd.to_datetime should be called to cast dates automatically (i.e., fix bug on datetime calls and csv casting) (I haven't reproduced this in a while tbh).
+- Allow period filtering on `parse_date`.
 
 
 ## **Requirements**:

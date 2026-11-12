@@ -26,7 +26,7 @@ def has_internet(
         return False
 
 
-def fetch_exchange(currency : str) -> dict[str, int | float]:
+def fetch_exchange(currency: str) -> dict[str, int | float]:
     """
     Fetch full list of currency exchanges associated to currency.
     """
@@ -41,7 +41,7 @@ def fetch_exchange(currency : str) -> dict[str, int | float]:
     for url in url_bases:
         url_request = urllib.parse.urljoin(url, endpoint)
         response = requests.get(url_request)
-        if response.ok :
+        if response.ok:
             # res example: 
             # https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/pen.json
             res = json.loads(response.content)
@@ -75,7 +75,7 @@ def to_currency(currency: str | list[str]) -> str:
 
 exchange_memo = {}
 def fetch_exchange_rates(
-        currency : str
+        currency: str
 ) -> dict:
     """
     Fetch exchange rate**S** from a given currency and update 
@@ -93,8 +93,8 @@ def fetch_exchange_rates(
 
 
 def get_exchange_rate(
-        currency_1 : str,
-        currency_2 : str
+        currency_1: str,
+        currency_2: str
 )-> float | int:
     """
     Gets exchange rate between `curr_1` and `curr_2`. Calls fetch_exchange_rate

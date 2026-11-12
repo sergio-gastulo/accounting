@@ -1,9 +1,12 @@
 import re
 
 
+DEFAULT_LOWER_BOUND = 0.
+
+
 def parse_arithmetic_operation (
         expr: str, 
-        lbound: float | int = 0.0
+        lbound: float | int = DEFAULT_LOWER_BOUND
 ) -> float | int:
     """
     Convert `expr` into a valid `float` (or `int`).
@@ -62,7 +65,7 @@ def parse_currency(currency : str) -> str:
 def parse_double_currency(
         rawinput: str, 
         default_currency: str,
-        lbound: float = 0.0,
+        lbound: float = DEFAULT_LOWER_BOUND,
 ) -> tuple[float, str]:
     """
     Converts `rawinput` into a valid `(amount, currency)` pair.

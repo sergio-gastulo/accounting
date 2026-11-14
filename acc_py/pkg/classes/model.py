@@ -13,7 +13,8 @@ from sqlalchemy.orm import (Mapped,
 from pkg.coreutils.parser.dates import parse_date
 from pkg.coreutils.parser.arith_curr import (parse_arithmetic_operation,
                                              parse_currency,)
-from pkg.classes.context import ctx
+from pkg.coreutils.functools import type_check
+from .context import ctx
 
 
 CATEGORIES = list(ctx.categories_dict.keys())
@@ -96,9 +97,15 @@ class Entity:
         new.id = None
         return new
 
-    @staticmethod
-    def get():
-        pass
+    @classmethod
+    @type_check(int)
+    def get(cls, id_: int):
+        """Get an entity by `id`."""
+        with Session(ctx.engine) as session:
+            entity = session.get(cls, id_)
+        if entity is None:
+            raise ValueError(f"Entity with {id_=!r} does not exist.")
+        return entity
 
 
 class Record(Base, Entity):
@@ -170,7 +177,7 @@ class Conversion(Base, Entity):
         self.target_currency = parse_arithmetic_operation(self.target_currency)
         if not isinstance(self.description, str):
             raise ValueError(f"Description '{self.description!r}' "
-                            "is not a string.")
+                             "is not a string.")
 
 
 

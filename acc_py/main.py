@@ -7,7 +7,7 @@ from pkg.coreutils.help import acccli
 from pkg.coreutils.file import fimport, fexport
 from pkg.coreutils.parser.dates import (parse_date as pdate,
                                         parse_period as pperiod)
-from pkg.interfaces.independent import (fopen, 
+from pkg.interfaces.independent import (fopen,
                                         convert_currency as convcurr)
 
 
@@ -18,19 +18,18 @@ def load_db_api_module(*args) -> None:
     ctx.set(*args)
 
     # populate global namespace from db_api
-    import pkg.interfaces.db_api as da
+    import pkg.interfaces.db as db
     from pkg.classes.model import Record, Conversion
+    from pkg.interfaces.db.dataframe import fetch, read
+
     def load():
         load_plot_module(*args)
     exposed = {
-        "bc": da.build_conversion,
-        "e": da.edit,
-        "fetch": da.fetch,
-        "d": da.delete,
-        "r": da.read,
         "load": load,
         "Record": Record,
         "Conversion": Conversion,
+        "fetch": fetch,
+        "read": read
     }
     globals().update(exposed)
 

@@ -1,20 +1,18 @@
 import pandas as pd
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.api.types import is_scalar
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from pkg.classes.model import Record
-from pkg.coreutils.parser.dates import parse_date
-from pkg.interfaces.db.dataframe import (has_recordid,
-                                     pprint_df,
-                                     sanitize_df,)
 from pkg.classes.context import ctx
+
+from .dataframe import (has_recordid,
+                        pprint_df,
+                        sanitize_df,)
 
 
 CATEGORIES = list(ctx.categories_dict.keys())
 ACCESSOR_ALIAS = "recorddb"
-
+OVERWRITE_DF_HAS_INDEX = True
 
 
 @pd.api.extensions.register_dataframe_accessor(ACCESSOR_ALIAS)
@@ -22,7 +20,9 @@ class RecordAccessor:
     def __init__(self, pandasobj):
         self._obj = sanitize_df(pandasobj, CATEGORIES)
 
-    def write(self, *, overwrite: bool = True):
+    def write(self, *, 
+              overwrite: bool = OVERWRITE_DF_HAS_INDEX
+    ):
         df = self._obj
         
         if not has_recordid(df):
@@ -42,3 +42,6 @@ class RecordAccessor:
             session.execute(update(Record), asdict)
             session.commit()
         pprint_df(df, header="Actions commited.")
+
+
+# TODO: mirror Entity | Record | Conversion methods to RecordAccessor

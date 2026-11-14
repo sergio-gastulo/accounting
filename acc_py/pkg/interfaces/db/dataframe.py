@@ -7,15 +7,21 @@ from pandas.api.types import (is_numeric_dtype,
                               is_string_dtype,
                               is_datetime64_any_dtype,
                               is_integer_dtype,)
+from sqlalchemy import select
 
-from pkg.classes.model import Record
+from pkg.classes.context import ctx
+from pkg.classes.model import Record, Conversion
+from .sql import parse_semantic_query
 
 
 DATE_YEAR_FORMAT = '%B %dth, %Y'
 DATE_MONTH_FORMAT = '%B %dth'
-DATE_DAY_FORMAT = "%d"
+DATE_DAY_FORMAT = "%d"  # TODO: if not months.unique() -> use this.fmt
 MAX_LONG_STR_DISPLAY = 100
 ON_ERROR_CONCATENATOR = "\n\t"
+MAX_LINES_DATABASE = 20
+PARSE_DATE_FORMAT = "%Y-%m-%d"
+MAX_LINES_DATABASE = 20
 
 
 def is_datetime(s: pd.Series) -> bool:
@@ -72,7 +78,6 @@ def sanitize_df(
     Verify that `df` can be passed to the database. Every sanatization failure 
     is properly printed.
     """
-
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"Argument {df=} is not a valid df.")
 
@@ -114,47 +119,6 @@ def sanitize_df(
                      date=pd.to_datetime(df.date).dt.date)
 
 
-def castto_record(
-        df: pd.DataFrame
-) -> pd.DataFrame:
-    """Casts `df` to a valid Record DataFrame type."""
-    
-    type_mapping = {
-        Record.date.key: "datetime64[ns]",
-        Record.amount.key: "float64",
-        Record.currency.key: "str",
-        Record.description.key: "str",
-        Record.category.key: "str"
-    }
-    # avoid KeyError
-    type_cols = {key: val
-                 for key, val in type_mapping.items()
-                 if key in df.columns}
-    return df.astype(type_cols)
-
-
-def open_recorddf(
-        arg: Path | str
-) -> pd.DataFrame:
-    """
-    Converts `arg` into a casted-to-record DataFrame.
-
-    Arguments
-    ---------
-    arg
-        If `str`, it's passed with a StringIO wrapper.
-    """
-
-    if isinstance(arg, str):
-        arg = StringIO(arg)
-
-    df = pd.read_csv(arg,
-                    encoding='utf-8',
-                    skipinitialspace=True)
-    df.columns = df.columns.str.strip()
-    return castto_record(df)
-
-
 def pprint_df(
         df: pd.DataFrame,
         header: str | None = None
@@ -183,9 +147,8 @@ def pprint_df(
 
     df = df.assign(**styler)
     # prevent default index from printing
-    is_default = (df.index.dtype == int and 
-                  not df.index.name)
-    df = df.to_markdown(index = not is_default, 
+    isdefault = df.index.dtype == int and not df.index.name
+    df = df.to_markdown(index = not isdefault, 
                         tablefmt="outline")
 
     # provide a header if passed
@@ -195,3 +158,88 @@ def pprint_df(
               f"{header}\n"
               f"{df}")
     print(df)
+
+
+
+def fetch(
+        semantic_filter: str | None = None,
+        max_lines: int | None = None,
+) -> pd.DataFrame:
+    """
+    Fetches records from database.
+    Relies on `parse_semantic_query` to approve parsing.
+
+    Parameters
+    ----------
+    semantic_filter
+        A textual filter expression.
+    max_lines
+        Maximum number of records to return. Optional.
+
+    Notes
+    -----
+    - When `semantic_filter` is omitted, it will default to `True`.
+    - Results are ordered by `Record.id` (desc) and limited by `max_lines` if 
+    provided.
+    """
+
+    # query constructor -- by design, there is no prompter for this
+    stmt = parse_semantic_query(semantic_filter)
+    if max_lines:
+        stmt = stmt.limit(max_lines)
+    stmt = stmt.order_by(Record.id.desc())
+    try:
+        df = pd.read_sql(stmt, ctx.engine, Record.id.key,
+                         parse_dates={Record.date.key: PARSE_DATE_FORMAT})
+    except pd.errors.DatabaseError:
+        raise ValueError(f"Database error found. More likely wrong" 
+                         f"query: {stmt=!r}.")
+    else:
+        return df
+
+
+def read_conversion(
+        max_lines: int = MAX_LINES_DATABASE,
+) -> None:
+    """Simple conversion reader. No support for df return yet."""
+    stmt = select(Conversion).limit(max_lines).order_by(Conversion.date.desc())
+    df = pd.read_sql(stmt, ctx.engine, Record.id.key)
+    pprint_df(df)
+
+
+def read(
+        entity_type: Conversion | Record = Record,
+        max_lines: int = MAX_LINES_DATABASE,
+        semantic_filter: str | None = None,
+):
+    """
+    Reads records from database.
+    Relies on `fetch` to fetch records, and `Conversions.select(true())` on Conversions.
+
+    Parameters
+    ------
+    max_lines
+        Maximum number of records to return. Defaults to 20.
+    entity_type
+        Which table to fetch objects from. Defaults to `Record`.
+    semantic_filter
+        A textual filter expression. Supported patterns:
+        - str columns: exact match, `LIKE` wildcard, or regex
+        - int columns: exact match or numeric range
+        - float columns: numeric range only
+
+    Notes
+    -
+    - When `semantic_filter` is omitted, the user may be prompted interactively.
+    - Results are ordered by `Record.id` (desc) and limited by `max_lines`.
+    - To use SQL, use `sql: SELECT ...` (only SELECT statements are supported).
+    """
+    if semantic_filter is None:
+        semantic_filter = input("Type your semantic filter: ")
+
+    if entity_type == Record:
+        pprint_df(fetch(semantic_filter, max_lines))
+    elif entity_type == Conversion:
+        read_conversion(max_lines)
+    else:
+        raise TypeError(f"Invalid {entity_type=}. Must be Conversion or Record.")

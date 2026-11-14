@@ -23,16 +23,11 @@ def load_db_api_module(*args) -> None:
     def load():
         load_plot_module(*args)
     exposed = {
-        "br": da.build_record,
         "bc": da.build_conversion,
-        "bdf": da.build_df,
         "e": da.edit,
         "fetch": da.fetch,
         "d": da.delete,
         "r": da.read,
-        "w": da.write_record,
-        "wc": da.write_conversion,
-        "wdf": da.write_df,
         "load": load,
         "Record": Record,
         "Conversion": Conversion,

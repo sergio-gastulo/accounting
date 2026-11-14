@@ -161,7 +161,7 @@ def open_file_with_editor(
         editor: Path,
         /,
         opendir: bool = False,
-)-> None:
+)-> Path:
     """Quick file opener, relies on ctx.editor to open said file."""
     if isinstance(p, str):
         p = Path(p)
@@ -185,6 +185,7 @@ def open_file_with_editor(
         return
 
     subprocess.call([editor, p])
+    return p
 
 
 

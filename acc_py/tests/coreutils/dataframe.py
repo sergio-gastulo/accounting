@@ -5,7 +5,7 @@ import datetime
 
 import pandas as pd
 
-from pkg.coreutils.dataframe import (pprint_df,
+from pkg.interfaces.db.dataframe import (pprint_df,
                                      is_datetime,
                                      is_record_like,
                                      has_recordid,

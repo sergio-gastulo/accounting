@@ -15,6 +15,7 @@ DATE_YEAR_FORMAT = '%B %dth, %Y'
 DATE_MONTH_FORMAT = '%B %dth'
 DATE_DAY_FORMAT = "%d"
 MAX_LONG_STR_DISPLAY = 100
+ON_ERROR_CONCATENATOR = "\n\t"
 
 
 def is_datetime(s: pd.Series) -> bool:
@@ -95,15 +96,17 @@ def sanitize_df(
 
     isin_index = df[Record.category.key].isin(category_list)
     if not isin_index.all():
-        errors.append(f"The following entries are not in the specified list"
-                      f"{df[isin_index]}")
+        notin_category_list = df.loc[~isin_index, Record.category.key]
+        errors.append(f"The following entries are not in the specified list\n"
+                      f"{notin_category_list}")
     
     if not is_datetime(df[Record.date.key]):
         errors.append("df.date is non-string and non-datetime-like.")
     
     if errors:
+        concatenated = ON_ERROR_CONCATENATOR.join(errors)
         raise ValueError(f"Dataframe's columns failed type-check:"
-                         "\n".join(errors))
+                         f"\n{concatenated}.")
 
     # NOTE: is it really necessary to cast df.date do dt.date?
     # NOTE: check sqlalchemy in-memory test

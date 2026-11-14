@@ -3,26 +3,18 @@ Database API, allows user to write to DB using sqlalchemy as query wrapper.
 Heavily relies on both parser.py and py
 """
 from datetime import date
-from pathlib import Path
-import subprocess
-
 import pandas as pd
-from jinja2 import Template
-from sqlalchemy import (inspect,
-                        select,
+from sqlalchemy import (select,
                         desc,
                         update,)
 from sqlalchemy.orm import Session
 
 from pkg.classes.model import Record, Conversion
-from pkg.coreutils.paths import APPLICATION_DIRECTORY
-from pkg.coreutils.dataframe import (pprint_df,
-                                     open_recorddf,
+from pkg.interfaces.db.dataframe import (pprint_df,
                                      sanitize_df,)
 from pkg.coreutils.colors import fg
-from pkg.coreutils.parser.sql import parse_semantic_query
-from pkg.coreutils.prompt import (FixedColumnsType,
-                                  prompt_date_operation,
+from pkg.interfaces.db.sql import parse_semantic_query
+from pkg.coreutils.prompt import (prompt_date_operation,
                                   prompt_double_currency,
                                   prompt_category_from_keybinds,
                                   prompt_column_value,
@@ -34,277 +26,10 @@ from pkg.classes.context import ctx
 
 #region ============================ utils  ====================================
 
-RECORD_TABLE_COLUMNS : list[str] = list(inspect(Record).c.keys())
+RECORD_TABLE_COLUMNS: list[str] = list(Record.__table__.c.keys())
 PARSE_DATE_FORMAT = "%Y-%m-%d"
-
-#endregion =====================================================================
-
-
-def build_record(
-        date_: date | None = None,
-        amount: int | float | None = None,
-        currency: str | None = None,
-        operation_str: str | None = None,
-        description: str | None = None,
-        category: str | None = None
-) -> Record:
-    """
-    Create and write a new Record to the database.
-    Omitted arguments are prompted interactively.
-
-    Parameters
-    ------
-    `date_`
-        Operation date.
-    amount      
-        Operation amount. Ignored if `operation_str` is set.
-    currency    
-        Currency code (e.g. "USD"). Ignored if `operation_str` is set.
-    operation_str 
-        Shorthand to set both `amount` and `currency` at once.
-    description 
-        Brief description of the record.
-    category    
-        Record category.
-
-    Notes
-    -
-    Record is committed automatically and printed via `Record.pprint()`.
-    """
-
-    # -------------------- Type checking (None are allowed) ----------------
-    
-    date_ = prompt_date_operation(date_)
-
-    # if amount and currency are not specified, then prompt for pair
-    if amount is None and currency is None:
-        amount, currency = prompt_double_currency(ctx.default_currency, 
-                                                  operation_str)
-    else:
-        # if any of (amount, currency) is not None, then 
-        # individual prompt for each is forced
-        amount = prompt_arithmetic_operation(amount)
-        currency = prompt_currency(currency)
-    
-    if description is None:
-        # could be empty, one can rely on edit() to change it
-        description = input("Type your description: ")
-
-    category = prompt_category_from_keybinds(ctx.keybinds, category)
-
-    # build and return
-    return Record(date=date_,
-                    amount=amount,
-                    currency=currency,
-                    description=description,
-                    category=category)
-
-
-def write_record(obj = None) -> None:
-    """
-    Simple record writer wrapper. Depending on the type of `obj`, it parses and 
-    writes without asking for commit.
-
-    Arguments
-    -----
-    obj
-        Record or Record-like expression that will be written to db. 
-        - If a `pd.DataFrame`, it will rely on `write_df` and return.
-        - If a `pd.Series`, obj is converted to a dict.
-        - If a `dict`, obj is converted into a `Record` via Record(**obj).
-        - If None, `build_record` is called to construct it interactively.
-        - If a Record, it is directly written to database.
-    """
-
-    if isinstance(obj, pd.DataFrame):
-        write_df(obj)
-        return None
-
-    if isinstance(obj, pd.Series):
-        obj = obj.to_dict()
-    if isinstance(obj, dict):
-        obj = Record(**obj)
-    if obj is None:
-        obj = build_record()
-
-    if not isinstance(obj, Record):
-        raise TypeError(f"Argument {obj} is not a Record.")
-    obj.write(ctx.engine)
-
-
-def rendertemplate(
-        **kwargs
-) -> str:
-    """Render the content on the template to be edited."""
-
-    jinjatext = "{%if not date %}date, {% endif %}" \
-                "{%if not amount %}amount, {% endif %}" \
-                "{%if not description %}description, {% endif %}" \
-                "{%if not currency %}currency, {% endif %}" \
-                "{%if not category %}category, {% endif %}"
-    template: Template = Template(jinjatext)
-    # header concatenates to col1, col2, col3,
-    text = template.render(**kwargs)
-    # remove last comma:
-    cleaned = text.strip().rstrip(',')
-    return cleaned
-
-
-def buildtmpfile(
-            text: str
-)-> Path:
-    """Populate temporary file and then launch it. Returns the tmp file path."""
-    
-    # create tmp file
-    fname = date.today().strftime("%Y-%m-%d")
-    path =  APPLICATION_DIRECTORY / f"csv_{fname}.csv"
-    with open(path, 'w') as file:
-        file.write(text)
-    
-    # call editor and return path after quit
-    print(f"Launching r'{path}'.")
-    subprocess.call([ctx.editor, path])
-    return path
-
-
-def build_df(
-        fixed_fields : FixedColumnsType | None = None
-) -> pd.DataFrame:
-    """
-    Create multiple Records in dataframe form.
-    If `fixed_fields` is None, they're prompted interactively.
-
-    Parameters
-    ------
-    fixed_fields
-        A dictionary mapping column names to fixed values 
-        (e.g., {"category": "Food"}).
-
-    Notes
-    - Temporary files are cleaned up after execution.
-    - No support for Conversion yet.
-    """
-
-    # type checking
-    if fixed_fields is None:
-        fixed_fields = prompt_column_value(ctx.keybinds, fixed_fields)
-
-    text = rendertemplate(**fixed_fields)
-    tmp = buildtmpfile(text)
-
-    # fetch dataframe
-    df = open_recorddf(tmp)
-    for column, value in fixed_fields.items():
-        df[column] = value
-    df.date = pd.to_datetime(df.date)
-    
-    # if parse was successful, remove file and return
-    tmp.unlink(missing_ok=True)
-    return df
-
-
-def write_df(
-        df : pd.DataFrame | pd.Series,
-        overwrite: bool = True
-) -> None:
-    """
-    Writes **record** dataframe to database. Performs type-checking, column type
-    checking, and if `df` has index or 'id' is in columns, then it updates each 
-    record accordingly. Otherwise, df is appeneded to database table.
-    
-    Arguments
-    -----
-    df
-        DataFrame to be passed to database. 
-    """
-
-    # sanitize dataframe before writing to it
-    table_name = Record.__tablename__
-    category_list = list(ctx.categories_dict.keys())
-    df = sanitize_df(df, category_list)
-
-    # check if appending or replacing
-    hasidindex = (df.index.name == 'id')
-    if 'id' not in df.columns and not hasidindex:  # appending
-        df.to_sql(table_name, ctx.engine, 
-                  if_exists='append',
-                  index=False)
-        pprint_df(df, "Changes have been commited.")
-        return None
-
-    if not overwrite:
-        print(f"{fg.red}DataFrame has non-trivial index.{fg.reset}"
-              "This can result in data loss."
-              f"To overwrite data, set {fg.red}overwrite=False{fg.reset}.")
-        return None
-    
-    # if there is id index, reset it so orient=records preserves it
-    if hasidindex:
-        df = df.reset_index()
-    as_dict = df.to_dict(orient='records')
-
-    with Session(ctx.engine) as session:
-        session.execute(update(Record), as_dict)
-        session.commit()
-    pprint_df(df, header="Actions commited.")
-
-
-
-def build_conversion(
-        date_: date | None = None,
-        base_operation_str: str | None = None,
-        target_operation_str: str | None = None,
-        description: str | None = None
-) -> None:
-    """
-    Prompts the user for a currency conversion and returns it.
-
-    Arugments:
-    -----
-        date
-            The date of the conversion. If None, the user is prompted.
-        base_operation_str
-            base operation (what you start with), if None -> prompted.
-        target_operation_str
-            target operation (what you get), if None -> prompted.
-        description
-            brief description of the conversion. If None, the user is prompted.
-    """
-
-    # type checking and prompters
-    date_ = prompt_date_operation(date_)
-    print("Base operation: what you start with / got converted.")
-    base_amount, base_currency = prompt_double_currency(ctx.default_currency, 
-                                                        base_operation_str)
-    print("Target operation: what you get / have now.")
-    target_amount, target_currency = prompt_double_currency(ctx.default_currency,
-                                                            target_operation_str)
-    if not description:
-        description = input("Type your description: ")
-    
-    # build and return
-    return Conversion(date=date_,
-                      base_currency=base_currency,
-                      base_amount=base_amount,
-                      target_currency=target_currency,
-                      target_amount=target_amount,
-                      description=description)
-
-
-def write_conversion(conv: Conversion | None = None) -> None:
-    """
-    Write conversion wrapper. Relies on `build_conversion` if `conv` is empty.
-    
-    Arguments
-    ----
-    conv
-        Conversion to write to Database. If None is passed then 
-        `build_conversion` is called to the rescue.
-    """
-    if conv is None:
-        conv = build_conversion()
-    label = "The following Conversion entity has been added to database:"
-    conv.write(ctx.engine, label)
+MAX_LINES_DATABASE = 20
+OVERWRITE_DF_HAS_INDEX = True
 
 
 def edit(
@@ -377,7 +102,7 @@ def delete(
 
 def fetch(
         semantic_filter: str | None = None,
-        max_lines: int | None = None,
+        max_lines: int | None = MAX_LINES_DATABASE,
 ) -> pd.DataFrame:
     """
     Fetches records from database.
@@ -402,19 +127,18 @@ def fetch(
     if max_lines:
         stmt = stmt.limit(max_lines)
     stmt = stmt.order_by(desc(Record.id))
-
     try:
         df = pd.read_sql(stmt, ctx.engine, Record.id.key,
-                         parse_dates={"date": PARSE_DATE_FORMAT})
+                         parse_dates={Record.date.key: PARSE_DATE_FORMAT})
     except pd.errors.DatabaseError:
         raise ValueError(f"Database error found. More likely wrong" 
-                         "query: {stmt=!r}.")
+                         f"query: {stmt=!r}.")
     else:
         return df
 
 
 def read_conversion(
-        max_lines: int = 20,
+        max_lines: int = MAX_LINES_DATABASE,
 ) -> None:
     """Simple conversion reader. No support for df return yet."""
     stmt = select(Conversion).limit(max_lines).order_by(desc(Conversion.date))
@@ -423,7 +147,7 @@ def read_conversion(
 
 
 def read(
-        max_lines: int = 20,
+        max_lines: int = MAX_LINES_DATABASE,
         entity_type: Conversion | Record = Record,
         semantic_filter: str | None = None,
 ):
@@ -449,6 +173,9 @@ def read(
     - Results are ordered by `Record.id` (desc) and limited by `max_lines`.
     - To use SQL, use `sql: SELECT ...` (only SELECT statements are supported).
     """
+    if semantic_filter is None:
+        semantic_filter = input("Type your semantic filter: ")
+
     if entity_type == Record:
         pprint_df(fetch(semantic_filter, max_lines))
     elif entity_type == Conversion:

@@ -9,7 +9,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from pkg.classes.model import Record, Conversion
 from pkg.coreutils.parser.dates import parse_date
-from pkg.coreutils.parser.sql import (ParseSQLError,
+from pkg.interfaces.db.sql import (ParseSQLError,
                                       ordering_query,
                                       string_query,
                                       date_query,
@@ -95,7 +95,8 @@ class TestStringQuery(TestCase):
         cases = [
             ('category like foobarbaz%', Record.category.like('foobarbaz%')),
             ('description like \'           food%     \'  ', Record.description.like('food%')),
-            ('      currency       wildcard \"food%\"', Record.currency.like('food%'))
+            ('      currency       wildcard \"food%\"', Record.currency.like('food%')),
+            ( 'description like %uten%', Record.description.like('%uten%'))
         ]
         for query, expected in cases:
             with self.subTest(query=query):
@@ -239,7 +240,7 @@ class TestSQLQuery(TestCase):
                     sql_query(invalid)
 
 
-
+# TODO: single query fails
 class TestSemanticFilterParser(TestCase):
     
     def test_query_is_splitted(self):

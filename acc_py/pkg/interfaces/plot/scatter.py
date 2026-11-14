@@ -8,7 +8,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from pkg.coreutils.typing import ParsablePeriod
-from pkg.coreutils.parser import parse_period
+from pkg.coreutils.parser.dates import parse_period
 from pkg.classes.model import Record
 from pkg.classes.context import ctx
 from .shared import (YEAR_MONTH_PERIOD_COL,

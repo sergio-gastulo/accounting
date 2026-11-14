@@ -2,20 +2,19 @@ import re
 from typing import Callable, TypeVar
 
 from sqlalchemy import (TextClause,
-                        Engine,
                         true, 
                         and_,
                         select,
                         text,)
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import BinaryExpression
 from sqlalchemy.dialects import sqlite
 
 from pkg.classes.model import Record
-from .dates import parse_date
+from pkg.coreutils.parser.dates import parse_date
 
 
 T = TypeVar(name="T")
+DEFAULT_SEPARATOR = "&&"
 
 SIGNS = {
     "<": "__lt__",
@@ -229,7 +228,7 @@ def sql_query(query: str):
 def parse_semantic_query(
         query: str,
         *,
-        separator: str = '&&'
+        separator: str = DEFAULT_SEPARATOR
 ) -> TextClause:
     """
     Converts `query` into a valid `select * from table where ...` 
@@ -250,36 +249,17 @@ def parse_semantic_query(
     `select(Record).where(text(string))`.
     """
 
-    if separator in query:
-        pattern = re.compile(rf"[\s]*{separator}[\s]*")
-        sql = (sql_query(stmt) for stmt in pattern.split(query.strip()))
-        return select(Record).where(*sql)
-
-    p = re.compile(r"\[(?P<insqbrackets>.*?)\]")
-    dialect = sqlite.dialect()
-    kwargs = dict(literal_binds=True)
-    def repl(m: re.Match):
-        sql = sql_query(m["insqbrackets"])
-        compiled = sql.compile(dialect=dialect,
-                               compile_kwargs=kwargs)
-        return str(compiled)
+    if "[" in query:
+        p = re.compile(r"\[(?P<insqbrackets>.*?)\]")
+        dialect = sqlite.dialect()
+        kwargs = dict(literal_binds=True)
+        def repl(m: re.Match):
+            sql = sql_query(m["insqbrackets"])
+            compiled = sql.compile(dialect=dialect,
+                                compile_kwargs=kwargs)
+            return str(compiled)
+        return select(Record).where(text(p.sub(repl, query)))
     
-    return select(Record).where(text(p.sub(repl, query)))
-
-
-
-def parse_record_from_id(
-        id_: str | int,
-        engine: Engine,
-        entity: T
-) -> T:
-    """Takes str | int and returns a record from it."""
-    if not isinstance(id_, str | int):
-        raise TypeError(f"Argument {id_=} must be String or Numeric type.")
-    id_ = int(id_)
-
-    with Session(engine) as session:
-        entity = session.get(entity, id_)
-    if entity is None:
-        raise ValueError(f"Can't get entity with {id_=}.")
-    return entity
+    pattern = re.compile(rf"[\s]*{separator}[\s]*")
+    sql = (sql_query(stmt) for stmt in pattern.split(query.strip()))
+    return select(Record).where(*sql)

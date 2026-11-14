@@ -3,13 +3,13 @@ from datetime import date
 from functools import wraps
 
 from sqlalchemy import Engine
+from sqlalchemy.orm import Session
 
 from .parser.arith_curr import (DEFAULT_LOWER_BOUND,
                                 parse_arithmetic_operation,
                                 parse_currency,
                                 parse_double_currency,)
 from .parser.dates import parse_date
-from .parser.sql import parse_record_from_id
 from .typing import KeybindDictType, FixedColumnsType
 from .dictops import resolve_value
 from .jops import jprint
@@ -217,6 +217,22 @@ def prompt_category_from_keybinds(
     return category
 
 
+def get_record_by_id(
+        id_: str | int,
+        engine: Engine,
+        entity: T
+) -> T:
+    """Takes str | int and returns a record from it."""
+    if not isinstance(id_, str | int):
+        raise TypeError(f"Argument {id_=} must be String or Numeric type.")
+    id_ = int(id_)
+
+    with Session(engine) as session:
+        entity = session.get(entity, id_)
+    if entity is None:
+        raise ValueError(f"Can't get entity with {id_=}.")
+    return entity
+
 
 @type_check(int | str | None, narg=-1)
 def prompt_entity_by_id(
@@ -227,7 +243,7 @@ def prompt_entity_by_id(
     """Returns `Record` object from given `id`."""
     res = main_loop(id_,
                     prompt="Type id to be filtered: ",
-                    parser=parse_record_from_id,
+                    parser=get_record_by_id,
                     engine=engine,
                     entity=entity)
     success(res)

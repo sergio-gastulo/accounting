@@ -148,16 +148,16 @@ def pprint_df(
     df = df.assign(**styler)
     # prevent default index from printing
     isdefault = df.index.dtype == int and not df.index.name
-    df = df.to_markdown(index = not isdefault, 
+    dfstr = df.to_markdown(index = not isdefault, 
                         tablefmt="outline")
 
     # provide a header if passed
     if header:
-        line = df.partition('\n')[0]
-        df = (f"{line}\n"
-              f"{header}\n"
-              f"{df}")
-    print(df)
+        line = dfstr.partition('\n')[0]
+        dfstr = (f"{line}\n"
+                 f"{header}\n"
+                 f"{dfstr}")
+    print(dfstr)
 
 
 

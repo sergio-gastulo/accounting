@@ -1,6 +1,5 @@
 import re
 
-
 DEFAULT_LOWER_BOUND = 0.
 
 
@@ -50,7 +49,7 @@ def parse_arithmetic_operation (
     return value
 
 
-def parse_currency(currency : str) -> str:
+def parse_currency(currency: str) -> str:
     """
     Checks if `currency` is a 3-word-length `str` and returns it 
     in uppercase. 

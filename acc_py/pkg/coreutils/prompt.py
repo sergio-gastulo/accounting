@@ -1,5 +1,6 @@
 from typing import Callable, TypeVar
 from datetime import date
+from decimal import Decimal
 
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
@@ -69,10 +70,10 @@ def main_loop(
     raise RuntimeError(f"No valid input after {max_attempts} attempts.")
 
 
-@early_return(int | float)
-@type_check(str)
+@early_return(int | float | Decimal)
+@type_check()
 def prompt_arithmetic_operation(
-        user_input: str | float | int | None = None, 
+        user_input: str | float | int | Decimal | None = None, 
         lbound: int | float = DEFAULT_LOWER_BOUND
 ) -> float | int :
     """
@@ -87,9 +88,9 @@ def prompt_arithmetic_operation(
 
 
 @early_return(date)
-@type_check(str)
+@type_check()
 def prompt_date_operation(
-        date_input: str | date | None = None
+        date_input: str | date | int | None = None
 ) -> date:
     """Converts `str` into `datetime.date` type."""
     res: date = main_loop(date_input,
@@ -99,7 +100,7 @@ def prompt_date_operation(
     return res
 
 
-@type_check(str)
+@type_check()
 def prompt_currency(
         currency_input: str | None = None,
         quiet: bool = True
@@ -116,11 +117,11 @@ def prompt_currency(
     return res
 
 
-@type_check(str, narg=1)
+@type_check()
 def prompt_double_currency(
         default_currency: str | None = None,
         double_curr_input: str | None = None, 
-        lbound : float = DEFAULT_LOWER_BOUND
+        lbound: float = DEFAULT_LOWER_BOUND
 ) -> tuple[float, str]:
     """Converts `str` into valid (amount, currency) pair."""
     amount, currency = main_loop(double_curr_input,
@@ -132,7 +133,7 @@ def prompt_double_currency(
     return amount, currency
 
 
-@type_check(str | None, narg=1)
+@type_check(["uinput"])
 def get_from_nested_dict(
         kdict: KeybindDictType,
         uinput: str | None,
@@ -152,7 +153,7 @@ def get_from_nested_dict(
         softerror(e)
 
 
-@type_check(str | None, narg=1)
+@type_check(["keyinput"])
 def prompt_category_from_keybinds(
         keybind_dict: KeybindDictType,
         keyinput: str | None = None,
@@ -175,17 +176,13 @@ def prompt_category_from_keybinds(
         success(category)
     return category
 
-
+@type_check(["id_"])
 def get_record_by_id(
         id_: str | int,
         engine: Engine,
         entity: T
 ) -> T:
     """Takes str | int and returns a record from it."""
-    if not isinstance(id_, str | int):
-        raise TypeError(f"Argument {id_=} must be String or Numeric type.")
-    id_ = int(id_)
-
     with Session(engine) as session:
         entity = session.get(entity, id_)
     if entity is None:
@@ -193,7 +190,7 @@ def get_record_by_id(
     return entity
 
 
-@type_check(int | str | None, narg=-1)
+@type_check(["id_"])
 def prompt_entity_by_id(
         engine: Engine, 
         entity: T,
@@ -219,7 +216,7 @@ def prompt_entity_by_id(
 #    e.g. "amount description" -> [amount, description]
 #-----------------------------------------------
 
-@type_check(str | None)
+@type_check()
 def prompt_list_of_fields(
         user_input: str | None = None
 ) -> list[str]:
@@ -277,7 +274,7 @@ def prompt_list_of_fields(
 #     dict.update( { field : validate(field) } )
 #-----------------------------------------
 
-@type_check(str | None, narg=-1)
+@type_check(["fields_str"])
 def prompt_column_value(
         keybind_dict : KeybindDictType,
         fields_str : str | None = None

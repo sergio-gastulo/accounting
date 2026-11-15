@@ -29,6 +29,7 @@ class RecordAccessor:
             df.to_sql(Record.__tablename__, ctx.engine,
                       if_exists="append",
                       index=False)
+            pprint_df(df, header="Actions commited.")
             return None
         
         if not overwrite:

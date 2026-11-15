@@ -18,18 +18,19 @@ def load_db_api_module(*args) -> None:
     ctx.set(*args)
 
     # populate global namespace from db_api
-    import pkg.interfaces.db as db
+    import pkg.interfaces.db.recordaccessor as raccessor
     from pkg.classes.model import Record, Conversion
     from pkg.interfaces.db.dataframe import fetch, read
 
     def load():
         load_plot_module(*args)
     exposed = {
+        "fetch": fetch,
         "load": load,
         "Record": Record,
         "Conversion": Conversion,
         "fetch": fetch,
-        "read": read
+        "read": read,
     }
     globals().update(exposed)
 

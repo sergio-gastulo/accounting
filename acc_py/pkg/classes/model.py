@@ -10,9 +10,11 @@ from sqlalchemy.orm import (Mapped,
                             mapped_column,
                             declarative_base,)
 
-from pkg.coreutils.parser.dates import parse_date
-from pkg.coreutils.parser.arith_curr import (parse_arithmetic_operation,
-                                             parse_currency,)
+from pkg.coreutils.prompt import (prompt_arithmetic_operation,
+                                  prompt_double_currency,
+                                  prompt_currency,
+                                  prompt_date_operation,
+                                  prompt_category_from_keybinds,)
 from pkg.coreutils.functools import type_check
 from .context import ctx
 
@@ -49,36 +51,16 @@ class Entity:
 
     def write(
             self,
-            label: str | None = None,
-            quiet: bool = PRINT_ON_WRITE_DEFAULT
-    ) -> None:
+    ) -> int:
         """
-        Writes to database without asking for commit. 
-        Checks `engine`, `label` and `quiet` type. 
-        
-        Arguments
-        ---------
-        `engine`
-            sqlalchemy.Engine object to generate a session from to write Record 
-            | Conversion to. Does not perform any other assumption.
-        `label`
-            Simple label that is passed to print before showing entity's pretty
-            str
-        `quiet`
-            Controls if both label and `entity` are printed to sys.stdout.
-            Defaults to False (yes, print, please!)
+        Writes to database without asking for commit.
         """
-
-        if label is None:
-            label = "The following record has been added to database:"
-
         self.validate()  # TODO: test
         with Session(ctx.engine) as session:
             session.add(self)
             session.commit()
             session.refresh(self)
-            if not quiet:
-                print(label, self, sep="\n")
+        return self.id
 
     def delete(self) -> None:
         """
@@ -98,9 +80,10 @@ class Entity:
         return new
 
     @classmethod
-    @type_check(int)
     def get(cls, id_: int):
         """Get an entity by `id`."""
+        if not isinstance(id_, int):
+            raise TypeError(f"Argument {id_=!r} is not an integer.")
         with Session(ctx.engine) as session:
             entity = session.get(cls, id_)
         if entity is None:
@@ -122,15 +105,22 @@ class Record(Base, Entity):
     def validate(self):
         """Validate each of the fields of `self`."""
 
-        self.date = parse_date(self.date)
-        self.amount = parse_arithmetic_operation(self.amount)
-        self.currency = parse_currency(self.currency)
+        self.date = prompt_date_operation(self.date)
+
+        if self.amount is None and self.currency is None:
+            self.amount, self.currency = prompt_double_currency(ctx.default_currency,
+                                                                None)
+        else:
+            self.amount = prompt_arithmetic_operation(self.amount)
+            self.currency = prompt_currency(self.currency)
+
+        if self.description is None:
+            self.description = input("Type your descrption: ")
         if not isinstance(self.description, str):
             raise ValueError(f"Description '{self.description!r}' "
-                            "is not a string.")
-        if self.category not in CATEGORIES:
-            raise ValueError(f"Category {self.category!r} not "
-                            "in `ctx.categories_dict`.")
+                             "is not a string.")
+        self.category = prompt_category_from_keybinds(ctx.keybinds,
+                                                      self.category)
 
 
 class Conversion(Base, Entity):
@@ -170,16 +160,14 @@ class Conversion(Base, Entity):
 
     def validate_conversion(self: Conversion):
         """Validate each of the fields of `conv`."""
-        self.date = parse_date(self.date)
-        self.base_amount = parse_arithmetic_operation(self.base_amount)
-        self.base_currency = parse_arithmetic_operation(self.base_currency)
-        self.target_amount = parse_arithmetic_operation(self.target_amount)
-        self.target_currency = parse_arithmetic_operation(self.target_currency)
+        self.date = prompt_date_operation(self.date)
+        self.base_amount = prompt_arithmetic_operation(self.base_amount)
+        self.base_currency = prompt_currency(self.base_currency)
+        self.target_amount = prompt_arithmetic_operation(self.target_amount)
+        self.target_currency = prompt_currency(self.target_currency)
         if not isinstance(self.description, str):
             raise ValueError(f"Description '{self.description!r}' "
                              "is not a string.")
-
-
 
     # TODO: method that swaps base and target and writes to database directly
     def invert(self):

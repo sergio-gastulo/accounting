@@ -1,4 +1,6 @@
 from functools import wraps
+from typing import get_type_hints
+
 from .colors import fg
 
 
@@ -28,15 +30,36 @@ def early_return(classinfo):
     return decorator
 
 
-def type_check(classinfo, *, narg: int = 0):
-    """Raise TypeError if `n`th argument is not of type `classinfo`."""
+def type_check(argnames: list[str] | None = None):
+    """Raise TypeError if `argname` argument is not of it's respective type.
+    
+    Notes
+    -----
+    * Ignores parametrized generics
+    """
     def decorator(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            first_arg = args[narg]
-            if not isinstance(first_arg, classinfo):
-                raise TypeError(
-                    f"Argument '{first_arg}' is not of type `str`.")
+            typehints = get_type_hints(func)
+            inorder = list(typehints.keys())
+            iterator = argnames if argnames else inorder
+            if argnames is None:
+                iterator.remove("return")
+            for argname in iterator:
+                idx = inorder.index(argname)
+                try:
+                    iscorrect = isinstance(args[idx], typehints[argname])
+                except TypeError as e:
+                    if "isinstance() argument" in str(e):
+                        pass
+                    else:
+                        raise e
+                except IndexError:  # TODO: test this
+                    pass  # default values are not passed in *args -> ignoring
+                else:
+                    if not iscorrect:
+                        raise TypeError(
+                            f"Argument {argname=!r} is not of type `str`.")
             res = func(*args, **kwargs)
             return res
         return wrapped

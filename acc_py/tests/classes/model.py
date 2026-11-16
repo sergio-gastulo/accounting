@@ -194,5 +194,49 @@ class TestConversion(TestCase):
         self.assertEqual(expectedid, conv.id)
 
 
-if __name__ == "__main__":
-    unittest.main()
+class TestRecordFromIDParser(TestCase):    
+
+    engine = mem_engine()
+
+    def test_id_success_record(self):
+        record = Record(date=TODAY,
+                        amount=0.65,
+                        currency="foo",
+                        description="foo",
+                        category = "foo")
+        record.write(self.engine, quiet=True)
+        inputs = ["1", 1]
+        for uinput in inputs:
+            with self.subTest(uinput=uinput):
+                res = parse_record_from_id(uinput, self.engine, Record)
+                self.assertEqual(record, res)
+
+    def test_id_success_conversion(self):
+        conv = Conversion(date=TODAY,
+                          base_currency="USD",
+                          base_amount=1.0,
+                          target_currency="EUR",
+                          target_amount=5.0,
+                          description="foobarbaz")
+        conv.write(self.engine, quiet=True)
+        inputs = ["1", 1]
+        for uinput in inputs:
+            with self.subTest(uinput=uinput):
+                res = parse_record_from_id(uinput, self.engine, Conversion)
+                self.assertEqual(conv, res)
+
+    def test_uinput_not_int_parsable(self):
+        uinput = "not-int"
+        with self.assertRaises(ValueError):
+            parse_record_from_id(uinput, self.engine, Record)
+
+    def test_int_parsable_but_inexistent(self):
+        uinput = "99999"
+        with self.assertRaises(ValueError):
+            parse_record_from_id(uinput, self.engine, Record)
+
+    def test_type_error(self):        
+        bad_inputs = [print, None, float]
+        for uinput in bad_inputs:
+            with self.assertRaises(TypeError):
+                parse_record_from_id(uinput, self.engine, Record)

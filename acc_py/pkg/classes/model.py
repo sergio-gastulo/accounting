@@ -19,7 +19,6 @@ from pkg.coreutils.functools import type_check
 from .context import ctx
 
 
-CATEGORIES = list(ctx.categories_dict.keys())
 PRINT_ON_WRITE_DEFAULT = False
 
 

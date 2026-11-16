@@ -118,7 +118,7 @@ class TestDoubleCurrencyPairParser(TestCase):
             '',
             '               ',
         ]
-        for raw_input, err in cases:
+        for raw_input in cases:
             with self.subTest(raw_input=raw_input):
                 with self.assertRaises(ValueError):
                     parse_double_currency(def_curr, raw_input, lbound)

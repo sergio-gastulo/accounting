@@ -82,6 +82,7 @@ Check [fields-example.json](/config/fields-example.json) for an up-to-date examp
 - Start working on the CLI instead of relying on the REPL (support both though).
 - Decide whether currencies should be upper or lower case.
 - Maybe implement backup function that can be called from Python REPL.
+- Move decorators to functools.
 
 ### User Compatible TODOs
 TODOs that would be useful if this project became an application for other people.

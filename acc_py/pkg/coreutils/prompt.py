@@ -176,35 +176,6 @@ def prompt_category_from_keybinds(
         success(category)
     return category
 
-@type_check(["id_"])
-def get_record_by_id(
-        id_: str | int,
-        engine: Engine,
-        entity: T
-) -> T:
-    """Takes str | int and returns a record from it."""
-    with Session(engine) as session:
-        entity = session.get(entity, id_)
-    if entity is None:
-        raise ValueError(f"Can't get entity with {id_=}.")
-    return entity
-
-
-@type_check(["id_"])
-def prompt_entity_by_id(
-        engine: Engine, 
-        entity: T,
-        id_: str | int | None = None,
-) -> T:
-    """Returns `Record` object from given `id`."""
-    res = main_loop(id_,
-                    prompt="Type id to be filtered: ",
-                    parser=get_record_by_id,
-                    engine=engine,
-                    entity=entity)
-    success(res)
-    return res
-
 
 #-----------------------------------------------
 # The following function aims to cover the following

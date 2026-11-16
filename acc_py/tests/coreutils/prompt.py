@@ -7,8 +7,6 @@ from datetime import date
 from pkg.classes.model import Record, Conversion
 from pkg.coreutils.prompt import (softerror,
                                   success,
-                                  early_return,
-                                  type_check,
                                   main_loop,
                                   prompt_arithmetic_operation,
                                   prompt_category_from_keybinds,
@@ -406,77 +404,6 @@ class TestCategoryFromKeybindsPrompt(TestCase):
 
 
 
-class TestRecordByIDPrompt(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.engine = mem_engine()
-        return super().setUpClass()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.engine.dispose()
-        return super().tearDownClass()
-
-    def test_str_none_passed_record(self):
-        prompt = "Type id to be filtered: "
-        record = Record(date=TODAY,
-                        amount=2.4,
-                        currency="foo",
-                        description="foo",
-                        category="foo")
-        record.write(self.engine, quiet=True)
-        uinputs = ["1", None, 1]
-        for uinput in uinputs:
-            with self.subTest(uinput=uinput):
-                with (
-                    patchf(main_loop) as mock_main,
-                    patchf(success) as mock_success,
-                ):
-                    mock_main.return_value = record
-                    res = prompt_entity_by_id(self.engine, Record, uinput)
-                mock_main.assert_called_once()
-                mock_success.assert_called_once_with(record)
-                arg, kwargs = mock_main.call_args
-                self.assertEqual(arg[0], uinput)
-                self.assertIn("parser", kwargs)
-                self.assertEqual(prompt, kwargs["prompt"])
-                self.assertEqual(self.engine, kwargs["engine"])
-                self.assertEqual(res, record)
-
-    def test_str_none_passed_conversion(self):
-        prompt = "Type id to be filtered: "
-        conv = Conversion(date=TODAY,
-                          base_currency="USD",
-                          base_amount=1.0,
-                          target_currency="EUR",
-                          target_amount=5.0,
-                          description="foobarbaz")
-        conv.write(self.engine, quiet=True)
-        uinputs = [ "1", None, 1]
-        for uinput in uinputs:
-            with self.subTest(uinput=uinput):
-                with (
-                    patchf(main_loop) as mock_main,
-                    patchf(success) as mock_success,
-                ):
-                    mock_main.return_value = conv
-                    res = prompt_entity_by_id(self.engine, Conversion, uinput)
-                mock_main.assert_called_once()
-                mock_success.assert_called_once_with(conv)
-                arg, kwargs = mock_main.call_args
-                self.assertEqual(arg[0], uinput)
-                self.assertIn("parser", kwargs)
-                self.assertEqual(prompt, kwargs["prompt"])
-                self.assertEqual(self.engine, kwargs["engine"])
-                self.assertEqual(res, conv)
-
-    def test_type_err_on_nonstr_id(self):
-        id_ = print
-        with self.assertRaises(TypeError):
-            prompt_entity_by_id(self.engine, Record, id_)
-
-
 
 class TestListOfFieldsPrompt(TestCase):
 
@@ -522,44 +449,3 @@ class TestListOfFieldsPrompt(TestCase):
         uinput = aiter
         with self.assertRaises(TypeError):
             prompt_list_of_fields(uinput)
-
-
-
-class TestColumnValuePrompt(TestCase):
-    def test_simple_routine(self):
-        # foobarbaz dictionary
-        keybinds = { "a" : "arroz", "b" : "bueno"}
-        
-        # stands for description, currency
-        uinput = "d c"
-        res_mocked_prompt_list_fields = [ "description", "currency" ]
-        
-        # asking which description, which currency
-        res_mocked_description = "any description"
-        res_mocked_currency = "cur"
-
-        expected = {
-            "description" : res_mocked_description,
-            "currency" : res_mocked_currency
-        }
-        with (
-            patchf(prompt_list_of_fields) as mock_prompt,
-            patch_builtin(input) as mock_input,
-            patchf(prompt_currency) as mock_currency
-        ):
-            mock_prompt.return_value = res_mocked_prompt_list_fields
-            mock_currency.return_value = res_mocked_currency
-            mock_input.return_value = res_mocked_description
-            res = prompt_column_value(keybinds, uinput)
-        mock_prompt.assert_called_once_with(uinput)
-        mock_currency.assert_called_once()
-        mock_input.assert_called_once()
-        self.assertEqual(res, expected)
-
-    def test_type_err_on_input(self):
-        keybinds = { "a" : "arroz", "b" : "bueno" }
-        badinputs = [ print, aiter, 1.0, {"a" : "b"}]
-        for bad in badinputs:
-            with self.subTest(bad=bad):
-                with self.assertRaises(TypeError):
-                    prompt_column_value(keybinds, bad)

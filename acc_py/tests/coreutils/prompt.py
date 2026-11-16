@@ -403,8 +403,6 @@ class TestCategoryFromKeybindsPrompt(TestCase):
         mock_getter.assert_called_once()
 
 
-
-
 class TestListOfFieldsPrompt(TestCase):
 
     def test_regular_input(self):

@@ -1,10 +1,6 @@
 from typing import Callable, TypeVar
 from datetime import date
 from decimal import Decimal
-
-from sqlalchemy import Engine
-from sqlalchemy.orm import Session
-
 from .parser.arith_curr import (DEFAULT_LOWER_BOUND,
                                 parse_arithmetic_operation,
                                 parse_currency,

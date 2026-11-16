@@ -4,23 +4,17 @@ from typing import Callable
 from io import StringIO
 from datetime import date
 
-from pkg.classes.model import Record, Conversion
 from pkg.coreutils.prompt import (softerror,
                                   success,
                                   main_loop,
                                   prompt_arithmetic_operation,
                                   prompt_category_from_keybinds,
-                                  prompt_column_value,
                                   prompt_currency,
                                   prompt_date_operation,
                                   prompt_double_currency,
-                                  prompt_list_of_fields,
-                                  get_from_nested_dict,
-                                  prompt_entity_by_id,)
-from tests._shared import (TODAY,
-                           Patcher,
-                           patch_builtin,
-                           mem_engine,)
+                                  get_from_nested_dict,)
+from tests._shared import (Patcher,
+                           patch_builtin,)
 
 
 TEST_MODULE = 'pkg.coreutils.prompt'
@@ -401,49 +395,3 @@ class TestCategoryFromKeybindsPrompt(TestCase):
                 prompt_category_from_keybinds(keybinds, None, max_attempts)
         mock_success.assert_not_called()
         mock_getter.assert_called_once()
-
-
-class TestListOfFieldsPrompt(TestCase):
-
-    def test_regular_input(self):
-        uinput = "d c cat"
-        prompt = "Write valid elements from list: "
-        expected_from_parser = ["description", "currency", "category"]
-        with (
-            patchf(main_loop) as mock_main,
-            patchf('jprint') as mock_jprint,
-            patchf(success) as mock_success,
-        ):
-            mock_main.return_value = expected_from_parser
-            res = prompt_list_of_fields(uinput)
-        mock_jprint.assert_called_once()
-        mock_success.assert_called_once_with(*expected_from_parser)
-        arg, kwargs = mock_main.call_args
-        self.assertEqual(arg[0], uinput)
-        self.assertIn("parser", kwargs)
-        self.assertEqual(prompt, kwargs["prompt"])
-        self.assertEqual(res, expected_from_parser)
-
-    def test_bad_input(self):
-        uinput = "not valid input"
-        prompt = "Write valid elements from list: "
-        expected_from_parser = ["description", "currency", "category"]
-        with (
-            patchf(main_loop) as mock_main,
-            patchf('jprint') as mock_jprint,
-            patchf(success) as mock_success,
-        ):
-            mock_main.return_value = expected_from_parser
-            res = prompt_list_of_fields(uinput)
-        mock_jprint.assert_called_once()
-        mock_success.assert_called_once_with(*expected_from_parser)
-        arg, kwargs = mock_main.call_args
-        self.assertEqual(arg[0], uinput)
-        self.assertIn("parser", kwargs)
-        self.assertEqual(prompt, kwargs["prompt"])
-        self.assertEqual(res, expected_from_parser)
-
-    def test_typeerr(self):
-        uinput = aiter
-        with self.assertRaises(TypeError):
-            prompt_list_of_fields(uinput)

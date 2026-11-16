@@ -6,7 +6,7 @@ from .parser.arith_curr import (DEFAULT_LOWER_BOUND,
                                 parse_currency,
                                 parse_double_currency,)
 from .parser.dates import parse_date
-from .typing import KeybindDictType, FixedColumnsType
+from .typing import KeybindDictType
 from .dictops import resolve_value
 from .jops import jprint
 from .functools import (success,
@@ -18,6 +18,7 @@ from .functools import (success,
 DATE_SUCCESS_FORMAT = "%a %d %b %Y"
 MAX_ATTEMPTS_LOOP = 5
 T = TypeVar(name="T")
+
 
 def main_loop(
         uinput: str | None,
@@ -171,111 +172,3 @@ def prompt_category_from_keybinds(
     if not quietonsuccess:
         success(category)
     return category
-
-
-#-----------------------------------------------
-# The following function aims to cover the following
-# possibilities
-# [categories] (e.g. ['amount', 'description']) // prolly never gonna happen
-# string_with_spaces_initial_of_categories
-#    e.g. "am des cu" -> [amount, description, currency]
-# string_with_spaces_full_column
-#    e.g. "amount description" -> [amount, description]
-#-----------------------------------------------
-
-@type_check()
-def prompt_list_of_fields(
-        user_input: str | None = None
-) -> list[str]:
-    """
-    Prompts list of fields from manually crafted keybinds dict. Possible 
-    escenarios include:
-    * abbv form: "a desc c" -> [amount, description, currency]
-    * full col names: "amount description" -> [amount, description]
-    
-    Relies on listable `parse_valid_element_list`.
-    """
-
-    # set keybinds and with it construct simple local parser
-    keybinds = {
-        "d"     : "date",
-        "a"     : "amount",
-        "c"     : "currency",
-        "desc"  : "description",
-        "cat"   : "category",
-        "b_am"  : "base_amount",
-        "b_am"  : "base_currency",
-        "t_am"  : "target_amount",
-        "t_c"   : "target_currency",
-    }
-    def _parser( unsplit_cols : str ) -> list[str]:
-        """Takes user input and splits it, while calling core parser."""
-        split = unsplit_cols.strip().split()
-        res =  [    resolve_value(col, keybinds)
-                    for col in split                        ]
-        return res
-    
-    # main loop construction
-    kwargs = {
-        "prompt" : "Write valid elements from list: ",
-        "parser" : _parser
-    }
-    jprint(keybinds)
-    res = main_loop(user_input, **kwargs)
-    success(*res)
-    return res
-
-
-#-----------------------------------------
-# This function aims to return a dictionary:
-# {
-#     field1: value1,
-#     field2: value2,
-#     ...
-# }
-# That will be later converted into a valid Record
-# e.g.
-# [fields] = prompt_list_of_fields()
-# dict = {}
-# for field in fields: 
-#     dict.update( { field : validate(field) } )
-#-----------------------------------------
-
-@type_check(["fields_str"])
-def prompt_column_value(
-        keybind_dict : KeybindDictType,
-        fields_str : str | None = None
-) -> FixedColumnsType:
-    """
-    Asks which columns you'd like to set values to, and runs the corresponding 
-    parsers. Example:
-    * "d c cat" -> transformed into [cols] -> runs parser associated to them.
-    * Only used when writing dataframe or writing list. 
-    * `keybind_dict` is necessary to pass to `prompt_category_from_keybinds`.
-    """
-
-    # ask which columns are being fixed
-    fields = prompt_list_of_fields(fields_str)
-
-    # main loop construction
-    def prompt_cat():
-        category = prompt_category_from_keybinds(keybind_dict)
-        return category
-    
-    field_func = {
-        "date": prompt_date_operation,
-        "amount": prompt_arithmetic_operation,
-        "currency": prompt_currency,
-        "description": input,
-        "category": prompt_cat,
-        "base_amount": prompt_arithmetic_operation,
-        "target_amount": prompt_arithmetic_operation,
-        "base_currency": prompt_currency,
-        "target_currency": prompt_currency,
-    }
-    res = {}
-    for field in fields:
-        val = field_func[field]()
-        res.update({ field : val })
-    
-    return res

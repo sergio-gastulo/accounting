@@ -20,6 +20,9 @@ from .context import ctx
 
 
 PRINT_ON_WRITE_DEFAULT = False
+MAX_NUMBER_LENGTH = 10
+MAX_DECIMAL_LENGTH = 2
+CURRENCY_ISO_FORMAT_LENGTH = 3
 Base = declarative_base()
 
 
@@ -103,8 +106,8 @@ class Record(Base, Entity):
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
-    amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    amount: Mapped[float] = mapped_column(Numeric(MAX_NUMBER_LENGTH, MAX_DECIMAL_LENGTH), nullable=False)
+    currency: Mapped[str] = mapped_column(String(CURRENCY_ISO_FORMAT_LENGTH), nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
     category: Mapped[str] = mapped_column(nullable=False)
 
@@ -187,10 +190,16 @@ class Conversion(Base, Entity):
         self.validate_amount_currency(attr="base")
         self.validate_amount_currency(attr="target")
 
-    # TODO: method that swaps base and target and writes to database directly
     def swap(self):
-        pass
-
+        """Swaps base attrs to target and viceversa."""
+        # TODO: test func
+        (self.base_amount,
+         self.base_currency,
+         self.target_amount,
+         self.target_currency) = (self.target_amount,
+                                  self.target_currency,
+                                  self.base_amount,
+                                  self.base_currency)
 
 
 def create_tables(engine: Engine) -> None:

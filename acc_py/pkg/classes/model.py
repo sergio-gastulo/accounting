@@ -15,13 +15,11 @@ from pkg.coreutils.prompt import (prompt_arithmetic_operation,
                                   prompt_currency,
                                   prompt_date_operation,
                                   prompt_category_from_keybinds,)
-from pkg.coreutils.functools import type_check
+from pkg.coreutils.colors import fg
 from .context import ctx
 
 
 PRINT_ON_WRITE_DEFAULT = False
-
-
 Base = declarative_base()
 
 
@@ -54,7 +52,7 @@ class Entity:
         """
         Writes to database without asking for commit.
         """
-        self.validate()  # TODO: test
+        self.validate()
         with Session(ctx.engine) as session:
             session.add(self)
             session.commit()
@@ -89,6 +87,15 @@ class Entity:
             raise ValueError(f"Entity with {id_=!r} does not exist.")
         return entity
 
+    def validate_description(self):
+        if self.description is None:
+            self.description = input("Type your description: ")
+        if not isinstance(self.description, str):
+            raise TypeError(f"Argument {self.description=!r} is not str.")
+
+    def validate_date(self):
+        self.date = prompt_date_operation(self.date)
+
 
 class Record(Base, Entity):
 
@@ -101,11 +108,8 @@ class Record(Base, Entity):
     description: Mapped[str] = mapped_column(String, nullable=False)
     category: Mapped[str] = mapped_column(nullable=False)
 
-    def validate(self):
-        """Validate each of the fields of `self`."""
-
-        self.date = prompt_date_operation(self.date)
-
+    def validate_amount_currency(self):
+        """Validate amount and currency exclusively."""
         if self.amount is None and self.currency is None:
             self.amount, self.currency = prompt_double_currency(ctx.default_currency,
                                                                 None)
@@ -113,13 +117,17 @@ class Record(Base, Entity):
             self.amount = prompt_arithmetic_operation(self.amount)
             self.currency = prompt_currency(self.currency)
 
-        if self.description is None:
-            self.description = input("Type your descrption: ")
-        if not isinstance(self.description, str):
-            raise ValueError(f"Description '{self.description!r}' "
-                             "is not a string.")
-        self.category = prompt_category_from_keybinds(ctx.keybinds,
-                                                      self.category)
+    def validate_category(self):
+        self.category = prompt_category_from_keybinds(
+            ctx.keybinds, self.category
+        )
+
+    def validate(self):
+        """Validate each of the fields of `self`."""
+        self.validate_date()
+        self.validate_amount_currency()
+        self.validate_description()
+        self.validate_category()
 
 
 class Conversion(Base, Entity):
@@ -157,19 +165,30 @@ class Conversion(Base, Entity):
         """base * rate = target"""
         return self.target_amount / self.base_amount
 
-    def validate_conversion(self: Conversion):
+    def validate_amount_currency(self, *, attr: str = "base"):
+        """Validate {attr}_amount and {attr}_currency exclusively."""
+        amount = self, f"{attr}_amount"
+        currency = self, f"{attr}_currency"
+
+        if getattr(*amount) is None and getattr(*currency) is None:
+            print(f"{fg.yellow}Validating '{attr.upper()}' "
+                  f"[base->target].{fg.reset}")
+            pair = prompt_double_currency(ctx.default_currency, None)
+            setattr(*amount, pair[0])
+            setattr(*currency, pair[1])
+        else:
+            setattr(*amount, prompt_arithmetic_operation(getattr(*amount)))
+            setattr(*currency, prompt_currency(getattr(*currency)))
+
+    def validate(self):
         """Validate each of the fields of `conv`."""
-        self.date = prompt_date_operation(self.date)
-        self.base_amount = prompt_arithmetic_operation(self.base_amount)
-        self.base_currency = prompt_currency(self.base_currency)
-        self.target_amount = prompt_arithmetic_operation(self.target_amount)
-        self.target_currency = prompt_currency(self.target_currency)
-        if not isinstance(self.description, str):
-            raise ValueError(f"Description '{self.description!r}' "
-                             "is not a string.")
+        self.validate_date()
+        self.validate_description()
+        self.validate_amount_currency(attr="base")
+        self.validate_amount_currency(attr="target")
 
     # TODO: method that swaps base and target and writes to database directly
-    def invert(self):
+    def swap(self):
         pass
 
 

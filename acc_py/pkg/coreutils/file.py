@@ -1,24 +1,15 @@
 import os
 import hashlib
 from pathlib import Path
-from datetime import datetime
 import subprocess
 from tkinter.filedialog import askopenfilename
 
-import pandas as pd
-
-from .paths import (APPLICATION_STORAGE_DIRECTORY,
-                    PROJECT_DIRECTORY,
+from .paths import (PROJECT_DIRECTORY,
                     PYTHON_MODULE,)
-from .jops import jdump
 from .functools import type_check
 
 
 DEFAULT_OPEN_DIRECTORY_WITH_EDITOR = False
-NOW_DEFAULT_FORMAT = "%Y-%m-%d_%H-%M-%S"
-DEFAULT_EXPORT_FORMAT = "json"
-SUPPORTED_EXTENSIONS = {"csv", "json", "xml"}
-
 
 class SHA256Error(Exception):
     pass
@@ -32,8 +23,17 @@ def sha256(file_path: Path) -> str:
     with open(file_path, 'rb') as file:
         while chunk := file.read(chunksize):
             hash_func.update(chunk)
-    
     return hash_func.hexdigest()
+
+
+# https://stackoverflow.com/a/49782093/29272030
+def rmdir(directory: Path) -> None:
+    for item in directory.iterdir():
+        if item.is_dir():
+            rmdir(item)
+        else:
+            item.unlink()
+    directory.rmdir()
 
 
 def askeditor() -> Path:
@@ -41,31 +41,27 @@ def askeditor() -> Path:
     program_files = os.environ['ProgramFiles']
     title = "Select your preferred text editor."
     allowed = [("Exe", "*.exe")]
-    
+
+    editor_path = None
     while not editor_path:
         print("An editor file is mandatory for editing, please pick one.")
         editor_path = askopenfilename(initialdir=program_files, 
                                       title=title,
-                                      filetypes=allowed)
+                                      filetypes=allowed,)
     return Path(editor_path)
 
 
 def check_editor(editor_path : Path | str | None) -> Path:
     """Check if path is a valid .exe"""
 
-    # wrap Path type
     if isinstance(editor_path, str):
         editor_path = Path(editor_path)
-
     if isinstance(editor_path, Path):
-        # check if it's a valid executable
         if editor_path.exists() and editor_path.suffix == ".exe":
             return editor_path
         return askeditor()
-    
     if editor_path is None:
         return askeditor()
-
     raise TypeError(f"{editor_path=} is not a valid argument.")
 
 
@@ -98,14 +94,3 @@ def file_open(
 
     subprocess.call([editor, p])
     return p
-
-
-
-# https://stackoverflow.com/a/49782093/29272030
-def rmdir(directory: Path) -> None:
-    for item in directory.iterdir():
-        if item.is_dir():
-            rmdir(item)
-        else:
-            item.unlink()
-    directory.rmdir()

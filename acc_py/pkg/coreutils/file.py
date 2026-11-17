@@ -1,18 +1,23 @@
-"""File managament module."""
-
-from pathlib import Path
-from typing import Optional
+import os
 import hashlib
+from pathlib import Path
 from datetime import datetime
 import subprocess
-import sys
-from os import environ
 from tkinter.filedialog import askopenfilename
 
 import pandas as pd
 
-from .paths import APPLICATION_STORAGE_DIRECTORY
+from .paths import (APPLICATION_STORAGE_DIRECTORY,
+                    PROJECT_DIRECTORY,
+                    PYTHON_MODULE,)
 from .jops import jdump
+from .functools import type_check
+
+
+DEFAULT_OPEN_DIRECTORY_WITH_EDITOR = False
+NOW_DEFAULT_FORMAT = "%Y-%m-%d_%H-%M-%S"
+DEFAULT_EXPORT_FORMAT = "json"
+SUPPORTED_EXTENSIONS = {"csv", "json", "xml"}
 
 
 class SHA256Error(Exception):
@@ -20,7 +25,7 @@ class SHA256Error(Exception):
 
 
 # https://www.geeksforgeeks.org/python/python-program-to-find-hash-of-file/
-def sha256(file_path : Path) -> str:
+def sha256(file_path: Path) -> str:
     """Compute sha256 of file."""
     hash_func = hashlib.sha256()
     chunksize = 65536
@@ -31,9 +36,23 @@ def sha256(file_path : Path) -> str:
     return hash_func.hexdigest()
 
 
+def _create_tmp_name() -> Path:
+    now = datetime.now().strftime(NOW_DEFAULT_FORMAT)
+    fname = f"_dumped_{now}.{DEFAULT_EXPORT_FORMAT}"
+    return APPLICATION_STORAGE_DIRECTORY / fname
+
+def _get_extension(p: Path) -> str:
+    extension = p.suffix.lower().lstrip(".")
+    supported = {"csv", "json", "xml"}
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise ValueError(f"Path extension({p}) is not in {supported}.")
+    return extension
+
+
+@type_check()
 def fexport(
-        obj : pd.DataFrame | pd.Series | dict, 
-        p : Optional[Path | str] = None, 
+        obj: pd.DataFrame | pd.Series | dict, 
+        p: str | Path | None = None, 
         **kwargs
 ) -> Path:
     """
@@ -55,42 +74,32 @@ def fexport(
     """
 
     if p is None:
-        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        fname = f"_dumped_{now}.json"
-        p = APPLICATION_STORAGE_DIRECTORY / fname
+        p = _create_tmp_name()
     if isinstance(p, str): 
         p = Path(p)
+    extension = _get_extension(p)
 
-    extension = p.suffix.lower().lstrip(".")
-    supported = {"csv", "json", "xml"}
-    if extension not in supported:
-        raise ValueError(f"Path extension({p}) is not in {supported}.")
-
-    savemap = f"to_{extension}"
-    savemap = getattr(obj, savemap)
     if isinstance(obj, pd.DataFrame | pd.Series):
+        savemap = getattr(obj, f"to_{extension}")
         if extension == '.json':
             # https://stackoverflow.com/a/39612316/29272030
             with open(p, "w", encoding='utf-8') as file:
                 savemap(file, force_ascii=False, **kwargs)
-            return p.resolve()
-        # https://stackoverflow.com/a/43684587/29272030
-        savemap(p, encoding='utf-16', **kwargs)
+        else:
+            # https://stackoverflow.com/a/43684587/29272030
+            savemap(p, encoding='utf-16', **kwargs)
         return p.resolve()
 
-    if isinstance(obj, dict):
-        if extension == ".json":
-            jdump(obj, p)
-            return p.resolve()
-        err = f"Extension {extension} is not supported for dictionaries."
-        raise ValueError(err)
+    if extension == ".json":  # no need for isinstance
+        jdump(obj, p)
+        return p.resolve()
     
-    err = f"Argument {obj=} is not a dictionary, Series or DataFrame."
-    raise TypeError(err)
+    raise ValueError(
+        f"Extension {extension} is not supported for dictionaries.")
 
 
 def fimport(
-        p : Path | str,
+        p: Path | str,
         **kwargs
 ) -> pd.DataFrame:
     """
@@ -111,20 +120,15 @@ def fimport(
     """
     if isinstance(p, str):
         p = Path(p)
-    extension = p.suffix.lower().lstrip(".")
-    supported = {"csv", "json", "xml"}
-    if extension not in supported:
-        raise ValueError(f"Path {p} extension is not in {supported}.")
-    
-    savemap = f"read_{extension}"
-    savemap = getattr(pd, savemap)
+    extension = _get_extension(p)
+    savemap = getattr(pd, f"read_{extension}")
     df = savemap(p, encoding='utf-8', **kwargs)
     return df
 
 
 def askeditor() -> Path:
     """Asks for a valid file editor."""
-    program_files = environ['ProgramFiles']
+    program_files = os.environ['ProgramFiles']
     title = "Select your preferred text editor."
     allowed = [("Exe", "*.exe")]
     
@@ -156,33 +160,32 @@ def check_editor(editor_path : Path | str | None) -> Path:
     raise TypeError(f"{editor_path=} is not a valid argument.")
 
 
+@type_check(["p"])
 def open_file_with_editor(
-        p : Path | str,
+        p: Path | str,
         editor: Path,
         /,
-        opendir: bool = False,
+        opendir: bool = DEFAULT_OPEN_DIRECTORY_WITH_EDITOR,
 )-> Path:
-    """Quick file opener, relies on ctx.editor to open said file."""
+    """Open a file with `editor`."""
     if isinstance(p, str):
         p = Path(p)
-    if not isinstance(p, Path):
-        raise TypeError(f"Argument {p} is not Path-like.")
-    
-    # resolve /acccli/ | /acc_py/ to project directory
-    # and resolve with remaning dirs
-    mainpy = Path(sys.path[0])
+
     match p.parts:
-        case ["\\", "acccli", *rest]:
-            p = mainpy.parent / Path(*rest)
-        case ["\\", "acc_py" | "src", *rest]:
-            p = mainpy / Path(*rest)
+        case [os.sep, PROJECT_DIRECTORY.name, *rest]:
+            p = PROJECT_DIRECTORY / Path(*rest)
+        case [os.sep, PYTHON_MODULE.module_name | 
+                      PYTHON_MODULE.module_source, *rest]:
+            p = (PROJECT_DIRECTORY / 
+                 PYTHON_MODULE.module_name / 
+                 PYTHON_MODULE.module_source / 
+                 Path(*rest))
         case _:
             pass
 
     if p.is_dir() and not opendir:
-        print(f"Resolved Path exists but it's a directory: '{p.resolve()}'." 
-              f"Skipping as per user preferences.")
-        return
+        raise ValueError(f"Path {p=!r} is a directory. "
+                         "Set opendir=True to open it.")
 
     subprocess.call([editor, p])
     return p
@@ -190,7 +193,7 @@ def open_file_with_editor(
 
 
 # https://stackoverflow.com/a/49782093/29272030
-def rmdir(directory : Path) -> None:
+def rmdir(directory: Path) -> None:
     for item in directory.iterdir():
         if item.is_dir():
             rmdir(item)

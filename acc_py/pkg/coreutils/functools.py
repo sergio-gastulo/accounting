@@ -43,7 +43,7 @@ def type_check(
     
     Notes
     -----
-    * Ignores parametrized generics
+    * Typechecks parametrized generics origin only.
     """
     def decorator(func):
         @wraps(func)

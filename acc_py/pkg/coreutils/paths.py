@@ -6,6 +6,19 @@ and prompt.py
 """
 
 from pathlib import Path
+from typing import NamedTuple
+
+class PythonModule(NamedTuple):
+    module_name: str
+    module_source: str
+
+
+PYTHON_MODULE = PythonModule("acc_py", "pkg")
+PROJECT_DIRECTORY = (Path(__file__)
+                     .parent   # coreutils
+                     .parent   # pkg
+                     .parent   # acc_pys
+                     .parent)  # project
 
 # directories to save files to
 APPLICATION_DIRECTORY = Path().home() / ".data-acccli"

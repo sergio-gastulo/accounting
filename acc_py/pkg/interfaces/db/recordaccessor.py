@@ -9,8 +9,6 @@ from .dataframe import (has_recordid,
                         pprint_df,
                         sanitize_df,)
 
-
-CATEGORIES = list(ctx.categories_dict.keys())
 ACCESSOR_ALIAS = "recorddb"
 OVERWRITE_DF_HAS_INDEX = True
 
@@ -18,10 +16,13 @@ OVERWRITE_DF_HAS_INDEX = True
 @pd.api.extensions.register_dataframe_accessor(ACCESSOR_ALIAS)
 class RecordAccessor:
     def __init__(self, pandasobj):
-        self._obj = sanitize_df(pandasobj, CATEGORIES)
+        self.categories = list(ctx.categories_dict.keys())
+        self._obj = sanitize_df(pandasobj, self.categories)
 
-    def write(self, *, 
-              overwrite: bool = OVERWRITE_DF_HAS_INDEX
+    def write(
+            self,
+            *, 
+            overwrite: bool = OVERWRITE_DF_HAS_INDEX
     ):
         df = self._obj
         
@@ -43,6 +44,3 @@ class RecordAccessor:
             session.execute(update(Record), asdict)
             session.commit()
         pprint_df(df, header="Actions commited.")
-
-
-# TODO: mirror Entity | Record | Conversion methods to RecordAccessor

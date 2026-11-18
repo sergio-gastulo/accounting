@@ -1,7 +1,10 @@
 from functools import wraps
-from typing import get_type_hints
+from typing import get_type_hints, get_origin
 
 from .colors import fg
+
+
+DEFAULT_ARGUMENT_EARLY_RETURN_CHECK = 0
 
 
 def success(*s: str) -> None:
@@ -15,22 +18,27 @@ def softerror(e: Exception) -> None:
     print(f"{fg.red}{type(e).__name__}: {e}.{fg.reset}")
 
 
-def early_return(classinfo):
-    """Return first argument directly if `isinstance(., classinfo)` 
+def early_return(
+        classinfo,
+        narg: int = DEFAULT_ARGUMENT_EARLY_RETURN_CHECK
+):
+    """Return narg-th argument directly if `isinstance(., classinfo)` 
     evaluates to `True`."""
     def decorator(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            first_arg = args[0]
-            if isinstance(first_arg, classinfo):
-                return first_arg
+            arg = args[narg]
+            if isinstance(arg, classinfo):
+                return arg
             res = func(*args, **kwargs)
             return res
         return wrapped
     return decorator
 
 
-def type_check(argnames: list[str] | None = None):
+def type_check(
+        argnames: list[str] | None = None
+) -> None:
     """Raise TypeError if `argname` argument is not of it's respective type.
     
     Notes
@@ -41,26 +49,27 @@ def type_check(argnames: list[str] | None = None):
         @wraps(func)
         def wrapped(*args, **kwargs):
             typehints = get_type_hints(func)
+            if not typehints:
+                return func(*args, **kwargs)
             inorder = list(typehints.keys())
             iterator = argnames if argnames else inorder
-            if argnames is None:
-                iterator.remove("return")
+            if "return" in iterator:
+                iterator.remove("return")  # return type is not checked
             for argname in iterator:
                 idx = inorder.index(argname)
-                try:
-                    iscorrect = isinstance(args[idx], typehints[argname])
-                except TypeError as e:
-                    if "isinstance() argument" in str(e):
-                        pass
-                    else:
-                        raise e
-                except IndexError:  # TODO: test this
-                    pass  # default values are not passed in *args -> ignoring
-                else:
-                    if not iscorrect:
-                        raise TypeError(
-                            f"Argument {argname=!r} is not of type `str`.")
-            res = func(*args, **kwargs)
-            return res
+                classinfo = typehints[argname]
+                # Default values are not passed in *args
+                # It requires a typing.bing_args call
+                # But, if someone passes / defines a default, it's *OBVIOUS*
+                # that they know what they're doing 
+                # ---> no typecheck
+                if idx >= len(args):
+                    continue
+                if origin := get_origin(classinfo):
+                    classinfo = origin
+                if not isinstance(args[idx], classinfo):
+                    raise TypeError(f"Argument {argname!r} is not of type"
+                                    f" {classinfo!r}.")
+            return func(*args, **kwargs)
         return wrapped
     return decorator

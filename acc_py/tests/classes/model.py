@@ -348,3 +348,9 @@ class TestConversion(TestCase):
         args, _ = mockprint.call_args
         self.assertIn("base->target", args[0])
         self.assertEqual(conv.target_amount, amount)
+
+    def test_swap(self):
+        conv = Conversion(**self.fooargs)
+        conv.swap()
+        self.assertEqual("eur", conv.base_currency)
+        self.assertEqual("usd", conv.target_currency)

@@ -192,7 +192,6 @@ class Conversion(Base, Entity):
 
     def swap(self):
         """Swaps base attrs to target and viceversa."""
-        # TODO: test func
         (self.base_amount,
          self.base_currency,
          self.target_amount,

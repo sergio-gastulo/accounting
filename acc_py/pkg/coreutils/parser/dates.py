@@ -2,7 +2,6 @@
 Date related parsers to isolate module development.
 """
 import re
-from typing import List
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 import dateutil.relativedelta
@@ -37,7 +36,7 @@ def parse_day(day: str, basedate: date) -> date:
         return parse_intday(day, basedate)
 
 
-def parse_month(month: str):
+def parse_month(month: str) -> int:
     """Converts `month` to its integer representation."""
     try:
         return int(month)
@@ -54,14 +53,16 @@ def parse_month(month: str):
         raise ValueError(f"Argument '{month=!r}' is not a valid month.")
 
 
-def get_date_tokens(s : str) -> List[str]:
+def get_date_tokens(s : str) -> list[str]:
     """
     Gets date_tokens from string to list for pattern matching.
     Example: '2026-08' changes to '2026 08' but '-5' remains '-5'
     """
-    tokens = s.replace("'",'').replace('"','')
-    tokens = re.sub(r'([\d ]+)(-)([\d ]+)', r'\1 \3', tokens)
-    return tokens.strip().split()
+    noquotes = re.sub(r"[\"']", "", s).strip()
+    tokens = re.sub(r"[\-\s]+", " ", noquotes)
+    if re.match(r"^-", noquotes):
+        tokens = f"-{tokens}"
+    return tokens.split()
 
 
 def parse_date(date_input : str | int | date) -> date:
@@ -96,10 +97,10 @@ def parse_date(date_input : str | int | date) -> date:
 
         case ['0' | 'today'] | [ ]:
             return today
-
         case [day]:
             return parse_day(day, today)
-
+        case ["-", day]:
+            return parse_day(f"-{day}", today)
         # NOTE: makes no sense 'oct tue', why would you be specifying
         # the name of a day and *the month*? Hence, day is parsed as 
         # a single integer instead of the regular handling of "-1" and 
@@ -108,12 +109,11 @@ def parse_date(date_input : str | int | date) -> date:
             day = int(day)
             month = parse_month(month)
             return today.replace(day=day, month=month)
-
+        
         case [year, month, day]:
             day = int(day)
             month = parse_month(month)
             year = int(year)
-            # 25 -> 2025, 2025 -> 2025
             year += 2000 if year < 100 else 0
             return date(year=year, month=month, day=day)
 

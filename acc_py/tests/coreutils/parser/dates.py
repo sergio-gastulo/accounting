@@ -7,7 +7,8 @@ from pandas import Period
 from pkg.coreutils.parser.dates import (parse_date,
                                         parse_day,
                                         parse_month,
-                                        parse_period,)
+                                        parse_period,
+                                        get_date_tokens,)
 from tests._shared import (TODAY,
                            Patcher)
 
@@ -58,6 +59,29 @@ class TestDayParser(TestCase):
                 parse_day(uinput, self.base)
 
 
+class TestGetDateTokens(TestCase):
+
+    def test_cases(self):
+        cases = [
+            ("2026-08",                     ["2026", "08"]),
+            ("2026-12-31",                  ["2026", "12", "31"]),
+            ("  -5    ",                    ["-", "5"]),
+            ("  -      5    ",              ["-", "5"]),
+            ("0",                           ["0"]),
+            ("today",                       ["today"]),
+            ("oct 10",                      ["oct", "10"]),
+            ("   2025     10    31",        ["2025", "10", "31"]),
+            ("   2025 -    10     31    ",  ["2025", "10", "31"]),
+            ("'2025-11-11'",                ["2025", "11", "11"]),
+            ('"   2021  08   12 "',         ["2021", "08", "12"])
+        ]
+        for s, expected in cases:
+            with self.subTest(s=s):
+                self.assertEqual(get_date_tokens(s), expected)
+
+
+
+
 class TestDateParser(TestCase):
 
     def test_date(self):
@@ -69,8 +93,7 @@ class TestDateParser(TestCase):
             ('10',              TODAY.replace(day=10)),
             ('10 08',           TODAY.replace(month=10, day=8)),
             ('  2025-12 31 ',   datetime.date(year=2025, month=12, day=31)), 
-            # TODO: fix below
-            # ('  2025-12-31 ',   datetime.date(year=2025, month=12, day=31)), 
+            ('  2025-12-31 ',   datetime.date(year=2025, month=12, day=31)), 
             ('2025 12 31',      datetime.date(year=2025, month=12, day=31)), 
             ('25 12 31',        datetime.date(year=2025, month=12, day=31)), 
             ('today',           TODAY),

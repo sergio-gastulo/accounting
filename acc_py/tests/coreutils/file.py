@@ -1,11 +1,13 @@
 from unittest import TestCase, skip
+from unittest.mock import MagicMock, patch
 from typing import Callable
 from pathlib import Path
 
 from pkg.coreutils.file import (file_open,
                                 check_editor,
                                 askeditor,)
-
+from pkg.coreutils.paths import (PROJECT_DIRECTORY,
+                                 PYTHON_MODULE)
 from tests._shared import (TEST_FILE_DIRECTORY,
                            Patcher,
                            patch_builtin,)
@@ -65,6 +67,42 @@ class TestEditorChecker(TestCase):
                     check_editor(arg)
                 mock_ask_editor.assert_called_once_with()
 
-@skip(reason="TODO.")
+
 class TestFileOpen(TestCase):
-    pass
+
+    editor = "mocked"
+
+    def test_file_open_resolves_to_projectdir(self):
+        readme = "readme.md"
+        arg = f"/{PROJECT_DIRECTORY}/{readme}"
+        with patch("subprocess.call") as mockcall:
+            res = file_open(arg, self.editor)
+        (_, subprocess_path),  = mockcall.call_args.args
+        mockcall.assert_called_once()
+        for paths in [res, subprocess_path]:
+            with self.subTest(path=paths):
+                split = paths.parts
+                for name in [PROJECT_DIRECTORY.name, readme]:
+                    with self.subTest(name=name):
+                        self.assertIn(name, split)
+
+    def test_file_open_resolves_to_module(self):
+        main = "main.py"
+        arg = f"/{PYTHON_MODULE.module_source}/{main}"
+        with patch("subprocess.call") as mockcall:
+            res = file_open(arg, self.editor)
+        (_, subprocess_path),  = mockcall.call_args.args
+        mockcall.assert_called_once()
+        for paths in [res, subprocess_path]:
+            with self.subTest(path=paths):
+                split = paths.parts
+                for name in [PYTHON_MODULE.module_source, main]:
+                    with self.subTest(name=name):
+                        self.assertIn(name, split)
+
+
+    def test_opendir(self):
+        opendir = False
+        dir_ = Path().home()
+        with self.assertRaises(ValueError):
+            file_open(dir_, self.editor, opendir=opendir)

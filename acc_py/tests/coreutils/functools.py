@@ -137,6 +137,14 @@ class TestTypeCheck(TestCase):
         except TypeError as e:
             self.fail(f"Unexpected: {e}.")
 
+    def test_uniontype(self):
+        def f(x: int | str) -> int | str:
+            return x
+        try:
+            type_check(["x"])(f)(1)
+        except TypeError as e:
+            self.fail(f"Unexpected: {e}.")
+
 
 if __name__ == "__main__":
     main()

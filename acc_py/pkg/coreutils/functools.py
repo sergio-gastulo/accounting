@@ -1,5 +1,7 @@
 from functools import wraps
-from typing import get_type_hints, get_origin
+from typing import (Union,
+                    get_type_hints,
+                    get_origin,)
 
 from .colors import fg
 
@@ -65,7 +67,8 @@ def type_check(
                 # ---> no typecheck
                 if idx >= len(args):
                     continue
-                if origin := get_origin(classinfo):
+                if ((origin := get_origin(classinfo))
+                    and origin is not Union):
                     classinfo = origin
                 if not isinstance(args[idx], classinfo):
                     raise TypeError(f"Argument {argname!r} is not of type"
